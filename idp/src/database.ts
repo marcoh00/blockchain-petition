@@ -44,7 +44,15 @@ export class Database {
                 proof BLOB NOT NULL
             );
 
+            CREATE TABLE idp_pubkey_queue (
+                pubkey TEXT UNIQUE NOT NULL REFERENCES idp_pubkeys(pubkey)
+            );
+
             INSERT INTO idp_meta (schema) VALUES (1);
-        `)
+        `);
+    }
+
+    fake_identites(depth: number) {
+        // yes.
     }
 }

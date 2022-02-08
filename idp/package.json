@@ -4,14 +4,15 @@
   "description": "Petition IDP",
   "main": "index.js",
   "scripts": {
-    "start": "tsc && node dist/main.js",
+    "start": "tsc && node dist/idp/src/main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "BlockTechDiVer",
   "license": "AGPL-3.0",
   "dependencies": {
     "express": "^4.17",
-    "sqlite3": "^5"
+    "sqlite3": "^5",
+    "web3": "^1.7.0"
   },
   "devDependencies": {
     "@types/express": "^4",
