@@ -5,24 +5,24 @@ import "./IPetition.sol";
 
 contract Petition is IPetition {
     bytes32 private pName;
-    bytes32[] private pDescription;
+    string private pDescription;
     bytes32 pId;
     IRegistry private pRegistry;
     uint32 private pSigners;
     mapping(uint256 => bool) private pHasSigned;
 
-    constructor(bytes32 name, bytes32[] memory description, bytes32 id, address registry) {
-        pName = name;
-        pDescription = description;
-        pId = id;
-        pRegistry = IRegistry(registry);
+    constructor(bytes32 lName, string memory lDescription, bytes32 lId, address lRegistry) {
+        pName = lName;
+        pDescription = lDescription;
+        pId = lId;
+        pRegistry = IRegistry(lRegistry);
     }
 
     function name() override external view returns (bytes32) {
         return pName;
     }
 
-    function description() override external view returns (bytes32[] memory) {
+    function description() override external view returns (string memory) {
         return pDescription;
     }
 
@@ -34,12 +34,12 @@ contract Petition is IPetition {
         return pRegistry;
     }
 
-    function sign(uint256[] calldata proof, uint8 iteration, uint256 identity) override external {
-        require(pHasSigned[identity] == false);
-        (uint256 rt, uint256 creation) = this.registry().idp().getHash(iteration);
-        require(block.timestamp < creation + 1 weeks);
-        require(true /* TODO: Verify proof */);
-        pHasSigned[identity] = true;
+    function sign(bytes calldata lProof, uint8 lIteration, uint256 lIdentity) override external {
+        require(pHasSigned[lIdentity] == false);
+        (uint256 rt, uint256 creation) = this.registry().idp().getHash(lIteration);
+        require(block.timestamp < creation + this.registry().idp().validity());
+        require(this.registry().verifier().checkProof(lProof, rt, pId));
+        pHasSigned[lIdentity] = true;
         pSigners += 1;
     }
 

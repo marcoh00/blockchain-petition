@@ -6,19 +6,28 @@ interface IIDP {
     function getHash(uint8) external view returns (uint256, uint256);
     function lastIteration() external view returns (uint8);
     function depth() external view returns (uint8);
+    function validity() external view returns (uint256);
+    function url() external view returns (string memory);
+}
+
+interface IVerifier {
+    function pk() external view returns (uint256[] memory);
+    function vk() external view returns (uint256[] memory);
+    function checkProof(bytes calldata, uint256, bytes32) external view returns (bool);
 }
 
 interface IRegistry {
     function name() external view returns (bytes32);
     function idp() external view returns (IIDP);
     function petitions() external view returns (IPetition[] memory);
+    function verifier() external view returns (IVerifier);
 }
 
 interface IPetition {
     function name() external view returns (bytes32);
-    function description() external view returns (bytes32[] memory);
+    function description() external view returns (string memory);
     function id() external view returns (bytes32);
     function registry() external view returns (IRegistry);
-    function sign(uint256[] calldata, uint8, uint256) external;
+    function sign(bytes calldata, uint8, uint256) external;
     function signers() external view returns (uint32);
 }
