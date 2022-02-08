@@ -6,7 +6,8 @@ interface IIDP {
     function getHash(uint8) external view returns (uint256, uint256);
     function lastIteration() external view returns (uint8);
     function depth() external view returns (uint8);
-    function validity() external view returns (uint256);
+    function periodlen() external view returns (uint256);
+    function period() external view returns (uint256);
     function url() external view returns (string memory);
 }
 
@@ -28,6 +29,7 @@ interface IPetition {
     function description() external view returns (string memory);
     function id() external view returns (bytes32);
     function registry() external view returns (IRegistry);
+    function period() external view returns (uint256);
     function sign(bytes calldata, uint8, uint256) external;
     function signers() external view returns (uint32);
 }

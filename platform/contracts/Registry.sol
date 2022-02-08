@@ -11,10 +11,10 @@ contract Registry is IRegistry {
     bytes32 private pName;
     uint256 petitionId;
 
-    constructor(bytes32 name, address idp, address verifier) {
-        pName = name;
-        pIDP = IIDP(idp);
-        pVerifier = IVerifier(verifier);
+    constructor(bytes32 lName, address lIdp, address lVerifier) {
+        pName = lName;
+        pIDP = IIDP(lIdp);
+        pVerifier = IVerifier(lVerifier);
     }
 
     function name() override external view returns (bytes32) {
@@ -33,11 +33,11 @@ contract Registry is IRegistry {
         return pVerifier;
     }
 
-    function createPetition(bytes32 name, string calldata description) external {
+    function createPetition(bytes32 lName, string calldata description) external {
         petitionId += 1;
 
         pPetitions.push(
-            new Petition(name, description, keccak256(abi.encode(bytes32(petitionId) ^ name)), address(this))
+            new Petition(lName, description, keccak256(abi.encode(bytes32(petitionId) ^ lName)), pIDP.period() + 1, address(this))
         );
     }
 }

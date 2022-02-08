@@ -7,14 +7,16 @@ contract Petition is IPetition {
     bytes32 private pName;
     string private pDescription;
     bytes32 pId;
+    uint256 pPeriod;
     IRegistry private pRegistry;
     uint32 private pSigners;
     mapping(uint256 => bool) private pHasSigned;
 
-    constructor(bytes32 lName, string memory lDescription, bytes32 lId, address lRegistry) {
+    constructor(bytes32 lName, string memory lDescription, bytes32 lId, uint256 lPeriod, address lRegistry) {
         pName = lName;
         pDescription = lDescription;
         pId = lId;
+        pPeriod = lPeriod;
         pRegistry = IRegistry(lRegistry);
     }
 
@@ -34,10 +36,14 @@ contract Petition is IPetition {
         return pRegistry;
     }
 
+    function period() override external view returns (uint256) {
+        return pPeriod;
+    }
+
     function sign(bytes calldata lProof, uint8 lIteration, uint256 lIdentity) override external {
         require(pHasSigned[lIdentity] == false);
-        (uint256 rt, uint256 creation) = this.registry().idp().getHash(lIteration);
-        require(block.timestamp < creation + this.registry().idp().validity());
+        (uint256 rt, uint256 rtProofPeriod) = this.registry().idp().getHash(lIteration);
+        require(rtProofPeriod == this.period());
         require(this.registry().verifier().checkProof(lProof, rt, pId));
         pHasSigned[lIdentity] = true;
         pSigners += 1;
