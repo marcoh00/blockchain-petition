@@ -5,7 +5,8 @@ async function main() {
   // rt depth = 8
   // ~ 2^8 = 256 identities per hour can be added to the IDP's merkle tree
   // validity = 604800 ~ 1 week
-  const idp = await IDP.deploy(8, 604800);
+  // 5400 ~ 90min
+  const idp = await IDP.deploy(8, 5400);
   await idp.deployed();
 
   console.log(`IDP deployed to ${idp.address}`);
