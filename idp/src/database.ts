@@ -1,4 +1,5 @@
 import * as sqlite3 from "sqlite3";
+import { IRegistration } from "./api";
 
 export class Database {
     filename: string;
@@ -6,9 +7,6 @@ export class Database {
 
     constructor(filename: string) {
         this.filename = filename;
-    }
-
-    connect() {
         this.db = new sqlite3.Database(this.filename);
         this.maybe_init();
     }
@@ -17,25 +15,32 @@ export class Database {
         this.db.get("SELECT schema FROM idp_meta", (err, row) => { if(row === undefined || Number.parseInt(row.schema) < 1) this.init() });
     }
 
+    isRegistered(registration: IRegistration): boolean {
+        let row_found = false;
+        this.db.get("SELECT pubkey, identity, period FROM idp_pubkeys WHERE (identity = ? AND period = ?) OR pubkey = ?", [registration.identity, registration.period, registration.pubkey], (err, row) => { if(row === undefined) row_found = false; else row_found = true });
+        return row_found;
+    }
+
+    register(registration: IRegistration) {
+        this.db.run("INSERT INTO idp_pubkeys (pubkey, identity, period) VALUES (?, ?, ?)", [registration.pubkey, registration.identity, registration.period]);
+    }
+
     init() {
         this.db.exec(`
             CREATE TABLE idp_meta (
                 schema INTEGER UNIQUE NOT NULL
             );
 
-            CREATE TABLE idp_identities (
-                identity TEXT UNIQUE NOT NULL PRIMARY KEY,
-                last_verification INTEGER NOT NULL
-            );
-
             CREATE TABLE idp_tree_hashes (
                 hash TEXT UNIQUE NOT NULL PRIMARY KEY,
-                in_block INTEGER
+                in_block INTEGER NOT NULL,
+                period INTEGER NOT NULL
             );
 
             CREATE TABLE idp_pubkeys (
                 pubkey TEXT UNIQUE NOT NULL PRIMARY KEY,
-                identity TEXT NOT NULL REFERENCES idp_identities(identity)
+                identity TEXT NOT NULL,
+                period INTEGER NOT NULL
             );
 
             CREATE TABLE idp_pubkey_in_tree (
