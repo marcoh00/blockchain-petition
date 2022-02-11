@@ -9,7 +9,7 @@ export interface IRegistration {
 
 export const checkRegistration = (registration: IRegistration, minperiod?: number, maxperiod?: number): boolean => {
     if(!registration.pubkey.startsWith("0x")) return false;
-    if(registration.pubkey.length != 34) return false;
+    if(registration.pubkey.length != 66) return false;
     if(minperiod && maxperiod && (registration.period < minperiod || registration.period > maxperiod)) return false;
     return true;
 }

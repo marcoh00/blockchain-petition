@@ -43,6 +43,9 @@ app.post('/register', async (req, res) => {
         res.json({ "error": "Malformed Request" });
         return;
     }
+    if(registration.period === -1) {
+        registration.period = await ethereum.period();
+    }
     if(!checkRegistration(registration, minperiod, maxperiod)) {
         res.statusCode = 400;
         res.json({ "error": "Invalid registration" });
