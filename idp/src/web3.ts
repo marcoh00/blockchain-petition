@@ -14,4 +14,31 @@ export class EthereumConnector {
         this.account = account;
         this.privkey = privkey;
     }
+
+    async period(): Promise<number> {
+        return Number.parseInt(await this.contract.methods.period().call());
+    }
+
+    async startPeriod(period: number): Promise<number> {
+        return Number.parseInt(await this.contract.methods.start_period(period).call());
+    }
+
+    async nextPeriod(current_period?: number): Promise<number> {
+        if(current_period === undefined) {
+            current_period = await this.period();
+        }
+        return await this.startPeriod(current_period + 1);
+    }
+
+    async lastIteration(): Promise<number> {
+        return Number.parseInt(await this.contract.methods.lastIteration().call());
+    }
+
+    async periodlen(): Promise<number> {
+        return Number.parseInt(await this.contract.methods.periodlen().call());
+    }
+
+    async interval(): Promise<number> {
+        return await this.periodlen() / 254;
+    }
 }
