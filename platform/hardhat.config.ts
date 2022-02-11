@@ -19,12 +19,26 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   }
 });
 
+task("imining", "Switch to interval-based mining", async (taskArgs, hre) => {
+  const interval = 8000;
+  await hre.network.provider.send("evm_setAutomine", [false]);
+  console.log(`Automine disabled`);
+  await hre.network.provider.send("evm_setIntervalMining", [interval]);
+  console.log(`Interval Mining set to ${interval}ms`);
+})
+
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 
 const config: HardhatUserConfig = {
   solidity: "0.8.4",
   networks: {
+    hardhat: {
+      mining: {
+        auto: false,
+        interval: 8000
+      }
+    },
     ropsten: {
       url: process.env.ROPSTEN_URL || "",
       accounts:
