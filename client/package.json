@@ -4,7 +4,7 @@
   "description": "Petition Client",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "webpack-dev-server --mode=development"
   },
   "author": "BlockTechDiVer",
   "license": "AGPL-3.0",
