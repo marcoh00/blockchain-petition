@@ -85,6 +85,9 @@ async function repeat() {
     console.log(`keys=${test_keys.map((key) => key.toHex())}`);
     const tree = new MerkleTree(test_keys, (x) => SHA256Hash.fromUint8ArrayViaCryptoAPI(x, 'SHA-256'));
     await tree.buildTree();
+
+    const element = tree.leaf(await SHA256Hash.hashString("2"));
+    tree.getProof(element);
 }
 
 app.listen(port, async () => {
