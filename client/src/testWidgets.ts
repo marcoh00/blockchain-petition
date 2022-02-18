@@ -1,7 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 
-import { digestMessageToArray, bufferToHexString } from './utils';
+import { SHA256Hash } from '../../shared/merkle';
 
 export class KeyGenerator extends LitElement {
     static styles = css`
@@ -86,10 +86,10 @@ export class KeyGenerator extends LitElement {
         }
 
         this.privstring = `${this.period}||${this.identity}`;
-        const privstring_hash = await digestMessageToArray(this.privstring);
+        const privstring_hash = await SHA256Hash.hashString(this.privstring);
 
-        this.privkey = `0x${bufferToHexString(privstring_hash)}`;
-        this.pubkey = `0x${bufferToHexString(await await crypto.subtle.digest('SHA-256', privstring_hash))}`;
+        this.privkey = `0x${privstring_hash.toHex()}`;
+        this.pubkey = `0x${(await SHA256Hash.hashRaw(privstring_hash.rawValue())).toHex()}`;
         console.log(target.id, target.value, target);
     }
 }
