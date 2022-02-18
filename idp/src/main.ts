@@ -2,13 +2,14 @@ import express from "express";
 import { checkRegistration, checkValidType, IRegistration } from "./api";
 import { Database } from "./database";
 import { EthereumConnector } from "./web3";
+import { SHA256Hash, MerkleTree } from '../../shared/merkle';
 
 const port = 65535;
 const account = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266';
 const privkey = '0xea6c44ac03bff858b476bba40716402b03e41b8e97e276d1baec7c37d42484a0';
 const api = 'ws://127.0.0.1:8545';
 const contract = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
-const databasefile = `dist/database.db`;
+const databasefile = `/home/mhuens2m/build/petition/idp/dist/database.db`;
 
 const app = express();
 app.use(express.json());
@@ -71,6 +72,19 @@ app.post('/register', async (req, res) => {
 async function repeat() {
     const thisPeriod = await ethereum.period();
     console.log(`🌐 Tree ${await ethereum.lastIteration()} in period ${thisPeriod} (next period in ${Math.ceil(await ethereum.nextPeriod() - (Date.now() / 1000))}s)`);
+    const test_keys = [
+        await SHA256Hash.hashString("1"),
+        await SHA256Hash.hashString("2"),
+        await SHA256Hash.hashString("3"),
+        await SHA256Hash.hashString("4"),
+        await SHA256Hash.hashString("5"),
+        await SHA256Hash.hashString("6"),
+        await SHA256Hash.hashString("7"),
+        await SHA256Hash.hashString("8")
+    ];
+    console.log(`keys=${test_keys.map((key) => key.toHex())}`);
+    const tree = new MerkleTree(test_keys, (x) => SHA256Hash.fromUint8ArrayViaCryptoAPI(x, 'SHA-256'));
+    await tree.buildTree();
 }
 
 app.listen(port, async () => {
@@ -82,5 +96,5 @@ app.listen(port, async () => {
     console.log(`💾 Connecting to database at ${databasefile}`);
     const interval = Math.ceil(await ethereum.interval());
     console.log(`🌐 Try to create a new tree hash every ${interval}s`);
-    setInterval(repeat, interval * 1000);
+    setInterval(repeat, interval * 100);
 })
