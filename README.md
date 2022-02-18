@@ -77,7 +77,7 @@ Eine Petition ist einer Abstimmungsperiode fest zugeordnet.
 
 # Installation
 
-Eine aktuelle Version von [nodejs]() wird benötigt.
+Eine aktuelle Version von [nodejs](https://nodejs.org) wird benötigt.
 
 ## Smart Contract Platform
 
