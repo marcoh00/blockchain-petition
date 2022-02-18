@@ -5,16 +5,18 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "pwa-node",
+            "name": "Launch IDP via NPM",
             "request": "launch",
-            "name": "Launch Program",
+            "cwd": "${workspaceFolder}/idp",
+            "runtimeArgs": [
+                "run",
+                "start"
+            ],
+            "runtimeExecutable": "npm",
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/idp/dist/idp/src/main.js",
-            "outFiles": [
-                "${workspaceFolder}/**/*.js"
-            ]
+            "type": "pwa-node"
         }
     ]
 }
