@@ -101,6 +101,10 @@ class MerkleNode {
         this.height = height;
         this.top = top;
     }
+
+    equals(other: MerkleNode): boolean {
+        return this.hash.equals(other.hash);
+    }
 }
 
 class MerkleInode extends MerkleNode {
@@ -126,7 +130,7 @@ class MerkleInode extends MerkleNode {
     which(hash: DataHash): Direction {
         if(hash.equals(this.left.hash)) return Direction.Left;
         else if(hash.equals(this.right.hash)) return Direction.Right;
-        throw new Error("Merkle Inode does not given hash child");
+        throw new Error("Merkle Inode does not contain given hash child");
     }
 }
 
@@ -162,10 +166,39 @@ export class MerkleTree {
                     this.hashfunc
                 );
                 await newNode.calcHash();
-                allNodes[cdepth + 1].forEach(node => node.top = newNode);
+                allNodes[cdepth + 1][element].top = newNode;
+                allNodes[cdepth + 1][element + 1].top = newNode;
                 allNodes[cdepth].push(newNode);
             }
         }
         this.root = allNodes[0][0] as MerkleInode;
+    }
+
+    leaf(hash: DataHash): MerkleNode {
+        return this.leafs.find((value) => value.hash.equals(hash));
+    }
+
+    getProof(leaf: MerkleNode) {
+        if(this.leafs.find((value) => value.equals(leaf)) === undefined) throw new Error("Invalid leaf");
+        const directionSelector: Array<boolean> = new Array();
+        const path: Array<DataHash> = new Array();
+
+        let current_node = leaf;
+        for(let i = 0; i < this.depth; i++) {
+            let parent = current_node.top;
+            let which = parent.which(current_node.hash);
+            directionSelector.push(which === Direction.Left ? false : true);
+            path.push(which === Direction.Left ? parent.right.hash : parent.left.hash);
+
+            current_node = parent;
+        }
+
+        const result = {
+            directionSelector,
+            path
+        };
+        console.log("Merkle Proof", result);
+        console.log("Path", result.path.map((hash) => hash.toHex()));
+        return result;
     }
 }
