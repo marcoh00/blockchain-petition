@@ -19,6 +19,10 @@ export class EthereumConnector {
         return Number.parseInt(await this.contract.methods.period().call());
     }
 
+    async depth(): Promise<number> {
+        return Number.parseInt(await this.contract.methods.depth().call());
+    }
+
     async startPeriod(period: number): Promise<number> {
         return Number.parseInt(await this.contract.methods.start_period(period).call());
     }

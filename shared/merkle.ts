@@ -16,7 +16,7 @@ function subtleModule(): SubtleCrypto {
     return subtle_module;
 }
 
-abstract class DataHash implements DataHash {
+export abstract class DataHash implements DataHash {
     private hash: Uint8Array;
 
     constructor(array: Uint8Array, length: number) {
@@ -36,8 +36,11 @@ abstract class DataHash implements DataHash {
         return this.hash.length == other.rawValue().length && this.hash.every((value, index) => value === other.rawValue()[index]);
     }
 
-    static fromHex(hex: string): DataHash {
-        throw new Error("Method not implemented.");
+    static async fromHex(hex: string): Promise<DataHash> {
+        const buffer = Buffer.from(hex, 'hex');
+        const data = Uint8Array.from(buffer);
+        console.log("Log here");
+        return await this.fromUint8Array(data);
     }
     static async fromStringViaCryptoAPI(input: string, algorithm: string): Promise<DataHash> {
         const encoder = new TextEncoder();
@@ -134,6 +137,18 @@ class MerkleInode extends MerkleNode {
     }
 }
 
+interface MerkleProof {
+    directionSelector: Array<boolean>,
+    path: Array<DataHash>
+}
+
+export function serializeMerkleProof(proof: MerkleProof): string {
+    return JSON.stringify({
+        directionSelector: proof.directionSelector,
+        path: proof.path.map((hash) => hash.toHex())
+    });
+}
+
 export class MerkleTree {
     private depth: number;
     private root?: MerkleInode;
@@ -174,11 +189,16 @@ export class MerkleTree {
         this.root = allNodes[0][0] as MerkleInode;
     }
 
+    getRoot(): MerkleInode {
+        if(this.root === undefined) throw new Error("Calculate the whole tree first by calling buildTree");
+        return this.root;
+    }
+
     leaf(hash: DataHash): MerkleNode {
         return this.leafs.find((value) => value.hash.equals(hash));
     }
 
-    getProof(leaf: MerkleNode) {
+    getProof(leaf: MerkleNode): MerkleProof {
         if(this.leafs.find((value) => value.equals(leaf)) === undefined) throw new Error("Invalid leaf");
         const directionSelector: Array<boolean> = new Array();
         const path: Array<DataHash> = new Array();

@@ -3,6 +3,7 @@ import { checkRegistration, checkValidType, IRegistration } from "./api";
 import { Database } from "./database";
 import { EthereumConnector } from "./web3";
 import { SHA256Hash, MerkleTree } from '../../shared/merkle';
+import { intervalTask } from "./task";
 
 const port = 65535;
 const account = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266';
@@ -69,7 +70,7 @@ app.post('/register', async (req, res) => {
     }
 })
 
-async function repeat() {
+async function testMerkle() {
     const thisPeriod = await ethereum.period();
     console.log(`🌐 Tree ${await ethereum.lastIteration()} in period ${thisPeriod} (next period in ${Math.ceil(await ethereum.nextPeriod() - (Date.now() / 1000))}s)`);
     const test_keys = [
@@ -82,12 +83,16 @@ async function repeat() {
         await SHA256Hash.hashString("7"),
         await SHA256Hash.hashString("8")
     ];
-    console.log(`keys=${test_keys.map((key) => key.toHex())}`);
-    const tree = new MerkleTree(test_keys, (x) => SHA256Hash.fromUint8ArrayViaCryptoAPI(x, 'SHA-256'));
+    console.log(`leafs=${test_keys.map((key) => key.toHex())}`);
+    const tree = new MerkleTree(test_keys, (x) => SHA256Hash.hashRaw(x));
     await tree.buildTree();
 
     const element = tree.leaf(await SHA256Hash.hashString("2"));
     tree.getProof(element);
+}
+
+async function repeat() {
+    await intervalTask(ethereum, database);
 }
 
 app.listen(port, async () => {
