@@ -27,14 +27,38 @@ export class Database {
                       OR pubkey = ?`,
                 [registration.identity, registration.period, registration.pubkey],
                 (err, row) => {
-                    if(row === undefined) reject(err);
-                    else resolve(true);
+                    if(row === undefined) resolve(false);
+                    else {
+                        console.log(row);
+                        resolve(true);
+                    }
                 });
         });
     }
 
-    register(registration: IRegistration) {
-        this.db.run("INSERT INTO idp_pubkeys (pubkey, identity, period) VALUES (?, ?, ?)", [registration.pubkey, registration.identity, registration.period]);
+    async getProofInfo(token: string): Promise<any> {
+        return new Promise((resolve, reject) => {
+            this.db.get(`
+                SELECT t.hash, t.iteration, t.period, pt.proof
+                FROM idp_pubkeys p
+                JOIN idp_pubkey_in_tree pt
+                ON p.pubkey = pt.pubkey
+                JOIN idp_tree_hashes t
+                ON pt.hash = t.hash
+                WHERE p.token = ?
+            `, [token], (err, row) => row === undefined ? reject(err) : resolve(row))
+        });
+    }
+
+    async register(registration: IRegistration, token: string) {
+        return new Promise((resolve, reject) => {
+            this.db.run(`
+                INSERT INTO idp_pubkeys
+                (pubkey, identity, period, token)
+                VALUES
+                (?, ?, ?, ?)
+            `, [registration.pubkey, registration.identity, registration.period, token], (res, err) => res === undefined ? reject(err) : resolve(res));
+        });
     }
 
     init() {
@@ -45,14 +69,15 @@ export class Database {
 
             CREATE TABLE idp_tree_hashes (
                 hash TEXT UNIQUE NOT NULL PRIMARY KEY,
-                in_block INTEGER,
+                iteration INTEGER,
                 period INTEGER NOT NULL
             );
 
             CREATE TABLE idp_pubkeys (
                 pubkey TEXT UNIQUE NOT NULL PRIMARY KEY,
                 identity TEXT NOT NULL,
-                period INTEGER NOT NULL
+                period INTEGER NOT NULL,
+                token TEXT UNIQUE NOT NULL
             );
 
             CREATE TABLE idp_pubkey_in_tree (
@@ -101,6 +126,30 @@ export class Database {
                     ?, ?, ?
                 )
             `, [root, pubkey, proof], (res, err) => res === undefined ? reject(err) : resolve(res))
+        });
+    }
+
+    async treesToIncludeOnBlockchain(period: number): Promise<Array<string>> {
+        return new Promise((resolve, reject) => {
+            this.db.all(`
+                SELECT hash
+                FROM idp_tree_hashes
+                WHERE period = ?
+                    AND iteration IS NULL
+            `, [period], (err, rows) => {
+                if(rows === undefined) reject(err);
+                else resolve(rows.map(value => value["hash"]));
+            })
+        });
+    }
+
+    async updateTreeWithIteration(hash: string, iteration: number): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.db.run(`
+                UPDATE idp_tree_hashes
+                SET iteration = ?
+                WHERE hash = ?
+            `, [iteration, hash], (res, err) => res === undefined ? reject(err) : resolve(res));
         });
     }
 

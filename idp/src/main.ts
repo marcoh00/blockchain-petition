@@ -54,14 +54,16 @@ app.post('/register', async (req, res) => {
         return;
     }
     try {
-        if(database.isRegistered(registration)) {
+        if(await database.isRegistered(registration)) {
             res.statusCode = 405;
             res.json({ "error": "Public Key is already registered for given period" });
             return;
         }
-        database.register(registration);
+        const token = randomBytes(32).toString("hex");
+        database.register(registration, token);
         res.statusCode = 200;
-        console.log(`💾 Registration saved to database`, registration);
+        res.json({ "token": token });
+        console.log(`💾 Registration saved to database`, registration, token);
         return;
     } catch(e) {
         res.statusCode = 500;
