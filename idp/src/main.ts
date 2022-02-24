@@ -7,7 +7,7 @@ import { intervalTask } from "./task";
 
 const port = 65535;
 const account = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266';
-const privkey = '0xea6c44ac03bff858b476bba40716402b03e41b8e97e276d1baec7c37d42484a0';
+const privkey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 const api = 'ws://127.0.0.1:8545';
 const contract = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
 const databasefile = `/home/mhuens2m/build/petition/idp/dist/database.db`;
@@ -94,6 +94,7 @@ async function testMerkle() {
 }
 
 async function repeat() {
+    console.log(`🌐 Try to create a new tree hash (period ${await ethereum.period()}, ${await ethereum.nextPeriod() - Math.floor((new Date()).valueOf() / 1000)}/${await ethereum.periodlen()})`);
     await intervalTask(ethereum, database);
 }
 
@@ -106,5 +107,5 @@ app.listen(port, async () => {
     console.log(`💾 Connecting to database at ${databasefile}`);
     const interval = Math.ceil(await ethereum.interval());
     console.log(`🌐 Try to create a new tree hash every ${interval}s`);
-    setInterval(repeat, interval * 100);
+    setInterval(repeat, interval * 1000);
 })
