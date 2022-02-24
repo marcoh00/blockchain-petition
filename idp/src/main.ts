@@ -1,5 +1,6 @@
 import express from "express";
-import { checkRegistration, checkValidType, IRegistration } from "./api";
+import { randomBytes } from "crypto";
+import { checkRegistration, checkValidType, IRegistration, IProofRequest } from "./api";
 import { Database } from "./database";
 import { EthereumConnector } from "./web3";
 import { SHA256Hash, MerkleTree } from '../../shared/merkle';
@@ -34,6 +35,39 @@ app.get('/web3', async (req, res) => {
             "endperiod": await ethereum.contract.methods.end_period(await ethereum.contract.methods.period().call()).call()
         }
     });
+})
+
+app.post('/proof', async (req, res) => {
+    const proof_request = req.body as IProofRequest;
+    if(!checkValidType(["token"], proof_request)) {
+        res.statusCode = 400;
+        res.json({ "error": "Malformed Request" });
+        return;
+    }
+    proof_request.token = proof_request.token.toString();
+    if(proof_request.token.length !== 64) {
+        res.statusCode = 400;
+        res.json({ "error": "Malformed Request" });
+        return;
+    }
+
+    let found = false;
+    const result_row = await database.getProofInfo(proof_request.token)
+        .then((row) => { return {
+            hash: row.hash,
+            iteration: row.iteration,
+            period: row.period,
+            proof: JSON.parse(row.proof)
+        };})
+        .catch(err => { console.log(err); return undefined; });
+    if(result_row === undefined) {
+        res.statusCode = 404;
+        res.json({ "error": "Unknown Token" });
+        return;
+    }
+    res.statusCode = 200;
+    res.json(result_row);
+    console.log("/proof return", result_row);
 })
 
 app.post('/register', async (req, res) => {
