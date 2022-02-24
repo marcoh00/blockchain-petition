@@ -88,8 +88,8 @@ export class KeyGenerator extends LitElement {
         this.privstring = `${this.period}||${this.identity}`;
         const privstring_hash = await SHA256Hash.hashString(this.privstring);
 
-        this.privkey = `0x${privstring_hash.toHex()}`;
-        this.pubkey = `0x${(await SHA256Hash.hashRaw(privstring_hash.rawValue())).toHex()}`;
+        this.privkey = `${privstring_hash.toHex()}`;
+        this.pubkey = `${(await SHA256Hash.hashRaw(privstring_hash.rawValue())).toHex()}`;
         console.log(target.id, target.value, target);
     }
 }
