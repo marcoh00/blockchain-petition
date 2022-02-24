@@ -8,11 +8,18 @@ export class EthereumConnector {
     account?: string
     privkey?: string
 
-    constructor(url: string, idpcontract: string, account?: string, privkey?: string) {
+    constructor(url: string, idpcontract: string, account: string, privkey: string) {
         this.api = new Web3(url);
         this.contract = new this.api.eth.Contract((IDPContract.abi as any), idpcontract);
         this.account = account;
         this.privkey = privkey;
+    }
+
+    async submitHash(hash: string, period: number): Promise<number> {
+        const web3result: Promise<any> = this.contract.methods.submitHash(`0x${hash}`, period).send({
+            from: this.account
+        })
+        return web3result.then(tx => Number.parseInt(tx.events.HashAdded.returnValues.iteration));
     }
 
     async period(): Promise<number> {
@@ -23,15 +30,18 @@ export class EthereumConnector {
         return Number.parseInt(await this.contract.methods.depth().call());
     }
 
-    async startPeriod(period: number): Promise<number> {
+    async startPeriod(period?: number): Promise<number> {
+        if(period === undefined) {
+            period = await this.period();
+        }
         return Number.parseInt(await this.contract.methods.start_period(period).call());
     }
 
-    async nextPeriod(current_period?: number): Promise<number> {
-        if(current_period === undefined) {
-            current_period = await this.period();
+    async nextPeriod(period?: number): Promise<number> {
+        if(period === undefined) {
+            period = await this.period();
         }
-        return await this.startPeriod(current_period + 1);
+        return await this.startPeriod(period + 1);
     }
 
     async lastIteration(): Promise<number> {
