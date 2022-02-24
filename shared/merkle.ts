@@ -36,11 +36,10 @@ export abstract class DataHash implements DataHash {
         return this.hash.length == other.rawValue().length && this.hash.every((value, index) => value === other.rawValue()[index]);
     }
 
-    static async fromHex(hex: string): Promise<DataHash> {
+    static fromHex(hex: string): DataHash {
         const buffer = Buffer.from(hex, 'hex');
         const data = Uint8Array.from(buffer);
-        console.log("Log here");
-        return await this.fromUint8Array(data);
+        return this.fromUint8Array(data);
     }
     static async fromStringViaCryptoAPI(input: string, algorithm: string): Promise<DataHash> {
         const encoder = new TextEncoder();
@@ -48,8 +47,8 @@ export abstract class DataHash implements DataHash {
         return this.fromUint8ArrayViaCryptoAPI(data, algorithm);
     }
     static async fromUint8ArrayViaCryptoAPI(data: Uint8Array, algorithm: string): Promise<DataHash> {
-        return subtleModule().digest(algorithm, data)
-            .then((buffer) => this.fromUint8Array(new Uint8Array(buffer)));
+        const buffer = await subtleModule().digest(algorithm, data)
+        return this.fromUint8Array(new Uint8Array(buffer));
     }
     static async fromArrayBuffer(buffer: ArrayBuffer): Promise<DataHash> {
         return this.fromUint8Array(new Uint8Array(buffer));
@@ -61,7 +60,7 @@ export abstract class DataHash implements DataHash {
     static async hashString(input: string): Promise<DataHash> {
         throw new Error("Not implemented");
     }
-    static async fromUint8Array(array: Uint8Array): Promise<DataHash> {
+    static fromUint8Array(array: Uint8Array): DataHash {
         throw new Error("Not implemented");
     }
 }
@@ -84,7 +83,7 @@ export class SHA256Hash extends DataHash {
         return this.fromStringViaCryptoAPI(input, 'SHA-256');
     }
 
-    static async fromUint8Array(array: Uint8Array): Promise<DataHash> {
+    static fromUint8Array(array: Uint8Array): DataHash {
         return new SHA256Hash(array);
     }
 }
