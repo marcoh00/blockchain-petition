@@ -42,7 +42,7 @@ contract Petition is IPetition {
 
     function sign(bytes calldata lProof, uint8 lIteration, uint256 lIdentity) override external {
         require(pHasSigned[lIdentity] == false);
-        (uint256 rt, uint256 rtProofPeriod) = this.registry().idp().getHash(lIteration);
+        (bytes32 rt, uint256 rtProofPeriod) = this.registry().idp().getHash(lIteration);
         require(rtProofPeriod == this.period());
         require(this.registry().verifier().checkProof(lProof, rt, pId));
         pHasSigned[lIdentity] = true;

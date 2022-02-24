@@ -2,8 +2,8 @@
 pragma solidity ^0.8;
 
 interface IIDP {
-    function submitHash(uint256) external returns (uint256);
-    function getHash(uint8) external view returns (uint256, uint256);
+    function submitHash(bytes32, uint256) external returns (uint256);
+    function getHash(uint8) external view returns (bytes32, uint256);
     function lastIteration() external view returns (uint8);
     function depth() external view returns (uint8);
     function periodlen() external view returns (uint256);
@@ -14,7 +14,7 @@ interface IIDP {
 interface IVerifier {
     function pk() external view returns (uint256[] memory);
     function vk() external view returns (uint256[] memory);
-    function checkProof(bytes calldata, uint256, bytes32) external view returns (bool);
+    function checkProof(bytes calldata, bytes32, bytes32) external view returns (bool);
 }
 
 interface IRegistry {

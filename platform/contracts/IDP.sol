@@ -7,18 +7,23 @@ contract IDP is IIDP {
     uint8 private DEPTH;
     uint8 private pLastIteration;
     uint256 PERIOD_LEN;
-    uint256[255] private pRoot;
+    bytes32[255] private pRoot;
     uint256[255] private pRootForPeriod;
+
+    event HashAdded(bytes32 indexed root, uint256 indexed period, uint8 iteration);
 
     constructor(uint8 lDepth, uint256 lPeriodLen) {
         DEPTH = lDepth;
         PERIOD_LEN = lPeriodLen;
     }
 
-    function submitHash(uint256 rt) override external returns (uint256) {
+    function submitHash(bytes32 rt, uint256 designatedPeriod) override external returns (uint256) {
+        require(designatedPeriod == period());
+        resetIterationCounterIfNeccessary();
         pLastIteration += 1;
         pRoot[pLastIteration] = rt;
-        pRootForPeriod[pLastIteration] = period();
+        pRootForPeriod[pLastIteration] = designatedPeriod;
+        emit HashAdded(rt, designatedPeriod, pLastIteration);
         return pLastIteration;
     }
 
@@ -29,7 +34,7 @@ contract IDP is IIDP {
         }
     }
 
-    function getHash(uint8 iteration) override external view returns (uint256, uint256) {
+    function getHash(uint8 iteration) override external view returns (bytes32, uint256) {
         require(pRoot[iteration] != 0 && pRootForPeriod[iteration] != 0);
         return (pRoot[iteration], pRootForPeriod[iteration]);
     }

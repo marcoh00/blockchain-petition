@@ -12,7 +12,7 @@ contract Verifier is IVerifier {
         uint256[] memory ret = new uint256[](1);
         return ret;
     }
-    function checkProof(bytes calldata proof, uint256 rt, bytes32 eid) override external view returns (bool) {
+    function checkProof(bytes calldata proof, bytes32 rt, bytes32 eid) override external view returns (bool) {
         return true;
     }
 }
