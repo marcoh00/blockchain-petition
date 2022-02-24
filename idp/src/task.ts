@@ -4,10 +4,10 @@ import { Database } from "./database";
 import { EthereumConnector } from "./web3";
 
 async function pubkeyHashes(db: Database, period: number): Promise<Array<SHA256Hash>> {
-    const pubkeys_to_include = (await db.pubkeys_to_include(period));
+    const pubkeys_to_include = await db.pubkeys_to_include(period);
     const hashes = new Array<SHA256Hash>();
     for(let hash of pubkeys_to_include) {
-        hashes.push(await SHA256Hash.fromHex(hash.substring(2)));
+        hashes.push(SHA256Hash.fromHex(hash));
     }
     console.log("Pubkeys to include", pubkeys_to_include, hashes);
     return hashes;

@@ -1,15 +1,21 @@
 type StringIdentity = string;
 type IdentityProof = StringIdentity;
 
+const invalidHex = /[^0-9A-Fa-f]/;
+
 export interface IRegistration {
     identity: StringIdentity;
     pubkey: string;
     period: number;
 }
 
+export interface IProofRequest {
+    token: string
+}
+
 export const checkRegistration = (registration: IRegistration, minperiod?: number, maxperiod?: number): boolean => {
-    if(!registration.pubkey.startsWith("0x")) return false;
-    if(registration.pubkey.length != 66) return false;
+    if(registration.pubkey.length != 64) return false;
+    if(invalidHex.test(registration.pubkey)) return false;
     if(minperiod && maxperiod && (registration.period < minperiod || registration.period > maxperiod)) return false;
     return true;
 }
