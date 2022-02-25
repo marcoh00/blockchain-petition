@@ -1,5 +1,6 @@
 const path = require('path');
 const HtmlWebPackPlugin = require("html-webpack-plugin");
+const NodePolyfillPlugin = require("node-polyfill-webpack-plugin");
 
 module.exports = {
   entry: './src/index.ts',
@@ -15,7 +16,11 @@ module.exports = {
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
     fallback: {
-      "crypto": false
+      "crypto": false,
+      "http": require.resolve("stream-http"),
+      "stream": require.resolve("stream-browserify"),
+      "https": require.resolve("https-browserify"),
+      "os": require.resolve("os-browserify/browser")
     }
   },
   output: {
@@ -27,6 +32,7 @@ module.exports = {
           hash: true,
           template: './src/index.html',
           filename: 'index.html'
-      })
+      }),
+      new NodePolyfillPlugin()
   ]
 };
