@@ -9,7 +9,6 @@ async function pubkeyHashes(db: Database, period: number): Promise<Array<SHA256H
     for(let hash of pubkeys_to_include) {
         hashes.push(SHA256Hash.fromHex(hash));
     }
-    console.log("Pubkeys to include", pubkeys_to_include, hashes);
     return hashes;
 }
 
@@ -65,6 +64,11 @@ export async function intervalTask(web3: EthereumConnector, db: Database) {
     
     const key_hashes = await pubkeyHashes(db, period);
     const original_key_hashes_count = key_hashes.length;
+    if(original_key_hashes_count === 0) {
+        console.log("❌ Will not try to create any trees because there were no inclusion requests");
+        intervalLock = false;
+        return;
+    }
     await fillKeyArray(key_hashes, target_keys);
 
     const tree = new MerkleTree(key_hashes, (x) => SHA256Hash.hashRaw(x));
