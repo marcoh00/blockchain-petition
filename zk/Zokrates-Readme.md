@@ -9,5 +9,5 @@
 3. Schlüsselmaterial erzeugen
     1. `zokrates setup --input stimmrechtsbeweis --backend ark --proving-scheme gm17`
 4. Verifikationsvertrag exportieren
-    1. `zokrates export-verifier --proving-scheme gm17`
-    2. Der exportierte Verifikationsvertrag liegt im aktuellen Verzeichnis: `verifier.sol`
+    1. `zokrates export-verifier --output StimmrechtsbeweisVerifier.sol --proving-scheme gm17`
+    2. Der exportierte Verifikationsvertrag liegt im aktuellen Verzeichnis: `StimmrechtsbeweisVerifier.sol`
