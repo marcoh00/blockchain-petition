@@ -60,7 +60,7 @@ Eine Petition ist einer Abstimmungsperiode fest zugeordnet.
     ```
     rt = (IDP-SC).get(Index)
     H_pers = h(ID_Petition, K_priv)
-    ZK = ZK-SNARK(public rt, public H_pers, public ID_Petition, private K_priv, private K_pub, private merkleproof)
+    ZK = ZK-SNARK(public rt, public H_pers, public ID_Petition, private K_priv, private K_pub, private directionSelector, private merkleproof)
     ```
 
     Der ZK-Beweis prüft folgende Bedingungen:
