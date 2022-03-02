@@ -24,6 +24,7 @@
     "lit": "^2.1.3",
     "os-browserify": "^0.3.0",
     "stream-browserify": "^3.0.0",
-    "web3": "^1.7.0"
+    "web3": "^1.7.0",
+    "zokrates-js": "^1.0.39"
   }
 }

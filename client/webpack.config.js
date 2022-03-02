@@ -13,6 +13,11 @@ module.exports = {
       },
     ],
   },
+  stats: {
+    warningsFilter: [
+      'Critical dependency: the request of a dependency is an expression'
+    ]
+  },
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
     fallback: {
@@ -34,5 +39,8 @@ module.exports = {
           filename: 'index.html'
       }),
       new NodePolyfillPlugin()
-  ]
+  ],
+  experiments: {
+    syncWebAssembly: true
+  }
 };
