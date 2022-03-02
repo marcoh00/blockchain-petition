@@ -5,20 +5,20 @@ import { checkRegistration, checkValidType, IRegistration, IProofRequest } from 
 import { Database } from "./database";
 import { EthereumConnector } from "../../shared/web3";
 import { SHA256Hash, MerkleTree } from '../../shared/merkle';
+import { REGISTRY_CONTRACT } from '../../shared/addr';
 import { intervalTask } from "./task";
 
 const port = 65535;
 const account = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266';
 const privkey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 const api = 'ws://127.0.0.1:8545';
-const contract = '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0';
 const databasefile = `/home/mhuens2m/build/petition/idp/dist/database.db`;
 
 const app = express();
 app.use(express.json());
 
 const database = new Database(databasefile);
-const ethereum = new EthereumConnector(api, contract, account, privkey);
+const ethereum = new EthereumConnector(api, REGISTRY_CONTRACT, account, privkey);
 
 const corsOptions: CorsOptions = {
     methods: ["GET", "POST"],
@@ -149,7 +149,7 @@ app.listen(port, async () => {
     await ethereum.init();
     console.log(`👂 IDP listening on ${port}`);
     console.log(`ℹ️  Using Ethereum API ${api}`);
-    console.log(`ℹ️  Using Registry Smart Contract at ${contract}`);
+    console.log(`ℹ️  Using Registry Smart Contract at ${REGISTRY_CONTRACT}`);
     console.log(`ℹ️  Using Account ${account}`);
     console.log(`ℹ️  Using Private Key 0x${privkey.charAt(2)}${privkey.charAt(3)}...`);
     console.log(`💾 Connecting to database at ${databasefile}`);
