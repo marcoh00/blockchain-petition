@@ -5,27 +5,37 @@ import { SHA256Hash } from '../../shared/merkle';
 import { decorateClassWithState, IState } from './state';
 
 import Web3 from 'web3';
+import { decorateClassWithWeb3 } from './web3';
+import { EthereumConnector } from '../../shared/web3';
+import { REGISTRY_CONTRACT } from '../../shared/addr';
+import { threadId } from 'worker_threads';
 
 declare global {
     interface Window { ethereum: any; }
 }
 
-export class MetaMaskConnector extends decorateClassWithState(LitElement) {
+export class MetaMaskConnector extends decorateClassWithWeb3(decorateClassWithState(LitElement)) {
     @property()
     connected = false;
 
     provider?: Web3 = null;
-    accounts: Array<any> = [];
+
+    @property()
+    accounts: Array<string> = [];
+
+    @property()
+    idpurl: string
 
     constructor() {
         super();
         this.connected = false;
         this.accounts = [];
+        this.idpurl = "";
     }
 
     render() {
-        return html`
-        ${window.ethereum ? html`Ethereum available ${this.ethAvailable()}` : html`Ethereum unavailable`}
+        return html`<h1>Ethereum connection</h1>
+        ${window.ethereum ? html`${this.ethAvailable()}` : html`Ethereum unavailable`}
         `
     }
 
@@ -34,17 +44,48 @@ export class MetaMaskConnector extends decorateClassWithState(LitElement) {
     }
 
     accountsView() {
-        return html`${this.accounts}`
+        return html`
+            ${this.accounts.map((account) => html`<div class="account">Account: ${account.toString()}</div>`)}
+            <div class="info">Registry: ${this.getState().connector.registryaddr}</div>
+            <div class="info">IDP @ <a href="${this.idpurl}">${this.idpurl}</a></div>
+        `;
+    }
+
+    async onWeb3Connect(provider: any) {
+        const connector = new EthereumConnector(provider, REGISTRY_CONTRACT);
+        await connector.init();
+        this.setState({
+            ...this.getState(),
+            web3connected: true,
+            period: await connector.period(),
+            connector
+        });
+        await this.setInfo();
+    }
+
+    async setInfo() {
+        this.idpurl = await this.getState().connector.url();
+    }
+
+    async stateChanged(state: IState): Promise<void> {
+        this.connected = state.web3connected;
+    }
+
+    async onAccountsChange(provider: any, accounts: string[]) {
+        this.accounts = accounts;
+        const connector = new EthereumConnector(provider, REGISTRY_CONTRACT, accounts[0]);
+        await connector.init();
+        this.setState({
+            ...this.getState(),
+            web3connected: true,
+            connector
+        });
+        await this.setInfo();
     }
 
     connectClick() {
-        window.ethereum.enable();
-        this.provider = new Web3(window.ethereum);
-        this.connected = true;
-        this.provider.eth.getAccounts().then(accounts => {
-            console.log("Accounts", accounts);
-            this.accounts = accounts;
-        });
+        this.web3Connect();
+        console.log("Widget: connectClick registered");
     }
 }
 
