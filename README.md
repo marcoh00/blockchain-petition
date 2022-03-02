@@ -98,6 +98,12 @@ Deployment der Smart Contracts
 npx hardhat run --network localhost scripts/deploy.ts
 ```
 
+Hinzufügen von Test-Petitionen
+
+```
+npx hardhat run --network localhost scripts/testpetitions.ts
+```
+
 ## IDP
 
 Installation der Abhängigkeiten
@@ -131,3 +137,12 @@ Start des Webpack-Development-Servers
 ```
 npm run dev
 ```
+
+## Frontend
+
+Der Client ist nach dem Start des Webpack-Servers standardmäßig über [http://localhost:8080](http://localhost:8080) aufrufbar.
+Zur Verwendung ist ein web3-kompatibles Browser-Plugin wie z.B. [MetaMask](https://metamask.io) erforderlich.
+Damit die gesamte Funktionalität genutzt werden kann, muss die Development-Blockchain als "Network" eingetragen werden.
+Standardmäßig ist diese über `localhost:8545` erreichbar und besitzt die Chain ID `31337`.
+Um Transaktionen tätigen zu können, muss zudem ein Account importiert werden, der Kryptowährung besitzt.
+Entsprechende Private Keys werden beim Start des Blockchain-Development Servers ausgegeben (siehe "Smart Contract Platform").
