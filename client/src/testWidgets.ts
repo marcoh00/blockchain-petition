@@ -127,6 +127,7 @@ export class KeyGenerator extends decorateClassWithState(LitElement) {
 
     render() {
         return html`
+            <h1>Key Generation</h1>
             <div class="layout">
                 <div class="descr">
                     Identity
@@ -138,7 +139,7 @@ export class KeyGenerator extends decorateClassWithState(LitElement) {
                     Period
                 </div>
                 <div class="main">
-                    <input type="number" @input=${this.valueChange} id="period" placeholder="305000">
+                    <input type="number" @input=${this.valueChange} id="period" value="${this.period}" placeholder="305000">
                 </div>
                 <div class="descr">
                     Privkey (String)
@@ -171,7 +172,17 @@ export class KeyGenerator extends decorateClassWithState(LitElement) {
         const privstring_hash = await SHA256Hash.hashString(this.privstring);
 
         this.privkey = `${privstring_hash.toHex()}`;
-        this.pubkey = `${(await SHA256Hash.hashRaw(privstring_hash.rawValue())).toHex()}`;
+
+        const privkey_hash = await SHA256Hash.hashRaw(privstring_hash.rawValue());
+        this.pubkey = `${privkey_hash.toHex()}`;
+
+        if(state.privkey === undefined || state.pubkey === undefined || !privstring_hash.equals(state.privkey) || !privkey_hash.equals(state.pubkey)) {
+            this.setState({
+                ...state,
+                privkey: privstring_hash,
+                pubkey: privkey_hash
+            })
+        }
     }
 
     async valueChange(e: InputEvent) {
@@ -182,9 +193,117 @@ export class KeyGenerator extends decorateClassWithState(LitElement) {
         if(target.id === "period") {
             this.period = Number.parseInt(target.value);
         }
-        this.setState({
+        this.setState({...this.getState(),
             identity: this.identity,
             period: this.period
         });
+    }
+}
+
+export class CredentialRetriever extends decorateClassWithState(LitElement) {
+    @property()
+    keypair_available: boolean
+
+    @property()
+    token?: string
+
+    @property()
+    credentials?: string
+
+    constructor() {
+        super();
+        this.keypair_available = false;
+    }
+
+    render() {
+        return html`
+            <h1>IDP Registration</h1>
+            ${this.keypair_available ? this.registrationDialog() : html`<div class="info">No Public/Private keypair was generated`}`;
+    }
+
+    registrationDialog() {
+        return html`
+            <div class="descr">Token:</div>
+            <div class="elem">${typeof(this.token) === "string" ? html`${this.token}` : html`<button @click=${this.getTokenClick}>Obtain Token from IDP</button>`}</div>
+            ${typeof(this.token) === "string" ? this.exchangeDialog() : html``}
+        `
+    }
+
+    exchangeDialog() {
+        return html`
+            <div class="descr">Credentials:</div>
+            <div class="elem">${typeof(this.credentials) === "string" ? html`<pre>${this.credentials}</pre>` : html`<button @click=${this.getCredentialsClick}>Exchange Token into credentials</button>`}</div>
+        `
+    }
+
+    async getTokenClick() {
+        const endpoint = await this.getState().connector.url();
+        const state = this.getState();
+        const token_or_error = await fetch(`${endpoint}/register`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                identity: state.identity,
+                pubkey: state.pubkey.toHex(),
+                period: state.period
+            })
+        });
+        const response = await token_or_error.json();
+        console.log("Response from IDP", response);
+        if(Object.keys(response).indexOf("error") > -1) {
+            this.setState({
+                ...state,
+                error: response.error.toString()
+            });
+            console.log("Error while trying to obtain token!", response.error);
+            setTimeout(() => this.setState({...this.getState(), error: undefined}), 5000);
+            return;
+        }
+        if(Object.keys(response).indexOf("token") > -1) {
+            this.setState({
+                ...state,
+                token: response.token.toString()
+            });
+        }
+    }
+
+    async getCredentialsClick() {
+        const endpoint = await this.getState().connector.url();
+        const state = this.getState();
+        const proof_or_error = await fetch(`${endpoint}/proof`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                token: state.token
+            })
+        });
+        const response = await proof_or_error.json();
+        console.log("Response from IDP", response);
+        if(Object.keys(response).indexOf("error") > -1) {
+            this.setState({
+                ...state,
+                error: response.error.toString()
+            });
+            console.log("Error while trying to exchange token!", response.error);
+            setTimeout(() => this.setState({...this.getState(), error: undefined}), 5000);
+            return;
+        }
+        if(Object.keys(response).indexOf("hash") > -1) {
+            this.setState({
+                ...state,
+                credentials: response
+            });
+        }
+    }
+
+    async stateChanged(state: IState): Promise<void> {
+        this.keypair_available = false;
+        if(typeof(state.pubkey) === "object" && typeof(state.privkey) === "object") this.keypair_available = true;
+        if(typeof(state.token) === "string") this.token = state.token;
+        if(typeof(state.credentials) === "object") this.credentials = JSON.stringify(state.credentials);
     }
 }

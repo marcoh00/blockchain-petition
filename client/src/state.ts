@@ -1,8 +1,24 @@
 import { LitElement } from "lit";
+import { MerkleProof, SHA256Hash } from "../../shared/merkle";
+import { EthereumConnector } from "../../shared/web3";
+
+interface ICredentials {
+    hash: string,
+    iteration: number,
+    period: number,
+    proof: MerkleProof
+}
 
 export interface IState {
     period: number
-    identity: string
+    identity: string,
+    pubkey?: SHA256Hash,
+    privkey?: SHA256Hash,
+    web3connected: boolean,
+    connector?: EthereumConnector,
+    token?: string,
+    credentials?: ICredentials,
+    error?: string
 }
 
 export interface IStateAccessor {
@@ -16,7 +32,8 @@ function localGetState(): IState {
     if(state === undefined) {
         localSetState({
             period: -1,
-            identity: ""
+            identity: "",
+            web3connected: false
         })
     }
     return state;

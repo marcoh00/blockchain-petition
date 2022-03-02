@@ -136,7 +136,7 @@ class MerkleInode extends MerkleNode {
     }
 }
 
-interface MerkleProof {
+export interface MerkleProof {
     directionSelector: Array<boolean>,
     path: Array<DataHash>
 }
