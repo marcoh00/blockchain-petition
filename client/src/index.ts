@@ -1,4 +1,4 @@
-import { CredentialRetriever, KeyGenerator, MetaMaskConnector } from './testWidgets';
+import { CredentialRetriever, KeyGenerator, MetaMaskConnector, PetitionList } from './testWidgets';
 import { ZokratesTester } from './zokrates';
 
 const IDP_ENDPOINT = "http://localhost:65535";
@@ -8,3 +8,4 @@ customElements.define("key-generator", KeyGenerator);
 customElements.define("metamask-connector", MetaMaskConnector);
 customElements.define("credential-retriever", CredentialRetriever);
 customElements.define("zokrates-tester", ZokratesTester);
+customElements.define("petition-list", PetitionList);

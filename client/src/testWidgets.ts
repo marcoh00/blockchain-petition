@@ -6,7 +6,7 @@ import { decorateClassWithState, IState } from './state';
 
 import Web3 from 'web3';
 import { decorateClassWithWeb3 } from './web3';
-import { EthereumConnector } from '../../shared/web3';
+import { EthereumConnector, IPetition } from '../../shared/web3';
 import { REGISTRY_CONTRACT } from '../../shared/addr';
 import { threadId } from 'worker_threads';
 
@@ -54,6 +54,7 @@ export class MetaMaskConnector extends decorateClassWithWeb3(decorateClassWithSt
     async onWeb3Connect(provider: any) {
         const connector = new EthereumConnector(provider, REGISTRY_CONTRACT);
         await connector.init();
+        console.log("connector", connector);
         this.setState({
             ...this.getState(),
             web3connected: true,
@@ -74,6 +75,7 @@ export class MetaMaskConnector extends decorateClassWithWeb3(decorateClassWithSt
     async onAccountsChange(provider: any, accounts: string[]) {
         this.accounts = accounts;
         const connector = new EthereumConnector(provider, REGISTRY_CONTRACT, accounts[0]);
+        console.log("Connector:", connector);
         await connector.init();
         this.setState({
             ...this.getState(),
@@ -305,5 +307,78 @@ export class CredentialRetriever extends decorateClassWithState(LitElement) {
         if(typeof(state.pubkey) === "object" && typeof(state.privkey) === "object") this.keypair_available = true;
         if(typeof(state.token) === "string") this.token = state.token;
         if(typeof(state.credentials) === "object") this.credentials = JSON.stringify(state.credentials);
+    }
+}
+
+export class PetitionList extends decorateClassWithState(LitElement) {
+    @property()
+    connected: boolean = false;
+
+    @property()
+    petitions: IPetition[] = [];
+
+    static styles = css`
+        .petition {
+            margin-left: 1em;
+            margin-bottom: 3em;
+        }
+
+        .name {
+            font-size: medium;
+            font-weight: bold;
+        }
+
+        .descr {
+            margin-bottom: 1em;
+        }
+    `;
+
+    render() {
+        return html`
+            <h1>Petitionsliste</h1>
+            ${this.connected ? html`
+                ${this.petitions.map((petition, idx) => html`
+                    <div class="petition">
+                        <div class="name">${petition.name}</div>
+                        <div class="descr">${petition.description}</div>
+                        <div class="period">Zeitperiode: ${petition.period} (${(petition as any).start}-${(petition as any).end})</div>
+                        <div class="id">ID: ${petition.id}</div>
+                        <div class="signers">Unterschriften: ${petition.signers}</div>
+                        <div class="sign"><button .disabled=${(petition as any).disabled} .id=${idx} @click=${this.signClick}>Unterschreiben</button></div>
+                    </div>
+                `)}
+            ` : html`
+                <div class="info">Not connected to web3</div>
+            `}`;
+    }
+
+    async signClick(e: InputEvent) {
+        const idx = Number.parseInt((e.target as HTMLInputElement).id);
+        const pers = [
+            ...Array.from(this.petitions[idx].id),
+            ...Array.from(this.getState().privkey.rawValue())
+        ];
+        console.log("pers", pers);
+        const hpers = await SHA256Hash.hashRaw(new Uint8Array(pers));
+        const tx = await this.getState().connector.signPetition(this.petitions[idx].address, new Uint8Array([]), hpers, this.getState().credentials.iteration);
+        console.log("transaction", tx);
+    }
+
+    async stateChanged(state: IState) {
+        const wasConnected = this.connected;
+        this.connected = state.web3connected;
+        if(this.connected && !wasConnected) {
+            const petitions = await this.getState().connector.petitions();
+            const now = Date.now();
+            for(const petition of petitions) {
+                const start = new Date(await state.connector.startPeriod(petition.period) * 1000);
+                const end = new Date(await state.connector.startPeriod(petition.period + 1) * 1000);
+                (petition as any).start = start;
+                (petition as any).end = end;
+                (petition as any).disabled = now < start.getTime() || now > end.getTime();
+            }
+            this.petitions = petitions;
+            console.log(this.petitions);
+        }
     }
 }

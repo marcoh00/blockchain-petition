@@ -30,6 +30,6 @@ interface IPetition {
     function id() external view returns (bytes32);
     function registry() external view returns (IRegistry);
     function period() external view returns (uint256);
-    function sign(bytes calldata, uint8, uint256) external;
+    function sign(bytes calldata, uint8, bytes32) external;
     function signers() external view returns (uint32);
 }

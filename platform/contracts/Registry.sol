@@ -33,11 +33,15 @@ contract Registry is IRegistry {
         return pVerifier;
     }
 
-    function createPetition(bytes32 lName, string calldata description) external {
+    function createPetition(bytes32 lName, string calldata description, uint256 period) external {
+        require(period == 0 || period >= pIDP.period());
+        if(period == 0) {
+            period = pIDP.period() + 1;
+        }
         petitionId += 1;
 
         pPetitions.push(
-            new Petition(lName, description, keccak256(abi.encode(bytes32(petitionId) ^ lName)), pIDP.period() + 1, address(this))
+            new Petition(lName, description, keccak256(abi.encode(bytes32(petitionId) ^ lName)), period, address(this))
         );
     }
 }
