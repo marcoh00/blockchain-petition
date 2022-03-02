@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 import { DataHash, MerkleTree, serializeMerkleProof, SHA256Hash } from "../../shared/merkle";
 import { Database } from "./database";
-import { EthereumConnector } from "./web3";
+import { EthereumConnector } from "../../shared/web3";
 
 async function pubkeyHashes(db: Database, period: number): Promise<Array<SHA256Hash>> {
     const pubkeys_to_include = await db.pubkeys_to_include(period);

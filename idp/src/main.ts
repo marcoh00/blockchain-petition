@@ -2,7 +2,7 @@ import express from "express";
 import { randomBytes } from "crypto";
 import { checkRegistration, checkValidType, IRegistration, IProofRequest } from "./api";
 import { Database } from "./database";
-import { EthereumConnector } from "./web3";
+import { EthereumConnector } from "../../shared/web3";
 import { SHA256Hash, MerkleTree } from '../../shared/merkle';
 import { intervalTask } from "./task";
 
@@ -10,7 +10,7 @@ const port = 65535;
 const account = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266';
 const privkey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 const api = 'ws://127.0.0.1:8545';
-const contract = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
+const contract = '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0';
 const databasefile = `/home/mhuens2m/build/petition/idp/dist/database.db`;
 
 const app = express();
@@ -28,11 +28,11 @@ app.get('/web3', async (req, res) => {
         "account": (await ethereum.api.eth.getAccounts())[0],
         "balance": await ethereum.api.eth.getBalance((await ethereum.api.eth.getAccounts())[0]),
         "idp": {
-            "depth": await ethereum.contract.methods.depth().call(),
-            "period": await ethereum.contract.methods.period().call(),
-            "periodlen": await ethereum.contract.methods.periodlen().call(),
-            "startperiod": await ethereum.contract.methods.start_period(await ethereum.contract.methods.period().call()).call(),
-            "endperiod": await ethereum.contract.methods.end_period(await ethereum.contract.methods.period().call()).call()
+            "depth": await ethereum.idpcontract.methods.depth().call(),
+            "period": await ethereum.idpcontract.methods.period().call(),
+            "periodlen": await ethereum.idpcontract.methods.periodlen().call(),
+            "startperiod": await ethereum.idpcontract.methods.start_period(await ethereum.idpcontract.methods.period().call()).call(),
+            "endperiod": await ethereum.idpcontract.methods.end_period(await ethereum.idpcontract.methods.period().call()).call()
         }
     });
 })
@@ -133,9 +133,10 @@ async function repeat() {
 }
 
 app.listen(port, async () => {
+    await ethereum.init();
     console.log(`👂 IDP listening on ${port}`);
     console.log(`ℹ️  Using Ethereum API ${api}`);
-    console.log(`ℹ️  Using IDP Smart Contract at ${contract}`);
+    console.log(`ℹ️  Using Registry Smart Contract at ${contract}`);
     console.log(`ℹ️  Using Account ${account}`);
     console.log(`ℹ️  Using Private Key 0x${privkey.charAt(2)}${privkey.charAt(3)}...`);
     console.log(`💾 Connecting to database at ${databasefile}`);
