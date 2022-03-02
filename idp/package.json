@@ -10,11 +10,13 @@
   "author": "BlockTechDiVer",
   "license": "AGPL-3.0",
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^4.17",
     "sqlite3": "^5",
     "web3": "^1.7.0"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.12",
     "@types/express": "^4",
     "@types/node": ">= 16",
     "@types/sqlite3": "^3.1.8",

@@ -1,4 +1,5 @@
 import express from "express";
+import cors, { CorsOptions } from "cors";
 import { randomBytes } from "crypto";
 import { checkRegistration, checkValidType, IRegistration, IProofRequest } from "./api";
 import { Database } from "./database";
@@ -19,6 +20,11 @@ app.use(express.json());
 const database = new Database(databasefile);
 const ethereum = new EthereumConnector(api, contract, account, privkey);
 
+const corsOptions: CorsOptions = {
+    methods: ["GET", "POST"],
+    origin: ["http://localhost:8080", "http://localhost:65535"]
+}
+
 app.get('/', (req, res) => {
     res.json({'timestamp': Math.floor(Date.now() / 1000)});
 })
@@ -37,7 +43,8 @@ app.get('/web3', async (req, res) => {
     });
 })
 
-app.post('/proof', async (req, res) => {
+app.options('/proof', cors(corsOptions));
+app.post('/proof', cors(corsOptions), async (req, res) => {
     const proof_request = req.body as IProofRequest;
     if(!checkValidType(["token"], proof_request)) {
         res.statusCode = 400;
@@ -70,7 +77,8 @@ app.post('/proof', async (req, res) => {
     console.log("/proof return", result_row);
 })
 
-app.post('/register', async (req, res) => {
+app.options('/register', cors(corsOptions));
+app.post('/register', cors(corsOptions), async (req, res) => {
     const registration = req.body as IRegistration;
     const minperiod = await ethereum.period();
     const maxperiod = minperiod + 2;
