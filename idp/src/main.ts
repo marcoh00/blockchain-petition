@@ -72,6 +72,11 @@ app.post('/proof', cors(corsOptions), async (req, res) => {
         res.json({ "error": "Unknown Token" });
         return;
     }
+    if(typeof(result_row.iteration) !== "number") {
+        res.statusCode = 503;
+        res.json({ "error": "Proof is not ready yet" });
+        return;
+    }
     res.statusCode = 200;
     res.json(result_row);
     console.log("/proof return", result_row);
