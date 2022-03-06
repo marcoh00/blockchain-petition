@@ -44,7 +44,27 @@ contract Petition is IPetition {
         require(pHasSigned[lIdentity] == false);
         (bytes32 rt, uint256 rtProofPeriod) = this.registry().idp().getHash(lIteration);
         require(rtProofPeriod == this.period());
-        require(this.registry().verifier().checkProof(lProof, rt, pId));
+
+        //Überführe die öffentlichen Eingabewerte des Stimmrechtsbeweises in die erwartete Form: Eingabewerte, portioniert auf 32Bit, zusammen in einem uint[24] Array
+        uint[24] input;
+        uint inputPosition = 24;
+
+        for(uint i=0; i<8; i++){
+            input[inputPosition] = (pId >> (32 * i)) % (2 ** 32);
+            inputPosition --;
+        }
+        for(uint i=0; i<8; i++){
+            input[inputPosition] = (lIdentity >> (32 * i)) % (2 ** 32);
+            inputPosition --;
+        }
+        for(uint i=0; i<8; i++){
+            input[inputPosition] = (rt >> (32 * i)) % (2 ** 32);
+            inputPosition --;
+        }
+
+
+
+        require(this.registry().verifier().checkProof(lProof, input));
         pHasSigned[lIdentity] = true;
         pSigners += 1;
     }
