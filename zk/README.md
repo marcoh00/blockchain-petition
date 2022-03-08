@@ -29,6 +29,6 @@
 
 ### Einen Stimmrechtsbeweis mit `zokrates` verifizieren
 1. `cd zk/`
-2. `zokrates verify  `
+2. `zokrates verify`
     1. Es wird standardmäßig die Beweisdatei `proof.json` eingelesen
     2. Analog dazu wird der Verifikationsschlüssel aus der Datei `verification.key` gelesen.
