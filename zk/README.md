@@ -7,9 +7,9 @@
 2. compilieren
     1. `zokrates compile --input stimmrechtsbeweis.zok --output stimmrechtsbeweis`
 3. Schlüsselmaterial erzeugen (verification.key und proving.key)
-    1. `zokrates setup --input stimmrechtsbeweis --backend ark --proving-scheme gm17`
+    1. `zokrates setup --input stimmrechtsbeweis`
 4. Verifikationsvertrag exportieren
-    1. `zokrates export-verifier --output StimmrechtsbeweisVerifier.sol --proving-scheme gm17`
+    1. `zokrates export-verifier --output StimmrechtsbeweisVerifier.sol`
     2. Der exportierte Verifikationsvertrag liegt im aktuellen Verzeichnis: `StimmrechtsbeweisVerifier.sol`
 
 ### Einen Stimmrechtsbeweis mit `zokrates` generieren
@@ -24,11 +24,11 @@
         4.  Multidimensionale Arrays, bspw.  `[[1,2,3],[a,b,c]]` werden so übergeben: `1 2 3 a b c`
         5.  `private bool[3] directionSelector` gibt für jedes Element von `merkleproof` an, ob sich dieser "Partner" links von der aktuellen Position im Baum befindet.
 3. Beweis erzeugen
-    1. `zokrates generate-proof --input stimmrechtsbeweis --backend ark --proving-scheme gm17`
+    1. `zokrates generate-proof --input stimmrechtsbeweis`
         1. Ausgabe ist die Datei `proof.json`, bestehend aus drei Punkten auf der benutzten Kurve
 
 ### Einen Stimmrechtsbeweis mit `zokrates` verifizieren
 1. `cd zk/`
-2. `zokrates verify --backend ark --proving-scheme gm17`
+2. `zokrates verify  `
     1. Es wird standardmäßig die Beweisdatei `proof.json` eingelesen
     2. Analog dazu wird der Verifikationsschlüssel aus der Datei `verification.key` gelesen.
