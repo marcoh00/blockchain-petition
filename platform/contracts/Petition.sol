@@ -40,31 +40,31 @@ contract Petition is IPetition {
         return pPeriod;
     }
 
-    function sign(bytes calldata lProof, uint8 lIteration, bytes32 lIdentity) override external {
+    function sign(Verifier.Proof calldata lProof, uint8 lIteration, bytes32 lIdentity) override external {
         require(pHasSigned[lIdentity] == false);
         (bytes32 rt, uint256 rtProofPeriod) = this.registry().idp().getHash(lIteration);
         require(rtProofPeriod == this.period());
 
         //Überführe die öffentlichen Eingabewerte des Stimmrechtsbeweises in die erwartete Form: Eingabewerte, portioniert auf 32Bit, zusammen in einem uint[24] Array
-        uint[24] input;
-        uint inputPosition = 24;
+        uint[24] memory input;
+        int inputPosition = 23;
 
         for(uint i=0; i<8; i++){
-            input[inputPosition] = (pId >> (32 * i)) % (2 ** 32);
+            input[uint256(inputPosition)] = uint(pId >> (32 * i)) & 0xFFFFFFFF;
             inputPosition --;
         }
         for(uint i=0; i<8; i++){
-            input[inputPosition] = (lIdentity >> (32 * i)) % (2 ** 32);
+            input[uint256(inputPosition)] = uint(lIdentity >> (32 * i)) & 0xFFFFFFFF;
             inputPosition --;
         }
         for(uint i=0; i<8; i++){
-            input[inputPosition] = (rt >> (32 * i)) % (2 ** 32);
+            input[uint256(inputPosition)] = uint(rt >> (32 * i)) & 0xFFFFFFFF;
             inputPosition --;
         }
 
 
 
-        require(this.registry().verifier().checkProof(lProof, input));
+        require(this.registry().verifier().verifyTx(lProof, input));
         pHasSigned[lIdentity] = true;
         pSigners += 1;
     }

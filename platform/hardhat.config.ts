@@ -25,7 +25,7 @@ task("imining", "Switch to interval-based mining", async (taskArgs, hre) => {
   console.log(`Automine disabled`);
   await hre.network.provider.send("evm_setIntervalMining", [interval]);
   console.log(`Interval Mining set to ${interval}ms`);
-})
+});
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -36,8 +36,8 @@ const config: HardhatUserConfig = {
     hardhat: {
       mining: {
         auto: false,
-        interval: 8000
-      }
+        interval: 8000,
+      },
     },
     ropsten: {
       url: process.env.ROPSTEN_URL || "",

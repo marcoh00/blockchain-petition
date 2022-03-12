@@ -1,5 +1,5 @@
 import "hashes/sha256/256bitPadded" as hash
-import "hashes/sha256/512bit" as hash_concat
+import "hashes/sha256/512bitPadded" as hash_concat
 
 const u32 DEPTH = 3
 

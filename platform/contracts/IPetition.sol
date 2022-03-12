@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8;
 
+import "./StimmrechtsbeweisVerifier.sol";
+
 interface IIDP {
     function submitHash(bytes32, uint256) external returns (uint256);
     function getHash(uint8) external view returns (bytes32, uint256);
@@ -21,7 +23,7 @@ interface IRegistry {
     function name() external view returns (bytes32);
     function idp() external view returns (IIDP);
     function petitions() external view returns (IPetition[] memory);
-    function verifier() external view returns (IVerifier);
+    function verifier() external view returns (Verifier);
 }
 
 interface IPetition {
@@ -30,6 +32,6 @@ interface IPetition {
     function id() external view returns (bytes32);
     function registry() external view returns (IRegistry);
     function period() external view returns (uint256);
-    function sign(bytes calldata, uint8, bytes32) external;
+    function sign(Verifier.Proof calldata, uint8, bytes32) external;
     function signers() external view returns (uint32);
 }

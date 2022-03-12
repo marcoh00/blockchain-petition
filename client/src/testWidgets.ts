@@ -9,6 +9,7 @@ import { decorateClassWithWeb3 } from './web3';
 import { EthereumConnector, IPetition } from '../../shared/web3';
 import { REGISTRY_CONTRACT } from '../../shared/addr';
 import { threadId } from 'worker_threads';
+import {ZokratesTester} from "./zokrates";
 
 declare global {
     interface Window { ethereum: any; }
@@ -315,6 +316,12 @@ export class PetitionList extends decorateClassWithState(LitElement) {
     connected: boolean = false;
 
     @property()
+    zokratesArgumentInputString: string = "";
+
+    @property()
+    zokratesProof: string = "";
+
+    @property()
     petitions: IPetition[] = [];
 
     static styles = css`
@@ -333,8 +340,31 @@ export class PetitionList extends decorateClassWithState(LitElement) {
         }
     `;
 
+
+    getInputValue(e: InputEvent) {
+        // Selecting the input element and get its value
+        //let inputVal = document.getElementById("identityX").innerText;
+        // Displaying the value
+        alert((e.target as HTMLInputElement).id);
+    }
+
+    inputProof(e: InputEvent){
+        const target = e.target as HTMLInputElement;
+        if(target.name === "proof") {
+            this.zokratesProof = target.value;
+        }
+    }
+
+    // takeProof(e: InputEvent){
+    //     alert(this.zokratesProof);
+    // }<button type="button" @click=${this.takeProof}>Get Value</button>
+
     render() {
         return html`
+            ${this.zokratesArgumentInputString ? html`
+                <textarea> ${this.zokratesArgumentInputString} </textarea>
+                <textarea  @input=${this.inputProof} name="proof" placeholder="Proof"> </textarea>
+            ` : html``}
             <h1>Petitionsliste</h1>
             ${this.connected ? html`
                 ${this.petitions.map((petition, idx) => html`
@@ -352,6 +382,15 @@ export class PetitionList extends decorateClassWithState(LitElement) {
             `}`;
     }
 
+    hexStringToDecimalStringArray(hexString: string) {
+        const intString:string[] = [];
+        for (let i = 0; i < 64; i+=8) {
+            //intString.push(parseInt(hexString.substring(i, i + 7), 16).valueOf().toString());
+            intString.push(Number( "0x" + hexString.substring(i, i + 8)).toString(10));
+        }
+        return intString;
+    }
+
     async signClick(e: InputEvent) {
         const idx = Number.parseInt((e.target as HTMLInputElement).id);
         const pers = [
@@ -360,8 +399,65 @@ export class PetitionList extends decorateClassWithState(LitElement) {
         ];
         console.log("pers", pers);
         const hpers = await SHA256Hash.hashRaw(new Uint8Array(pers));
-        const tx = await this.getState().connector.signPetition(this.petitions[idx].address, new Uint8Array([]), hpers, this.getState().credentials.iteration);
-        console.log("transaction", tx);
+        console.log("credentials", this.getState().credentials)
+        //rt, H_pers, pID, Kpriv, Kpub, directionSelector(bool 3), merkleproof(3*8)
+
+        if(!this.zokratesArgumentInputString){
+            let zokratesbeweisInput:string = "zokrates compute-witness --input stimmrechtsbeweis -a ";
+            this.hexStringToDecimalStringArray(this.getState().credentials.hash).forEach(x => zokratesbeweisInput = zokratesbeweisInput +  x +" ");
+            this.hexStringToDecimalStringArray(hpers.toHex()).forEach(x => zokratesbeweisInput = zokratesbeweisInput +  x +" ");
+            this.hexStringToDecimalStringArray(Buffer.from(this.petitions[idx].id).toString('hex')).forEach(x => zokratesbeweisInput = zokratesbeweisInput +  x +" ");
+            this.hexStringToDecimalStringArray(this.getState().privkey.toHex()).forEach(x => zokratesbeweisInput = zokratesbeweisInput + x +" ");
+            this.hexStringToDecimalStringArray(this.getState().pubkey.toHex()).forEach(x => zokratesbeweisInput = zokratesbeweisInput + x +" ");
+
+            let directionSelectorDecimalStringArray: string[] = [];
+            for (let i = 0; i < this.getState().credentials.proof.directionSelector.length; i++) {
+                directionSelectorDecimalStringArray.push(this.getState().credentials.proof.directionSelector[i] ? '1' : '0');
+            }
+
+            let merklePathDecimalStringArray:string[][] = [];
+            for (let i=0; i<this.getState().credentials.proof.path.length; i++){
+                merklePathDecimalStringArray.push(this.hexStringToDecimalStringArray(this.getState().credentials.proof.path[i]));
+            }
+
+            directionSelectorDecimalStringArray.forEach(x => zokratesbeweisInput = zokratesbeweisInput + x +" ");
+            merklePathDecimalStringArray.forEach(x => x.forEach(y => zokratesbeweisInput = zokratesbeweisInput + y +" "));
+            zokratesbeweisInput = zokratesbeweisInput + "&& zokrates generate-proof --input stimmrechtsbeweis && cat proof.json | pbcopy";
+            this.zokratesArgumentInputString = zokratesbeweisInput;
+            console.log("zokratesbeweisInput", zokratesbeweisInput);
+            //console.log("merklePath-out", merklePathDecimalStringArray)
+            //directionSelectorDecimalStringArray.forEach(x => zokratesbeweisInput = zokratesbeweisInput + x +" ");
+            //merklePathDecimalStringArray.forEach(x => x.forEach(y => zokratesbeweisInput = zokratesbeweisInput + y +" "));
+
+            // const proof  = new ZokratesTester().constructProof(
+            //     this.getState().credentials.hash,
+            //     hpers.toHex(),
+            //     Buffer.from(this.petitions[idx].id).toString('hex'),
+            //     this.getState().privkey.toHex(),
+            //     this.getState().pubkey.toHex(),
+            //     this.getState().credentials.proof.directionSelector,
+            //     this.getState().credentials.proof.path);
+            return
+        }
+
+        if (this.zokratesProof){
+            try {
+                JSON.parse(this.zokratesProof)
+            } catch(e) {
+                alert(e); // error in the above string (in this case, yes)!
+            }
+
+            //Verifier.Proof calldata lProof, uint8 lIteration, bytes32 lIdentity
+            const tx = await this.getState().connector.signPetition(
+                this.petitions[idx].address,
+                this.zokratesProof,
+                hpers,
+                this.getState().credentials.iteration);
+            console.log("transaction", tx);
+
+            this.zokratesArgumentInputString = "";
+            this.zokratesProof = "";
+        }
     }
 
     async stateChanged(state: IState) {

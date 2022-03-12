@@ -5,3 +5,6 @@
  
 # Mac
 .DS_Store
+
+#Prototyp - Persistenz
+idp/database.db

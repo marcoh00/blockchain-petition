@@ -1,4 +1,9 @@
-import { CredentialRetriever, KeyGenerator, MetaMaskConnector, PetitionList } from './testWidgets';
+import {
+    CredentialRetriever,
+    KeyGenerator,
+    MetaMaskConnector,
+    PetitionList,
+} from './testWidgets';
 import { ZokratesTester } from './zokrates';
 
 const IDP_ENDPOINT = "http://localhost:65535";

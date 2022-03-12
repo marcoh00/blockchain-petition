@@ -109,9 +109,12 @@ export class EthereumConnector {
         return petitions;
     }
 
-    async signPetition(petitionaddr: string, proof: Uint8Array, hpers: SHA256Hash, iteration: number) {
+    async signPetition(petitionaddr: string, proof: string, hpers: SHA256Hash, iteration: number) {
         const contract = new this.api.eth.Contract((PetitionContract.abi as any), petitionaddr);
         console.log(`web3: sign as ${hpers.toHex()} with account ${this.account}`);
-        return await contract.methods.sign(proof, iteration, `0x${hpers.toHex()}`).send({ from: this.account });
+        const proofObject = JSON.parse(proof);
+        console.log(proofObject.proof.a);
+        console.log(Object.values(proofObject.proof));
+        return await contract.methods.sign(Object.values(proofObject.proof), iteration, `0x${hpers.toHex()}`).send({ from: this.account });
     }
 }

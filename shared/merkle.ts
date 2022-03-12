@@ -17,7 +17,7 @@ function subtleModule(): SubtleCrypto {
 }
 
 export abstract class DataHash implements DataHash {
-    private hash: Uint8Array;
+    private  hash: Uint8Array;
 
     constructor(array: Uint8Array, length: number) {
         if(array.length != length) throw new Error(`Hash values of this type must have a length of exactly 32 bytes (is ${array.length})`);
@@ -27,7 +27,8 @@ export abstract class DataHash implements DataHash {
     rawValue(): Uint8Array {
         return this.hash;
     }
-    toHex(): string {
+
+    public toHex(): string {
         const hashArray = Array.from(this.hash);
         const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         return hashHex;
@@ -138,13 +139,14 @@ class MerkleInode extends MerkleNode {
 
 export interface MerkleProof {
     directionSelector: Array<boolean>,
-    path: Array<DataHash>
+    path: Array<string>
 }
 
 export function serializeMerkleProof(proof: MerkleProof): string {
     return JSON.stringify({
         directionSelector: proof.directionSelector,
-        path: proof.path.map((hash) => hash.toHex())
+        //path: proof.path.map((hash) => hash.toHex())
+        path: proof.path
     });
 }
 
@@ -200,14 +202,14 @@ export class MerkleTree {
     getProof(leaf: MerkleNode): MerkleProof {
         if(this.leafs.find((value) => value.equals(leaf)) === undefined) throw new Error("Invalid leaf");
         const directionSelector: Array<boolean> = new Array();
-        const path: Array<DataHash> = new Array();
+        const path: Array<string> = new Array();
 
         let current_node = leaf;
         for(let i = 0; i < this.depth; i++) {
             let parent = current_node.top;
             let which = parent.which(current_node.hash);
             directionSelector.push(which === Direction.Left ? false : true);
-            path.push(which === Direction.Left ? parent.right.hash : parent.left.hash);
+            path.push(which === Direction.Left ? parent.right.hash.toHex() : parent.left.hash.toHex());
 
             current_node = parent;
         }
@@ -217,7 +219,8 @@ export class MerkleTree {
             path
         };
         console.log("Merkle Proof", result);
-        console.log("Path", result.path.map((hash) => hash.toHex()));
+        //console.log("Path", result.path.map((hash) => hash.toHex()));
+        console.log("Path", result.path)
         return result;
     }
 }

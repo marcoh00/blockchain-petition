@@ -7,14 +7,14 @@ import "./Petition.sol";
 contract Registry is IRegistry {
     IPetition[] private pPetitions;
     IIDP private pIDP;
-    IVerifier private pVerifier;
+    Verifier private pVerifier;
     bytes32 private pName;
     uint256 petitionId;
 
     constructor(bytes32 lName, address lIdp, address lVerifier) {
         pName = lName;
         pIDP = IIDP(lIdp);
-        pVerifier = IVerifier(lVerifier);
+        pVerifier = Verifier(lVerifier);
     }
 
     function name() override external view returns (bytes32) {
@@ -29,7 +29,7 @@ contract Registry is IRegistry {
         return pPetitions;
     }
 
-    function verifier() override external view returns (IVerifier) {
+    function verifier() override external view returns (Verifier) {
         return pVerifier;
     }
 
