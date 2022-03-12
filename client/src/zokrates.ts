@@ -1,217 +1,167 @@
 import { html, LitElement } from "lit";
 import { property } from "lit/decorators.js";
-import { ZoKratesProvider , initialize, CompilationArtifacts, Proof, ComputationResult } from "zokrates-js";
+import { ZoKratesProvider , initialize } from "zokrates-js";
 import { SHA256Hash} from "../../shared/merkle";
-import { IPetition } from "../../shared/web3";
-import { IDPManager } from "./idp";
 import { decorateClassWithState, IState } from "./state";
 
-interface IDualZokratesData {
-    points: Proof
-    cmdline: string
-    hpers: SHA256Hash
-}
-class ZokratesBase {}
-export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
-    provider?: ZoKratesProvider;
-    provingKey?: Uint8Array;
-    compilationArtifacts?: CompilationArtifacts;
-
-    constructor() {
-        super();
-    }
-
+class ZokratesHelper {
+    provider: ZoKratesProvider;
+    constructor() {}
     async init() {
-        this.initProgress("Initialisiere Beweis-Subsystem");
         this.provider = await initialize();
-        this.initProgress("Erstellung des Beweis-Programms");
-        this.compilationArtifacts = await this.compile();
-        this.initProgress("Herunterladen des kryptografischen Schlüssels");
-        await this.download_pk();
-        this.initProgress(undefined, true);
     }
 
-    initProgress(text: string = undefined, done: boolean = false) {
-        this.setState({
-            ...this.getState(),
-            lockspinner: !done,
-            locktext: text
-        });
-    }
+    testApp(args: any[]) {
+        const source = "import \"hashes/sha256/256bitPadded\" as hash\n" +
+            "import \"hashes/sha256/512bitPadded\" as hash_concat\n" +
+            "\n" +
+            "const u32 DEPTH = 3\n" +
+            "\n" +
+            "def select(bool condition, u32[8] left, u32[8] right) -> (u32[8], u32[8]):\n" +
+            "    return if condition then right else left fi, if condition then left else right fi\n" +
+            "\n" +
+            "def merkleProofValidation(u32[8] merkleRoot, u32[8] leaf, bool[DEPTH] directionSelector, u32[DEPTH][8] path) -> bool:\n" +
+            "    // Start from the leaf\n" +
+            "    u32[8] digest = leaf\n" +
+            "\n" +
+            "    // Loop up the tree\n" +
+            "    for u32 i in 0..DEPTH do\n" +
+            "        u32[8] left, u32[8] right = select(directionSelector[i], digest, path[i])\n" +
+            "        digest = hash_concat(left, right)\n" +
+            "    endfor\n" +
+            "\n" +
+            "    return digest == merkleRoot\n" +
+            "\n" +
+            "\n" +
+            "\n" +
+            "def main(public u32[8] rt, public u32[8] H_pers, public u32[8] ID_Petition, private u32[8] K_priv, private u32[8] K_pub, private bool[DEPTH] directionSelector,  private u32[DEPTH][8] merkleproof):\n" +
+            "    //K_priv ist Urbild von  K_pub\n" +
+            "    assert(K_pub == hash(K_priv))\n" +
+            "\n" +
+            "    //H_pers wurde korrekt berechnet\n" +
+            "    assert(H_pers == hash_concat(ID_Petition,K_priv))\n" +
+            "\n" +
+            "    //rt enthält K_pub\n" +
+            "    assert(merkleProofValidation(rt, K_pub, directionSelector, merkleproof))\n" +
+            "\n" +
+            "    return\n";
 
-    compile(): Promise<CompilationArtifacts> {
-        return new Promise((resolve, reject) => {
-            const worker = new Worker(new URL("./compileZokratesWorker.js", import.meta.url));
-            worker.onmessage = (e) => e.data[0] !== "error" ? resolve(e.data[1] as CompilationArtifacts) : reject(e.data[1]);
-            worker.postMessage(["compileSource"]);
-        });
-    }
 
-    computeWitness(artifacts: CompilationArtifacts, args: any[]): Promise<ComputationResult> {
-        return new Promise((resolve, reject) => {
-            const worker = new Worker(new URL("./compileZokratesWorker.js", import.meta.url));
-            worker.onmessage = (e) => e.data[0] !== "error" ? resolve(e.data[1] as ComputationResult) : reject(e.data[1]);
-            worker.postMessage(["computeWitness", artifacts, args]);
-        });
-    }
+        //Proving Key auslesen
+        //const pk = new Uint8Array(fs.readFileSync('../zk/proving.key'));
+        //console.log("pk", pk)
 
-    generateProof(program: Uint8Array, witness: string, provingKey: Uint8Array): Promise<Proof> {
-        return new Promise((resolve, reject) => {
-            const worker = new Worker(new URL("./compileZokratesWorker.js", import.meta.url));
-            worker.onmessage = (e) => e.data[0] !== "error" ? resolve(e.data[1] as Proof) : reject(e.data[1]);
-            worker.postMessage(["jsProof", program, witness, provingKey]);
-        });
-    }
-
-
-    async jsProof(rt: number[], hpers: number[], pid: number[], priv: number[], pub: number[], directionSelector: number[], merkle: number[][]): Promise<Proof> {
         // compilation
-        console.log("artifacts", this.compilationArtifacts);
-        // Key
-        console.log("key", this.provingKey);
-        this.initProgress("Gültige Eingabeparameter bestimmen");
-        // computation
-        const { witness, output } = await this.computeWitness(
-            this.compilationArtifacts,
-            [
-                rt.map(n => n.toString()),
-                hpers.map(n => n.toString()),
-                pid.map(n => n.toString()),
-                priv.map(n => n.toString()),
-                pub.map(n => n.toString()),
-                directionSelector.map(n => n == 0 ? false : true),
-                merkle.map(a => a.map(n => n.toString()))
-            ]
-        );
-        console.log("witness, output", witness,  output);
+        const artifacts = this.provider.compile(source);
+        console.log("artifacts", artifacts);
 
+        //rt, H_pers, pID, Kpriv, Kpub, directionSelector(bool 3), merkleproof(3*8)
+
+        //this.privstring = `${this.period}||${this.identity}`;
+        //const privstring_hash = await SHA256Hash.hashString(this.privstring);
+
+        const rt = "07929bb1a84881a24ef6f8c575b4a667d024766576024ad1a02f8b4c450e625b";
+
+        // computation
+        const { witness, output } = this.provider.computeWitness(artifacts, args);
+        //console.log("witness, output", witness,  output);
+
+        //Überspringe, da Schlüsselmaterial importiert wird
+        // run setup
+        //const keypair = zokratesProvider.setup(artifacts.program);
+        //console.log("keypair", keypair);
 
         // generate proof
-        this.initProgress("Unterschriftsbeweis erzeugen");
-        const proof = await this.generateProof(this.compilationArtifacts.program, witness, this.provingKey);
-        console.log("proof", proof);
-        return proof;
-    }
+        //const proof = this.provider.generateProof(artifacts.program, witness, pk);
+        //console.log("proof", proof);
 
-    hexStringToDecimalArray(hexString: string, bytesPerNumber: number): number[] {
-        const hexCharsPerDecimal = 2 * bytesPerNumber;
-        if(hexString.length % hexCharsPerDecimal !== 0) throw Error(`Incorrect length of hex string (len=${hexString.length}, hexCharsPerDecimal=${hexCharsPerDecimal})`);
+        //schreibe proof in eine Datei
+        // fs.writeFile("zokrates-repo/proof.json", JSON.stringify(proof), err=>{
+        //     if(err){
+        //         console.log("Error writing file" ,err)
+        //     } else {
+        //         console.log('JSON data is written to the file successfully')
+        //     }
+        // })
 
-        const intArray: number[] = [];
-        for (let i = 0; i < hexString.length; i += hexCharsPerDecimal) {
-            intArray.push(Number.parseInt(hexString.substring(i, i + hexCharsPerDecimal), 16));
-        }
-        return intArray;
-    }
-
-    
-    //rt, H_pers, pID, Kpriv, Kpub, directionSelector(bool 3), merkleproof(3*8)
-    async constructProof(petition: IPetition, idp: IDPManager): Promise<IDualZokratesData> {
-        this.initProgress("Persönliche Kennzahl errechnen");
-        const credentials = idp.getRegistrationData(petition.period);
-        // Calculate hPers
-        const pers = [
-            ...Array.from(petition.id),
-            ...Array.from(credentials.privkey.rawValue())
-        ];
-        console.log("pers", pers);
-        const hpers = await SHA256Hash.hashRaw(new Uint8Array(pers));
-
-        const rt = idp.getRegistrationData(petition.period).credentials.hash;
-        console.log("rt", rt);
-        console.log("hpers", hpers);
-        console.log("pID", petition.id);
-        console.log("Kpriv", credentials.privkey);
-        console.log("Kpub", credentials.pubkey);
-        console.log("directionSelector", credentials.credentials.proof.directionSelector);
-        console.log("merklePath", credentials.credentials.proof.path);
-
-        const rt_out = this.hexStringToDecimalArray(rt, 4);
-        console.log("rt-out", rt_out);
-        const hpers_out = this.hexStringToDecimalArray(hpers.toHex(), 4);
-        console.log("hpers-out", hpers_out);
-        const pid_out = this.hexStringToDecimalArray(Buffer.from(petition.id).toString('hex'), 4);
-        console.log("pID-out", pid_out);
-        const priv_out = this.hexStringToDecimalArray(credentials.privkey.toHex(), 4);
-        console.log("Kpriv-out", priv_out);
-        const pub_out = this.hexStringToDecimalArray(credentials.pubkey.toHex(), 4);
-        console.log("Kpub-out", pub_out);
-
-        const directionSelectorDecimalArray: number[] = credentials.credentials.proof.directionSelector.map(b => b ? 1 : 0);
-        console.log("direction-Selector-out", directionSelectorDecimalArray);
-
-        const merklePathDecimalArray: number[][] = credentials.credentials.proof.path.map(hash => this.hexStringToDecimalArray(hash, 4));
-        console.log("merklePath-out", merklePathDecimalArray)
-
-        const zokratesbeweisInput = ZokratesHelper.cmdProof(rt_out, hpers_out, pid_out, priv_out, pub_out, directionSelectorDecimalArray, merklePathDecimalArray);
-        console.log("Zokratesbeweisinput", zokratesbeweisInput);
-
-        const data: IDualZokratesData = {
-            cmdline: zokratesbeweisInput,
-            hpers,
-            points: await this.jsProof(rt_out, hpers_out, pid_out, priv_out, pub_out, directionSelectorDecimalArray, merklePathDecimalArray)
-        };
-        this.initProgress(undefined, true);
-        return data;
-    }
-
-    static cmdProof(rt: number[], hpers: number[], pid: number[], priv: number[], pub: number[], directionSelector: number[], merkle: number[][]): string {
-        return `zokrates compute-witness --input stimmrechtsbeweis -a `
-            + `${rt.join(" ")} ${hpers.join(" ")} ${pid.join(" ")} ${priv.join(" ")} ${pub.join(" ")} `
-            + `${directionSelector.join(" ")} ${merkle.flat().join(" ")} `
-            + `&& zokrates generate-proof --input stimmrechtsbeweis && cat proof.json`;
-    }
-
-    async download_pk() {
-        const url = `${await this.getState().connector.url()}/proving.key`;
-        const response = await fetch(url);
-        const filesize = Number.parseInt(response.headers.get("content-length"));
-        
-        const data: number[] = [];
-        const reader = response.body.getReader();
-        let recv = 0;
-
-        while(true) {
-            const read = await reader.read();
-            if(read.done) break;
-            read.value.forEach(byte => data.push(byte));
-            this.initProgress(`Herunterladen: ${data.length}/${filesize} (${((data.length / filesize) * 100).toFixed(1)} %)`);
-        }
-
-        this.provingKey = new Uint8Array(data);
+        //unnötig hier
+        // export solidity verifier
+        //const verifier = zokratesProvider.exportSolidityVerifier(keypair.vk, "v1");
+        //console.log("verifier", verifier);
     }
 }
-let helper: ZokratesHelper = null;
+
 export async function getZokratesHelper() {
-    if(helper === null) {
-        const new_helper = new ZokratesHelper();
-        await new_helper.init();
-        helper = new_helper;
-    }
-    console.log("Zokrates helper is initialized, return it", helper);
+    const helper = new ZokratesHelper();
+    await helper.init();
     return helper;
 }
 
 export class ZokratesTester extends decorateClassWithState(LitElement) {
     @property()
-    zinit: boolean = false
-
-    @property()
-    status?: string
+    helper?: ZokratesHelper;
 
     render() {
-        return this.zinit ? html`` : html`
+        return typeof(this.helper) === "object" ? html`
+            <button @click=${this.constructProof}>Construct Proof</button>
+        ` : html`
             <button @click=${this.initializeZokrates}>Initialize ZoKrates</button>
-            <div class="status">${this.status}</div>
         `;
     }
 
-    async stateChanged(state: IState): Promise<void> {
-        this.zinit = state.zokrates.initialized;
-        this.status = state.zokrates.text;
+    initializeZokrates() {
+        getZokratesHelper().then(helperClass => this.helper = helperClass);
     }
 
-    initializeZokrates() {
-        getZokratesHelper().then(helper => console.log("helper initialized", helper));
+    hexStringToDecimalStringArray(hexString: string) {
+        const intString:string[] = [];
+        for (let i = 0; i < 64; i+=8) {
+            //intString.push(parseInt(hexString.substring(i, i + 7), 16).valueOf().toString());
+            intString.push(Number( "0x" + hexString.substring(i, i + 8)).toString(10));
+        }
+        return intString;
+    }
+
+    //rt, H_pers, pID, Kpriv, Kpub, directionSelector(bool 3), merkleproof(3*8)
+    constructProof(rt: string, hpers: string, pID: string, Kpriv: string, Kpub:string, directionSelector: boolean[], merklePath: string[]) {
+        console.log("rt", rt);
+        console.log("hpers", hpers);
+        console.log("pID", pID);
+        console.log("Kpriv", Kpriv);
+        console.log("Kpub", Kpub);
+        console.log("directionSelector", directionSelector);
+        console.log("merklePath", merklePath);
+
+        console.log("rt-out", this.hexStringToDecimalStringArray(rt));
+        console.log("hpers-out", this.hexStringToDecimalStringArray(hpers));
+        console.log("pID-out", this.hexStringToDecimalStringArray(pID));
+        console.log("Kpriv-out", this.hexStringToDecimalStringArray(Kpriv));
+        console.log("Kpub-out", this.hexStringToDecimalStringArray(Kpub));
+
+        let directionSelectorDecimalStringArray: string[] = [];
+        for (let i = 0; i < directionSelector.length; i++) {
+            directionSelectorDecimalStringArray.push(directionSelector[i] ? '1' : '0');
+        }
+        console.log("direction-Selector-out", directionSelectorDecimalStringArray);
+
+        let merklePathDecimalStringArray:string[][] = [];
+        for (let i=0; i<merklePath.length; i++){
+            merklePathDecimalStringArray.push(this.hexStringToDecimalStringArray(merklePath[i]));
+        }
+        console.log("merklePath-out", merklePathDecimalStringArray)
+
+        let zokratesbeweisInput:string = "";
+        this.hexStringToDecimalStringArray(rt).forEach(x => zokratesbeweisInput = zokratesbeweisInput +  x +" ");
+        this.hexStringToDecimalStringArray(hpers).forEach(x => zokratesbeweisInput = zokratesbeweisInput +  x +" ");
+        this.hexStringToDecimalStringArray(pID).forEach(x => zokratesbeweisInput = zokratesbeweisInput +  x +" ");
+        this.hexStringToDecimalStringArray(Kpriv).forEach(x => zokratesbeweisInput = zokratesbeweisInput + x +" ");
+        this.hexStringToDecimalStringArray(Kpub).forEach(x => zokratesbeweisInput = zokratesbeweisInput + x +" ");
+        directionSelectorDecimalStringArray.forEach(x => zokratesbeweisInput = zokratesbeweisInput + x +" ");
+        merklePathDecimalStringArray.forEach(x => x.forEach(y => zokratesbeweisInput = zokratesbeweisInput + y +" "));
+
+        console.log("Zokratesbeweisinput", zokratesbeweisInput);
+
+        // getZokratesHelper().then(helperClass => this.helper = helperClass);
+        // this.helper.testApp([]);
     }
 }

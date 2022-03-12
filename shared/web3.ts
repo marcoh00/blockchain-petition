@@ -1,5 +1,5 @@
 import Web3 from 'web3';
-import { hexToUtf8, hexToBytes, asciiToHex, padLeft } from 'web3-utils';
+import { hexToUtf8, hexToBytes } from 'web3-utils';
 import { Contract } from 'web3-eth-contract';
 import IDPContract from "../platform/artifacts/contracts/IDP.sol/IDP.json";
 import RegistryContract from "../platform/artifacts/contracts/Registry.sol/Registry.json";
@@ -22,20 +22,16 @@ export class EthereumConnector {
     idpcontract: Contract
     account?: string
     privkey?: string
-    chainid?: number
 
-    constructor(provider: any, registryaddr: string, account?: string, privkey?: string, chainid?: number) {
-        if(Array.isArray(provider) && provider.length === 5) [provider, registryaddr, account, privkey, chainid] = provider;
+    constructor(provider: any, registryaddr: string, account?: string, privkey?: string) {
+        console.log("Init Web3 with provider", provider);
         this.api = new Web3(provider);
         this.registryaddr = registryaddr;
         this.account = account;
         this.privkey = privkey;
-        this.chainid = chainid;
     }
 
     async init() {
-        const wallet_chain_id = await this.api.eth.getChainId()
-        if(this.chainid && wallet_chain_id !== this.chainid) throw new Error(`Falsche Blockchain ausgewählt (ist ${wallet_chain_id}, soll ${this.chainid})`);
         this.registrycontract = new this.api.eth.Contract((RegistryContract.abi as any), this.registryaddr);
         const idpaddr = await this.registrycontract.methods.idp().call();
         console.log("🌐 Obtained IDP contract address", idpaddr);
@@ -50,22 +46,11 @@ export class EthereumConnector {
         }
     }
 
-    async submitHash(hash: string, period: number): Promise<object> {
-        const method = this.idpcontract.methods.submitHash(`0x${hash}`, period);
-        const data = method.encodeABI();
-        const gas = await method.estimateGas();
-        const raw_tx = {
-            from: this.account,
-            to: await this.registrycontract.methods.idp().call(),
-            data,
-            gas
-        };
-        console.log("Transaction", raw_tx);
-        const signed = await this.api.eth.accounts.signTransaction(raw_tx, this.privkey);
-        const web3result = await this.api.eth.sendSignedTransaction(signed.rawTransaction)
-        console.log("web3result", web3result);
-        console.log("events", web3result.logs[0].topics);
-        return web3result;
+    async submitHash(hash: string, period: number): Promise<number> {
+        const web3result: Promise<any> = this.idpcontract.methods.submitHash(`0x${hash}`, period).send({
+            from: this.account
+        })
+        return web3result.then(tx => Number.parseInt(tx.events.HashAdded.returnValues.iteration));
     }
 
     async period(): Promise<number> {
@@ -111,16 +96,9 @@ export class EthereumConnector {
         const addr_list: string[] = await this.registrycontract.methods.petitions().call();
         for(const addr of addr_list) {
             const contract = new this.api.eth.Contract((PetitionContract.abi as any), addr);
-            const name = await contract.methods.name().call();
-            let name_decoded = "";
-            try {
-                name_decoded = hexToUtf8(name);
-            } catch(e) {
-                name_decoded = EthereumConnector.hexToUtf8Fallback(name);
-            }
             const info: IPetition = {
                 address: addr,
-                name: name_decoded,
+                name: hexToUtf8(await contract.methods.name().call()),
                 description: await contract.methods.description().call(),
                 id: new Uint8Array(hexToBytes(await contract.methods.id().call())),
                 period: Number.parseInt(await contract.methods.period().call()),
@@ -131,35 +109,12 @@ export class EthereumConnector {
         return petitions;
     }
 
-    async signPetition(petitionaddr: string, proof: any, hpers: SHA256Hash, iteration: number) {
+    async signPetition(petitionaddr: string, proof: string, hpers: SHA256Hash, iteration: number) {
         const contract = new this.api.eth.Contract((PetitionContract.abi as any), petitionaddr);
         console.log(`web3: sign as ${hpers.toHex()} with account ${this.account}`);
-        console.log(proof);
-        const tx = await contract.methods.sign(Object.values(proof.proof), iteration, `0x${hpers.toHex()}`).send({ from: this.account });
-        return tx;
+        const proofObject = JSON.parse(proof);
+        console.log(proofObject.proof.a);
+        console.log(Object.values(proofObject.proof));
+        return await contract.methods.sign(Object.values(proofObject.proof), iteration, `0x${hpers.toHex()}`).send({ from: this.account });
     }
-
-    async createPetition(name: string, description: string, period: number) {
-        const name_b32 = padLeft(asciiToHex(name), 64);
-        console.log("Create petition", name, name_b32, description, period);
-        const tx = await this.registrycontract.methods.createPetition(name_b32, description, period).send({ from: this.account });
-        return tx;
-    }
-
-    static ASCII_TABLE: ITable = {"20": " ", "21": "!", "22": "\"", "23": "#", "24": "$", "25": "%", "26": "&", "27": "'", "28": "(", "29": ")", "2a": "*", "2b": "+", "2c": ",", "2d": "-", "2e": ".", "2f": "/", "30": "0", "31": "1", "32": "2", "33": "3", "34": "4", "35": "5", "36": "6", "37": "7", "38": "8", "39": "9", "3a": ":", "3b": ";", "3c": "<", "3d": "=", "3e": ">", "3f": "?", "40": "@", "41": "A", "42": "B", "43": "C", "44": "D", "45": "E", "46": "F", "47": "G", "48": "H", "49": "I", "4a": "J", "4b": "K", "4c": "L", "4d": "M", "4e": "N", "4f": "O", "50": "P", "51": "Q", "52": "R", "53": "S", "54": "T", "55": "U", "56": "V", "57": "W", "58": "X", "59": "Y", "5a": "Z", "5b": "[", "5c": "\\", "5d": "]", "5e": "^", "5f": "_", "60": "`", "61": "a", "62": "b", "63": "c", "64": "d", "65": "e", "66": "f", "67": "g", "68": "h", "69": "i", "6a": "j", "6b": "k", "6c": "l", "6d": "m", "6e": "n", "6f": "o", "70": "p", "71": "q", "72": "r", "73": "s", "74": "t", "75": "u", "76": "v", "77": "w", "78": "x", "79": "y", "7a": "z", "7b": "{", "7c": "|", "7d": "}", "7e": "~"};
-    static hexToUtf8Fallback(hexstring: string) {
-        if(hexstring.length % 2 !== 0) throw Error("Benötige ganze Bytes");
-        let output = "";
-        for(let i = 0; i < hexstring.length; i += 2) {
-            const byte = `${hexstring.charAt(i).toLowerCase()}${hexstring.charAt(i + 1).toLowerCase()}`;
-            if(byte === "0x" || byte === "00") continue;
-            if(EthereumConnector.ASCII_TABLE.hasOwnProperty(byte)) output = `${output}${EthereumConnector.ASCII_TABLE[byte]}`
-            else { console.log("Invalid character", byte) }
-        }
-        return output;
-    }
-}
-
-interface ITable {
-    [hexbyte: string]: string
 }

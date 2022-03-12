@@ -5,25 +5,25 @@ import { checkRegistration, checkValidType, IRegistration, IProofRequest } from 
 import { Database } from "./database";
 import { EthereumConnector } from "../../shared/web3";
 import { SHA256Hash, MerkleTree } from '../../shared/merkle';
-import { NETWORKS, DEFAULT_NETWORK, PORT, DBFILE, PROVINGKEY } from '../../shared/addr';
+import { REGISTRY_CONTRACT } from '../../shared/addr';
 import { intervalTask } from "./task";
+
+const port = 65535;
+const account = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266';
+const privkey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+const api = 'ws://127.0.0.1:8545';
+const databasefile = `./database.db`;
 
 const app = express();
 app.use(express.json());
 
-const database = new Database(DBFILE);
-const API = DEFAULT_NETWORK.wsapi;
-const REGISTRY_CONTRACT = DEFAULT_NETWORK.registry_contract;
-const ACCOUNT = DEFAULT_NETWORK.account;
-const PRIVKEY = DEFAULT_NETWORK.privkey;
-const ethereum = new EthereumConnector(API, REGISTRY_CONTRACT, ACCOUNT, PRIVKEY);
+const database = new Database(databasefile);
+const ethereum = new EthereumConnector(api, REGISTRY_CONTRACT, account, privkey);
 
 const corsOptions: CorsOptions = {
     methods: ["GET", "POST"],
     origin: ["http://localhost:8080", "http://localhost:65535"]
 }
-
-app.use("/proving.key", cors(corsOptions), express.static(PROVINGKEY));
 
 app.get('/', (req, res) => {
     res.json({'timestamp': Math.floor(Date.now() / 1000)});
@@ -59,40 +59,27 @@ app.post('/proof', cors(corsOptions), async (req, res) => {
     }
 
     let found = false;
-    let database_result = null;
-    try {
-        database_result = await database.getProofInfo(proof_request.token);
-    } catch(e) {
-        res.statusCode = 500;
-        res.json({ "error": "Internal Server Error" });
-        return;
-    }
-    console.log("Proof request, db", database_result);
-    if(database_result === null || typeof(database_result.token) !== "string") {
+    const result_row = await database.getProofInfo(proof_request.token)
+        .then((row) => { return {
+            hash: row.hash,
+            iteration: row.iteration,
+            period: row.period,
+            proof: JSON.parse(row.proof)
+        };})
+        .catch(err => { console.log(err); return undefined; });
+    if(result_row === undefined) {
         res.statusCode = 404;
         res.json({ "error": "Unknown Token" });
         return;
     }
-    if(typeof(database_result.hash) !== "string" || typeof(database_result.period) !== "number" || typeof(database_result.proof) !== "string") {
+    if(typeof(result_row.iteration) !== "number") {
         res.statusCode = 503;
-        res.json({ "error": "Proof has not been created yet" });
+        res.json({ "error": "Proof is not ready yet" });
         return;
     }
-    if(typeof(database_result.iteration) !== "number") {
-        res.statusCode = 503;
-        res.json({ "error": "Proof has not been added to the blockchain yet" });
-        return;
-    }
-    const result = {
-        hash: database_result.hash,
-        iteration: database_result.iteration,
-        period: database_result.period,
-        proof: JSON.parse(database_result.proof)
-    };
-    
     res.statusCode = 200;
-    res.json(result);
-    console.log("/proof return", result);
+    res.json(result_row);
+    console.log("/proof return", result_row);
 })
 
 app.options('/register', cors(corsOptions));
@@ -106,8 +93,7 @@ app.post('/register', cors(corsOptions), async (req, res) => {
         return;
     }
     if(registration.period === -1) {
-        console.log("register endpoint: request for current period");
-        registration.period = minperiod;
+        registration.period = await ethereum.period();
     }
     if(!checkRegistration(registration, minperiod, maxperiod)) {
         res.statusCode = 400;
@@ -121,10 +107,10 @@ app.post('/register', cors(corsOptions), async (req, res) => {
             return;
         }
         const token = randomBytes(32).toString("hex");
-        const result = await database.register(registration, token);
+        database.register(registration, token);
         res.statusCode = 200;
         res.json({ "token": token });
-        console.log(`💾 Registration saved to database`, registration, token, result);
+        console.log(`💾 Registration saved to database`, registration, token);
         return;
     } catch(e) {
         res.statusCode = 500;
@@ -159,27 +145,14 @@ async function repeat() {
     await intervalTask(ethereum, database);
 }
 
-async function hashAddedEvent(err, event, subscription) {
-    console.log("HashAdded Event", err, event, subscription);
-    const hash_result = event.returnValues[0] as string
-    const hash = hash_result.startsWith("0x") ? hash_result.substring(2) : hash_result;
-    const period = event.returnValues[1];
-    const iteration = event.returnValues[2];
-    console.log("Values are", hash, period, iteration, typeof hash, typeof period, typeof iteration);
-    await database.updateTreeWithIteration(hash, iteration);
-}
-
-app.listen(PORT, async () => {
+app.listen(port, async () => {
     await ethereum.init();
-    ethereum.idpcontract.events.HashAdded({
-        fromBlock: "latest"
-    }, hashAddedEvent);
-    console.log(`👂 IDP listening on ${PORT}`);
-    console.log(`ℹ️  Using Ethereum API ${API}`);
+    console.log(`👂 IDP listening on ${port}`);
+    console.log(`ℹ️  Using Ethereum API ${api}`);
     console.log(`ℹ️  Using Registry Smart Contract at ${REGISTRY_CONTRACT}`);
-    console.log(`ℹ️  Using Account ${ACCOUNT}`);
-    console.log(`ℹ️  Using Private Key 0x${PRIVKEY.charAt(2)}${PRIVKEY.charAt(3)}...`);
-    console.log(`💾 Connecting to database at ${DBFILE}`);
+    console.log(`ℹ️  Using Account ${account}`);
+    console.log(`ℹ️  Using Private Key 0x${privkey.charAt(2)}${privkey.charAt(3)}...`);
+    console.log(`💾 Connecting to database at ${databasefile}`);
     const interval = Math.ceil(await ethereum.interval());
     console.log(`🌐 Try to create a new tree hash every ${interval}s`);
     setInterval(repeat, interval * 1000);

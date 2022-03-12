@@ -1,4 +1,4 @@
-/*import { LitElement, html, css } from 'lit';
+import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 
 import { SHA256Hash } from '../../shared/merkle';
@@ -10,6 +10,10 @@ import { EthereumConnector, IPetition } from '../../shared/web3';
 import { REGISTRY_CONTRACT } from '../../shared/addr';
 import { threadId } from 'worker_threads';
 import {ZokratesTester} from "./zokrates";
+
+declare global {
+    interface Window { ethereum: any; }
+}
 
 export class MetaMaskConnector extends decorateClassWithWeb3(decorateClassWithState(LitElement)) {
     @property()
@@ -312,9 +316,6 @@ export class PetitionList extends decorateClassWithState(LitElement) {
     connected: boolean = false;
 
     @property()
-    zokratesAvailable: boolean = false;
-
-    @property()
     zokratesArgumentInputString: string = "";
 
     @property()
@@ -361,8 +362,8 @@ export class PetitionList extends decorateClassWithState(LitElement) {
     render() {
         return html`
             ${this.zokratesArgumentInputString ? html`
-                <textarea>${this.zokratesArgumentInputString}</textarea>
-                <textarea @input=${this.inputProof} name="proof" placeholder="Proof">${this.zokratesProof}</textarea>
+                <textarea> ${this.zokratesArgumentInputString} </textarea>
+                <textarea  @input=${this.inputProof} name="proof" placeholder="Proof"> </textarea>
             ` : html``}
             <h1>Petitionsliste</h1>
             ${this.connected ? html`
@@ -373,7 +374,7 @@ export class PetitionList extends decorateClassWithState(LitElement) {
                         <div class="period">Zeitperiode: ${petition.period} (${(petition as any).start}-${(petition as any).end})</div>
                         <div class="id">ID: ${petition.id}</div>
                         <div class="signers">Unterschriften: ${petition.signers}</div>
-                        ${this.zokratesAvailable ? html`<div class="sign"><button .disabled=${(petition as any).disabled} .id=${idx} @click=${this.signClick}>Unterschreiben</button></div>` : html`` }
+                        <div class="sign"><button .disabled=${(petition as any).disabled} .id=${idx} @click=${this.signClick}>Unterschreiben</button></div>
                     </div>
                 `)}
             ` : html`
@@ -399,6 +400,45 @@ export class PetitionList extends decorateClassWithState(LitElement) {
         console.log("pers", pers);
         const hpers = await SHA256Hash.hashRaw(new Uint8Array(pers));
         console.log("credentials", this.getState().credentials)
+        //rt, H_pers, pID, Kpriv, Kpub, directionSelector(bool 3), merkleproof(3*8)
+
+        if(!this.zokratesArgumentInputString){
+            let zokratesbeweisInput:string = "zokrates compute-witness --input stimmrechtsbeweis -a ";
+            this.hexStringToDecimalStringArray(this.getState().credentials.hash).forEach(x => zokratesbeweisInput = zokratesbeweisInput +  x +" ");
+            this.hexStringToDecimalStringArray(hpers.toHex()).forEach(x => zokratesbeweisInput = zokratesbeweisInput +  x +" ");
+            this.hexStringToDecimalStringArray(Buffer.from(this.petitions[idx].id).toString('hex')).forEach(x => zokratesbeweisInput = zokratesbeweisInput +  x +" ");
+            this.hexStringToDecimalStringArray(this.getState().privkey.toHex()).forEach(x => zokratesbeweisInput = zokratesbeweisInput + x +" ");
+            this.hexStringToDecimalStringArray(this.getState().pubkey.toHex()).forEach(x => zokratesbeweisInput = zokratesbeweisInput + x +" ");
+
+            let directionSelectorDecimalStringArray: string[] = [];
+            for (let i = 0; i < this.getState().credentials.proof.directionSelector.length; i++) {
+                directionSelectorDecimalStringArray.push(this.getState().credentials.proof.directionSelector[i] ? '1' : '0');
+            }
+
+            let merklePathDecimalStringArray:string[][] = [];
+            for (let i=0; i<this.getState().credentials.proof.path.length; i++){
+                merklePathDecimalStringArray.push(this.hexStringToDecimalStringArray(this.getState().credentials.proof.path[i]));
+            }
+
+            directionSelectorDecimalStringArray.forEach(x => zokratesbeweisInput = zokratesbeweisInput + x +" ");
+            merklePathDecimalStringArray.forEach(x => x.forEach(y => zokratesbeweisInput = zokratesbeweisInput + y +" "));
+            zokratesbeweisInput = zokratesbeweisInput + "&& zokrates generate-proof --input stimmrechtsbeweis && cat proof.json | pbcopy";
+            this.zokratesArgumentInputString = zokratesbeweisInput;
+            console.log("zokratesbeweisInput", zokratesbeweisInput);
+            //console.log("merklePath-out", merklePathDecimalStringArray)
+            //directionSelectorDecimalStringArray.forEach(x => zokratesbeweisInput = zokratesbeweisInput + x +" ");
+            //merklePathDecimalStringArray.forEach(x => x.forEach(y => zokratesbeweisInput = zokratesbeweisInput + y +" "));
+
+            // const proof  = new ZokratesTester().constructProof(
+            //     this.getState().credentials.hash,
+            //     hpers.toHex(),
+            //     Buffer.from(this.petitions[idx].id).toString('hex'),
+            //     this.getState().privkey.toHex(),
+            //     this.getState().pubkey.toHex(),
+            //     this.getState().credentials.proof.directionSelector,
+            //     this.getState().credentials.proof.path);
+            return
+        }
 
         if (this.zokratesProof){
             try {
@@ -418,12 +458,6 @@ export class PetitionList extends decorateClassWithState(LitElement) {
             this.zokratesArgumentInputString = "";
             this.zokratesProof = "";
         }
-
-        if(!this.zokratesArgumentInputString){
-            const zokratesData = this.getState().zokrates.helper.constructProof(this.getState(), hpers.toHex(), Buffer.from(this.petitions[idx].id).toString('hex'));
-            this.zokratesArgumentInputString = zokratesData.cmdline;
-            this.zokratesProof = JSON.stringify(zokratesData.points);
-        }
     }
 
     async stateChanged(state: IState) {
@@ -442,6 +476,5 @@ export class PetitionList extends decorateClassWithState(LitElement) {
             this.petitions = petitions;
             console.log(this.petitions);
         }
-        this.zokratesAvailable = state.zokrates.initialized;
     }
-}*/
+}
