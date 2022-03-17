@@ -1,12 +1,19 @@
 import { LitElement } from "lit";
 import { MerkleProof, SHA256Hash } from "../../shared/merkle";
 import { EthereumConnector } from "../../shared/web3";
+import { ZokratesHelper } from "./zokrates";
 
 interface ICredentials {
     hash: string,
     iteration: number,
     period: number,
-    proof: MerkleProof
+    proof: MerkleProof,
+}
+
+interface IZokratesState {
+    helper?: ZokratesHelper,
+    initialized: boolean,
+    text?: string
 }
 
 export interface IState {
@@ -18,6 +25,7 @@ export interface IState {
     connector?: EthereumConnector,
     token?: string,
     credentials?: ICredentials,
+    zokrates: IZokratesState,
     error?: string
 }
 
@@ -33,7 +41,12 @@ function localGetState(): IState {
         localSetState({
             period: -1,
             identity: "",
-            web3connected: false
+            web3connected: false,
+            zokrates: {
+                initialized: false,
+                text: undefined,
+                helper: undefined
+            }
         })
     }
     return state;
@@ -48,7 +61,7 @@ function localSetState(lstate: IState) {
     }
 }
 
-type ClassType = new (...args: any[]) => LitElement;
+type ClassType = new (...args: any[]) => any;
 
 export function decorateClassWithState<T extends ClassType>(decorated: T) {
     return class extends decorated implements IStateAccessor {
