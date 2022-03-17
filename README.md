@@ -111,7 +111,7 @@ Installation der Abhängigkeiten
 npm install
 ```
 
-Einstellungen werden aktuell über Konstanten in `src/index.ts` vorgenommen:
+Einstellungen werden aktuell über Konstanten in `shared/addr.ts` vorgenommen:
 ```
 const port = 65535;
 const account = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266';
