@@ -5,25 +5,21 @@ import { checkRegistration, checkValidType, IRegistration, IProofRequest } from 
 import { Database } from "./database";
 import { EthereumConnector } from "../../shared/web3";
 import { SHA256Hash, MerkleTree } from '../../shared/merkle';
-import { REGISTRY_CONTRACT } from '../../shared/addr';
+import {REGISTRY_CONTRACT, PORT, API, ACCOUNT, PRIVKEY, DBFILE, PROVINGKEY } from '../../shared/addr';
 import { intervalTask } from "./task";
-
-const port = 65535;
-const account = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266';
-const privkey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
-const api = 'ws://127.0.0.1:8545';
-const databasefile = `./database.db`;
 
 const app = express();
 app.use(express.json());
 
-const database = new Database(databasefile);
-const ethereum = new EthereumConnector(api, REGISTRY_CONTRACT, account, privkey);
+const database = new Database(DBFILE);
+const ethereum = new EthereumConnector(API, REGISTRY_CONTRACT, ACCOUNT, PRIVKEY);
 
 const corsOptions: CorsOptions = {
     methods: ["GET", "POST"],
     origin: ["http://localhost:8080", "http://localhost:65535"]
 }
+
+app.use("/proving.key", cors(corsOptions), express.static(PROVINGKEY));
 
 app.get('/', (req, res) => {
     res.json({'timestamp': Math.floor(Date.now() / 1000)});
@@ -145,14 +141,14 @@ async function repeat() {
     await intervalTask(ethereum, database);
 }
 
-app.listen(port, async () => {
+app.listen(PORT, async () => {
     await ethereum.init();
-    console.log(`👂 IDP listening on ${port}`);
-    console.log(`ℹ️  Using Ethereum API ${api}`);
+    console.log(`👂 IDP listening on ${PORT}`);
+    console.log(`ℹ️  Using Ethereum API ${API}`);
     console.log(`ℹ️  Using Registry Smart Contract at ${REGISTRY_CONTRACT}`);
-    console.log(`ℹ️  Using Account ${account}`);
-    console.log(`ℹ️  Using Private Key 0x${privkey.charAt(2)}${privkey.charAt(3)}...`);
-    console.log(`💾 Connecting to database at ${databasefile}`);
+    console.log(`ℹ️  Using Account ${ACCOUNT}`);
+    console.log(`ℹ️  Using Private Key 0x${PRIVKEY.charAt(2)}${PRIVKEY.charAt(3)}...`);
+    console.log(`💾 Connecting to database at ${DBFILE}`);
     const interval = Math.ceil(await ethereum.interval());
     console.log(`🌐 Try to create a new tree hash every ${interval}s`);
     setInterval(repeat, interval * 1000);
