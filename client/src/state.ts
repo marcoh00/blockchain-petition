@@ -1,13 +1,9 @@
 import { LitElement } from "lit";
-import { REGISTRY_CONTRACT } from "../../shared/addr";
 import { MerkleProof, SHA256Hash } from "../../shared/merkle";
 import { EthereumConnector } from "../../shared/web3";
-import { IDPManager } from "./idp";
-import { WebEthereumConnector } from "./web3";
-import { Web3Repository } from "./web3repository";
 import { ZokratesHelper } from "./zokrates";
 
-export interface ICredentials {
+interface ICredentials {
     hash: string,
     iteration: number,
     period: number,
@@ -21,20 +17,16 @@ interface IZokratesState {
 }
 
 export interface IState {
-    registry: string,
-    period: number,
-    customPeriod: boolean,
-    identity?: string,
+    period: number
+    identity: string,
     pubkey?: SHA256Hash,
     privkey?: SHA256Hash,
     web3connected: boolean,
-    connector?: WebEthereumConnector,
-    repository?: Web3Repository,
-    idp?: IDPManager,
-    zokrates?: ZokratesHelper,
-    error?: string,
-    locktext?: string,
-    lockspinner: boolean
+    connector?: EthereumConnector,
+    token?: string,
+    credentials?: ICredentials,
+    zokrates: IZokratesState,
+    error?: string
 }
 
 export interface IStateAccessor {
@@ -46,14 +38,15 @@ let state: IState = undefined;
 
 function localGetState(): IState {
     if(state === undefined) {
-        console.log("Initialize new state");
-        console.trace();
         localSetState({
-            registry: REGISTRY_CONTRACT,
             period: -1,
-            customPeriod: false,
+            identity: "",
             web3connected: false,
-            lockspinner: true
+            zokrates: {
+                initialized: false,
+                text: undefined,
+                helper: undefined
+            }
         })
     }
     return state;
@@ -62,8 +55,6 @@ function localGetState(): IState {
 const decoratedClasses: Array<any> = [];
 
 function localSetState(lstate: IState) {
-    console.log("Set State", lstate);
-    console.trace();
     state = lstate;
     for(let decoratedClass of decoratedClasses) {
         decoratedClass.stateChanged(lstate);
@@ -82,17 +73,6 @@ export function decorateClassWithState<T extends ClassType>(decorated: T) {
         setState: (state: IState) => void = localSetState;
         async stateChanged(state: IState) {
             console.log("State Change", this, state);
-        }
-        stateError(message: string, timeout: number = 10000) {
-            console.log("[ERROR] " + message);
-            this.setState({
-                ...this.getState(),
-                error: message
-            });
-            setTimeout(() => this.setState({
-                ...this.getState(),
-                error: undefined
-            }), timeout);
         }
     }
 }
