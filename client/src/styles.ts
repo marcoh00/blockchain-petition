@@ -31,7 +31,7 @@ export const leftRightFlex = css`
 export const buttonMixin = css`
     button {
         border: none;
-        padding: 0.3rem;
+        padding: 0.5rem;
         text-align: center;
         margin: 0 0.1rem 0.2rem 0.2rem;
         background-color: #33A1FD;
@@ -45,6 +45,10 @@ export const buttonMixin = css`
         background-color: #D4EBFF;
         color: #929AA0;
         cursor: default;
+    }
+
+    .mediumbtn {
+        font-size: 1.5em;
     }
 
     .hugebtn {
