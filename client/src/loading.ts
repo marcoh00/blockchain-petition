@@ -1,13 +1,17 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { decorateClassWithState, IState } from './state';
+import { decorateClassWithState } from './state';
 
-export class OverlayElement extends decorateClassWithState(LitElement) {
+export class LoadData extends decorateClassWithState(LitElement) {
     @property({type: Boolean})
-    spinner = true
+    active = true
 
     @property({ type: String })
-    message?: string = null;
+    loaded_total = ""
+    @property({ type: String })
+    total = ""
+    @property({ type: String })
+    last_loaded = "";
 
     static styles = css`
         .hidden {
@@ -19,7 +23,7 @@ export class OverlayElement extends decorateClassWithState(LitElement) {
         .container {
             width: 100vw;
             height: 100vh;
-            background-image: linear-gradient(#57656A, #31393C);
+            background-color: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             flex-flow: column nowrap;
             justify-content: center;
@@ -29,36 +33,44 @@ export class OverlayElement extends decorateClassWithState(LitElement) {
             top: 0;
             left: 0;
             z-index: 10;
-            row-gap: 10vmin;
-        }
-
-        loading-spinner {
-          width: 25vmin;
-          height: 25vmin;
         }
     `;
 
+    constructor() {
+        super();
+    }
+
     render() {
         return html`
-            <div class="container ${typeof(this.message) === "string" ? `visible` : `hidden`}">
-                ${this.spinner ? html`<loading-spinner border="0.6em"></loading-spinner>` : html``}
-                ${this.message}
+            <div class="container ${this.active ? `visible` : `hidden`}">
+                <loading-spinner></loading-spinner>
+                <p>${this.loaded_total}/${this.total}</p>
+                <p>${this.last_loaded}</p>
             </div>
         `;
     }
-
-    async stateChanged(state: IState) {
-        this.message = state.locktext;
-    }
 }
 
+@customElement("loading-spinner")
 export class LoadingSpinner extends LitElement {
     static styles = css`
       .lds-ring {
         display: inline-block;
         position: relative;
-        width: 100%;
-        height: 100%;
+        width: 80px;
+        height: 80px;
+      }
+      .lds-ring div {
+        box-sizing: border-box;
+        display: block;
+        position: absolute;
+        width: 64px;
+        height: 64px;
+        margin: 8px;
+        border: 8px solid #000000;
+        border-radius: 50%;
+        animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+        border-color: #000000 transparent transparent transparent;
       }
       .lds-ring div:nth-child(1) {
         animation-delay: -0.45s;
@@ -79,28 +91,7 @@ export class LoadingSpinner extends LitElement {
       }      
     `;
 
-    @property({ type: String })
-    color = "#FAFFDB";
-
-    @property({type: String})
-    border = "0.3em";
-
     render() {
-        return html`
-            <style>
-                .lds-ring div {
-                    box-sizing: content-box;
-                    display: block;
-                    position: absolute;
-                    width: calc(100% - ${this.border} - ${this.border});
-                    height: calc(100% - ${this.border} - ${this.border});
-                    margin: ${this.border};
-                    border: ${this.border} solid ${this.color};
-                    border-radius: 50%;
-                    animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-                    border-color: ${this.color} transparent transparent transparent;
-                }
-          </style>
-          <div class="lds-ring"><div></div></div>`;
+        return html`<div class="lds-ring"><div></div></div>`;
     }
 }
