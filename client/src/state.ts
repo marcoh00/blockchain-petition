@@ -1,4 +1,5 @@
 import { LitElement } from "lit";
+import { REGISTRY_CONTRACT } from "../../shared/addr";
 import { MerkleProof, SHA256Hash } from "../../shared/merkle";
 import { EthereumConnector } from "../../shared/web3";
 import { ZokratesHelper } from "./zokrates";
@@ -17,7 +18,8 @@ interface IZokratesState {
 }
 
 export interface IState {
-    period: number
+    registry: string,
+    period: number,
     identity: string,
     pubkey?: SHA256Hash,
     privkey?: SHA256Hash,
@@ -39,6 +41,7 @@ let state: IState = undefined;
 function localGetState(): IState {
     if(state === undefined) {
         localSetState({
+            registry: REGISTRY_CONTRACT,
             period: -1,
             identity: "",
             web3connected: false,
