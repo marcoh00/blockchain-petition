@@ -77,6 +77,17 @@ export function decorateClassWithState<T extends ClassType>(decorated: T) {
         async stateChanged(state: IState) {
             console.log("State Change", this, state);
         }
+        stateError(message: string, timeout: number = 10000) {
+            console.log("[ERROR] " + message);
+            this.setState({
+                ...this.getState(),
+                error: message
+            });
+            setTimeout(() => this.setState({
+                ...this.getState(),
+                error: undefined
+            }), timeout);
+        }
     }
 }
 
