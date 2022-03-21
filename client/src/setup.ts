@@ -7,7 +7,7 @@ import { REGISTRY_CONTRACT } from '../../shared/addr';
 import { EthereumConnector } from '../../shared/web3';
 import { decorateClassWithState, IState } from './state';
 import { basicFlex, buttonMixin, faStyle, topDownFlex } from './styles';
-import { decorateClassWithWeb3 } from './web3';
+import { decorateClassWithWeb3, WebEthereumConnector } from './web3';
 
 export class LandingPage extends LitElement {
     static styles = [basicFlex, topDownFlex, buttonMixin, css`
@@ -26,7 +26,7 @@ export class LandingPage extends LitElement {
     }
 }
 
-export class ConnectionPage extends decorateClassWithWeb3(decorateClassWithState(LitElement)) {
+export class ConnectionPage extends decorateClassWithState(LitElement) {
     static styles = [faStyle, basicFlex, topDownFlex, buttonMixin, css`
         :host {
             align-items: center;
@@ -49,25 +49,14 @@ export class ConnectionPage extends decorateClassWithWeb3(decorateClassWithState
         console.log("registryClick", e);
     }
 
-    async onAccountsChange(provider: any, accounts: string[]) {
-        this.accounts = accounts;
-        const connector = new EthereumConnector(provider, this.contract, accounts[0]);
-        console.log("Connector:", connector);
-        await connector.init();
-        this.setState({
-            ...this.getState(),
-            web3connected: true,
-            connector
-        });
-    }
-
-    connectClick() {
+    async connectClick() {
         if(typeof(this.contract) !== "string") return;
+        console.log("connect: this.contract", this.contract);
         if(typeof(window.ethereum) === "undefined") {
             this.stateError("Zur Teilnahme wird eine kompatible Ethereum-Wallet benötigt");
             return;
         }
-        this.web3Connect();
+        await new WebEthereumConnector(window.ethereum, this.contract, null, null).init();
     }
 }
 
@@ -120,7 +109,7 @@ export class RegistryChooser extends LitElement {
     }
     `];
 
-    @property({type: Object})
+    @property({type: Array})
     registries: any[] = [
         {
             addr: REGISTRY_CONTRACT,
