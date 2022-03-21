@@ -22,16 +22,19 @@ export class EthereumConnector {
     idpcontract: Contract
     account?: string
     privkey?: string
+    chainid?: number
 
-    constructor(provider: any, registryaddr: string, account?: string, privkey?: string) {
-        console.log("Init Web3 with provider", provider);
+    constructor(provider: any, registryaddr: string, account?: string, privkey?: string, chainid?: number) {
+        if(Array.isArray(provider) && provider.length === 5) [provider, registryaddr, account, privkey, chainid] = provider;
         this.api = new Web3(provider);
         this.registryaddr = registryaddr;
         this.account = account;
         this.privkey = privkey;
+        this.chainid = chainid;
     }
 
     async init() {
+        if(this.chainid && await this.api.eth.getChainId() !== this.chainid) throw new Error("Wrong blockchain selected");
         this.registrycontract = new this.api.eth.Contract((RegistryContract.abi as any), this.registryaddr);
         const idpaddr = await this.registrycontract.methods.idp().call();
         console.log("🌐 Obtained IDP contract address", idpaddr);
