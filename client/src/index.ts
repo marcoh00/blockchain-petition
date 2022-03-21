@@ -6,7 +6,7 @@ import {
 } from './testWidgets';
 import { LoadData } from './loading';
 import { ZokratesTester } from './zokrates';
-import { PetitionApp } from './layoutWidgets';
+import { ErrorView, PetitionApp } from './layoutWidgets';
 import { ConnectionPage, LandingPage, RegistryChooser } from './setup';
 import { InformationalInfobar, NavigationBar } from './nav';
 
@@ -25,3 +25,4 @@ customElements.define("informational-infobar", InformationalInfobar);
 customElements.define("navigation-bar", NavigationBar);
 customElements.define("connection-page", ConnectionPage);
 customElements.define("registry-chooser", RegistryChooser);
+customElements.define("error-view", ErrorView);

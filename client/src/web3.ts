@@ -1,5 +1,7 @@
 import { LitElement } from "lit";
 import Web3 from "web3";
+import { EthereumConnector } from "../../shared/web3";
+import { decorateClassWithState } from "./state";
 
 interface IWeb3Connected {
     onWeb3Connect(provider: any): Promise<void>
@@ -44,11 +46,45 @@ export async function localWeb3Connect() {
 export function decorateClassWithWeb3<T extends ClassType>(decorated: T) {
     return class extends decorated implements IWeb3Connected {
         constructor(...args: any[]) {
-            super(args);
+            super(...args);
+            console.log("construct web3 decorator", args);
             decoratedClasses.push(this);
         }
         async onWeb3Connect(provider: any) {}
         async onAccountsChange(provider: any, accounts: string[]) {}
         web3Connect = localWeb3Connect;
+    }
+}
+
+export class WebEthereumConnector extends decorateClassWithWeb3(decorateClassWithState(EthereumConnector)) {
+    connected: boolean
+    accounts?: string[]
+
+    constructor(provider: any, registryaddr: string, account?: string, privkey?: string) {
+        super(provider, registryaddr, account, privkey);
+        console.log("Init WebEth Web3 with provider", provider, registryaddr, account, privkey);
+        this.connected = false;
+        this.accounts = [];
+    }
+
+    async onAccountsChange(provider: any, accounts: string[]) {
+        this.accounts = accounts;
+        console.log("onAccountsChange, this.contract", this.registryaddr);
+        await this.init();
+        this.connected = true;
+        await this.updateState();
+    }
+
+    async onWeb3Connect(provider: any): Promise<void> {
+        this.connected = true;
+        await this.updateState();
+    }
+
+    async updateState() {
+        this.setState({
+            ...this.getState(),
+            web3connected: this.connected,
+            connector: this
+        });
     }
 }
