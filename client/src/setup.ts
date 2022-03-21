@@ -34,6 +34,9 @@ export class ConnectionPage extends decorateClassWithState(LitElement) {
     
     @property()
     contract?: string = null
+
+    @property()
+    chainid?: number = null
     
     render() {
         const btnDsiabled = typeof(this.contract) !== "string";
@@ -45,18 +48,23 @@ export class ConnectionPage extends decorateClassWithState(LitElement) {
     }
 
     registryClick(e: CustomEvent) {
-        this.contract = e.detail;
+        this.contract = e.detail.contract;
+        this.chainid = e.detail.chainid;
         console.log("registryClick", e);
     }
 
     async connectClick() {
-        if(typeof(this.contract) !== "string") return;
+        if(typeof(this.contract) !== "string" || typeof(this.chainid) !== "number") return;
         console.log("connect: this.contract", this.contract);
         if(typeof(window.ethereum) === "undefined") {
             this.stateError("Zur Teilnahme wird eine kompatible Ethereum-Wallet benötigt");
             return;
         }
-        await new WebEthereumConnector(window.ethereum, this.contract, null, null).init();
+        try {
+            await new WebEthereumConnector(window.ethereum, this.contract, null, null, this.chainid).init();
+        } catch(e) {
+            this.stateError(`Konnte nicht zu Ethereum verbinden. Ist die Contract-Adresse korrekt? Fehler: ${e}`);
+        }
     }
 }
 
@@ -114,22 +122,26 @@ export class RegistryChooser extends LitElement {
         {
             addr: REGISTRY_CONTRACT,
             descr: "Testcontract auf Entwicklungs-Blockchain",
-            ident: "Texteingabe"
+            ident: "Texteingabe",
+            chainid: 31337
         },
         {
             addr: REGISTRY_CONTRACT,
             descr: "Petitionen der Verbraucherzentrale NRW",
-            ident: "Personalausweis"
+            ident: "Personalausweis",
+            chainid: 31337
         },
         {
             addr: "0xb3Aff715Cf9d2D9a65F0992F93777Ccf3c7fa6e0",
             descr: "change.org Blockchain-Petitionen",
-            ident: "E-Mail"
+            ident: "E-Mail",
+            chainid: 31337
         },
         {
             addr: "0xbB718Ac6A21a837d1F66992F93777Ccf3c7fa6e0",
             descr: "Dachverband kommunaler Bürgerinitiativen e.V.",
-            ident: "Facebook (OpenID)"
+            ident: "Facebook (OpenID)",
+            chainid: 31337
         }];
 
     @property({type: Boolean})
@@ -180,9 +192,10 @@ export class RegistryChooser extends LitElement {
 
     select(idx: number, toggle: boolean = false) {
         this.lastSelected = idx;
+        // TODO: Handle different chain ids
         this.dispatchEvent(new CustomEvent("registryClick", {
             bubbles: true,
-            detail: this.lastSelected === -1? this.customAddr : this.registries[idx].addr
+            detail: {contract: this.lastSelected === -1? this.customAddr : this.registries[idx].addr, chainid: 31337}
         }));
         if(toggle) (this.shadowRoot.querySelector(`#contract-${idx}`) as HTMLInputElement).checked = true;
     }
