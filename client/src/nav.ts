@@ -12,6 +12,7 @@ export class InformationalInfobar extends LitElement {
             :host {
                 justify-content: space-between;
                 padding: 1rem 2rem;
+                height: 5rem;
             }
         `];
 
@@ -25,6 +26,14 @@ export class InformationalInfobar extends LitElement {
 }
 
 export class NavigationBar extends LitElement {
+    static styles = [faStyle, basicFlex, leftRightFlex, buttonMixin, colorfulBar,
+        css`
+            :host {
+                justify-content: space-between;
+                padding: 1rem 2rem;
+                height: 5rem;
+            }
+        `];
     render() {
         return html`Navigation Bar`;
     }

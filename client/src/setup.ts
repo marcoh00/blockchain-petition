@@ -1,9 +1,10 @@
 import { icon } from '@fortawesome/fontawesome-svg-core';
 import { faEthereum } from '@fortawesome/free-brands-svg-icons';
-import { faQuestionCircle, faAddressCard } from '@fortawesome/free-solid-svg-icons';
+import { faQuestionCircle, faAddressCard, faCheck } from '@fortawesome/free-solid-svg-icons';
 import { LitElement, html, css, CSSResultGroup } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { REGISTRY_CONTRACT } from '../../shared/addr';
+import { SHA256Hash } from '../../shared/merkle';
 import { EthereumConnector } from '../../shared/web3';
 import { decorateClassWithState, IState } from './state';
 import { basicFlex, buttonMixin, faStyle, topDownFlex } from './styles';
@@ -54,8 +55,8 @@ export class ConnectionPage extends decorateClassWithState(LitElement) {
     }
 
     async connectClick() {
+        console.log("connect: this.contract, chainid", this.contract, this.chainid);
         if(typeof(this.contract) !== "string" || typeof(this.chainid) !== "number") return;
-        console.log("connect: this.contract", this.contract);
         if(typeof(window.ethereum) === "undefined") {
             this.stateError("Zur Teilnahme wird eine kompatible Ethereum-Wallet benötigt");
             return;
@@ -217,5 +218,71 @@ export class RegistryChooser extends LitElement {
             this.select(0, true);
         }
         console.log("customAddrChange", target.value, this.customValid);
+    }
+}
+
+export class IdentityPage extends decorateClassWithState(LitElement) {
+    static styles = [faStyle, basicFlex, topDownFlex, buttonMixin, css`
+        :host {
+            align-items: center;
+        }
+        
+        input {
+            width: 80%;
+            min-height: 30px;
+        }
+
+        .invalid {
+            border: 2px solid red;
+        }`];
+    
+    @property()
+    invalidName: boolean = false
+    @property()
+    name: string = "";
+
+    render() {
+        return html`
+            <h1>Identitätsprüfung über Texteingabe</h1>
+
+            <label for="identity">Bitte geben Sie an, wer Sie sind</label>
+            <input type="text" id="identity" @input=${this.idInput} class="${this.invalidName ? "invalid" : ""}">
+            <button id="check" @click=${this.verifyClick}>${icon(faCheck).node} Identität bestätigen</button>
+        `;
+    }
+
+    idInput(e: Event) {
+        this.name = (e.target as HTMLInputElement).value;
+        this.invalidName = this.name === "";
+    }
+
+    async verifyClick() {
+        this.idInput(
+            ({
+                target: this.shadowRoot.querySelector("#identity")
+            }) as unknown as Event
+        );
+        if(this.invalidName) {
+            this.stateError("Bitte geben Sie einen gültigen Namen ein");
+            return;
+        }
+
+        const privkey_src = new Uint8Array([
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0
+        ]);
+        crypto.getRandomValues(privkey_src);
+        const privkey = await SHA256Hash.hashRaw(privkey_src);
+        const pubkey = await SHA256Hash.hashRaw(privkey.rawValue());
+        console.log(`priv: ${privkey.toHex()}`, `pub: ${pubkey.toHex()}`, privkey, pubkey);
+
+        this.setState({
+            ...this.getState(),
+            identity: this.name,
+            privkey: privkey,
+            pubkey: pubkey
+        });
     }
 }
