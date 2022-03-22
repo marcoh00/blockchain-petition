@@ -28,18 +28,21 @@ export class PetitionApp extends decorateClassWithState(LitElement) {
     }
 
     async stateChanged(state: IState): Promise<void> {
-        if(state.web3connected
-            && typeof(state.connector) === "object"
-            && typeof(state.identity) === "string"
+        const web3connected = state.web3connected
+            && typeof(state.connector) === "object";
+        const identityknown = typeof(state.identity) === "string"
             && typeof(state.privkey) === "object"
-            && typeof(state.pubkey) === "object") {
-                this.stage = 3;
-            }
-        if(this.stage == 1 && state.web3connected) this.proceedIdentity();
+            && typeof(state.pubkey) === "object";
+        if(web3connected && !identityknown) {
+            this.stage = 2;
+        }
+        if(web3connected && identityknown) {
+            this.stage = 3;
+        }
     }
 
     getNavigationBar() {
-        return this.stage === 0 || this.stage === 1 || this.stage === 2 ? html`<informational-infobar @loginClick=${this.proceedConnection}></informational-infobar>` : html`<navigation-bar></navigation-bar>`;
+        return this.stage === 0 || this.stage === 1 ? html`<informational-infobar @loginClick=${this.proceedConnection}></informational-infobar>` : html`<navigation-bar></navigation-bar>`;
     }
 
     getMainPage() {
@@ -51,10 +54,19 @@ export class PetitionApp extends decorateClassWithState(LitElement) {
 
     proceedConnection() {
         this.stage = 1;
+        if(this.getState().web3connected) this.proceedIdentity();
     }
 
     proceedIdentity() {
         this.stage = 2;
+        const state = this.getState();
+        if(typeof(state.identity) === "string"
+            && typeof(state.pubkey) === "object"
+            && typeof(state.privkey) === "object") this.proceedMain();
+    }
+
+    proceedMain() {
+        this.stage = 3;
     }
 }
 
@@ -114,5 +126,18 @@ export class ErrorView extends decorateClassWithState(LitElement) {
 
     async stateChanged(state: IState): Promise<void> {
         this.error = state.error;
+    }
+}
+
+
+export class MainPage extends decorateClassWithState(LitElement) {
+    static styles = [faStyle, basicFlex, topDownFlex, css`
+        :host {
+            align-items: center;
+        }`];
+    render() {
+        return html`
+            <h1>Petitionen</h1>
+        `
     }
 }

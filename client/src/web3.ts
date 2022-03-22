@@ -16,38 +16,47 @@ const decoratedClasses: IWeb3Connected[] = [];
 type ClassType = new (...args: any[]) => any;
 
 export async function localWeb3Connect() {
-    console.log("Attempt to connect to an Ethereum Browser Plugin");
-    if(backend !== null && window.ethereum.isConnected()) return;
-    backend = window.ethereum;
-    window.ethereum.on('connect', (connectInfo: any) => {
-        console.log("web3 connected", connectInfo);
-        for(let decoratedClass of decoratedClasses) {
-            decoratedClass.onWeb3Connect(backend);
-        }
-    });
-    window.ethereum.on('accountsChanged', (accounts: string[]) => {
-        console.log("web3 accounts changed", accounts);
-        for(let decoratedClass of decoratedClasses) {
-            decoratedClass.onAccountsChange(backend, accounts);
-        }
-    });
-    window.ethereum.on("error", (error: any) => {
-        console.log("web3 error", error);
-        for(let decoratedClass of decoratedClasses) {
-            decoratedClass.onError(error);
-        }
-    })
-    window.ethereum
-        .request({
-            method: "eth_requestAccounts"
-        })
-        .then((accounts: string[]) => {
-            console.log("Initial connect", accounts);
+    const connectionPromise = new Promise<void>((resolve, reject) => {
+        console.log("Attempt to connect to an Ethereum Browser Plugin");
+        if(backend !== null && window.ethereum.isConnected()) resolve();
+        backend = window.ethereum;
+        window.ethereum.on('connect', (connectInfo: any) => {
+            console.log("web3 connected", connectInfo);
             for(let decoratedClass of decoratedClasses) {
                 decoratedClass.onWeb3Connect(backend);
+            }
+            resolve();
+        });
+        window.ethereum.on('accountsChanged', (accounts: string[]) => {
+            console.log("web3 accounts changed", accounts);
+            for(let decoratedClass of decoratedClasses) {
                 decoratedClass.onAccountsChange(backend, accounts);
             }
+        });
+        window.ethereum.on("error", (error: any) => {
+            console.log("web3 error", error);
+            for(let decoratedClass of decoratedClasses) {
+                decoratedClass.onError(error);
+            }
+            reject();
         })
+        window.ethereum
+            .request({
+                method: "eth_requestAccounts"
+            })
+            .then((accounts: string[]) => {
+                console.log("Initial connect", accounts);
+                for(let decoratedClass of decoratedClasses) {
+                    decoratedClass.onWeb3Connect(backend);
+                    decoratedClass.onAccountsChange(backend, accounts);
+                }
+            })
+            .catch((e: string) => {
+                console.log("web3 init: failed to update accounts");
+                reject();
+            })
+    });
+    return connectionPromise;
 }
 
 export function decorateClassWithWeb3<T extends ClassType>(decorated: T) {
@@ -65,7 +74,6 @@ export function decorateClassWithWeb3<T extends ClassType>(decorated: T) {
 }
 
 export class WebEthereumConnector extends decorateClassWithWeb3(decorateClassWithState(EthereumConnector)) {
-    connected: boolean
     accounts?: string[]
 
     constructor(provider: any, registryaddr: string, account?: string, privkey?: string, chainid?: number) {
@@ -76,14 +84,19 @@ export class WebEthereumConnector extends decorateClassWithWeb3(decorateClassWit
     }
 
     async init() {
-        await super.init();
+        console.log("webeth.web3connect");
+        console.trace()
         await this.web3Connect();
+        console.log("webeth.super.init");
+        await super.init();
+        this.connected = true;
+        await this.updateState();
     }
 
     async onAccountsChange(provider: any, accounts: string[]) {
         this.accounts = accounts;
         console.log("onAccountsChange, this.contract", this.registryaddr);
-        await this.init();
+        await super.init();
         this.connected = true;
         await this.updateState();
     }
