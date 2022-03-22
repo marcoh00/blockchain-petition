@@ -2,9 +2,7 @@ import { icon } from "@fortawesome/fontawesome-svg-core";
 import { faArrowDown, faPenToSquare, faSign } from "@fortawesome/free-solid-svg-icons";
 import { css, CSSResultGroup, html, LitElement } from "lit";
 import { property } from "lit/decorators.js";
-import { IPetition } from "../../shared/web3";
 import { buttonMixin, faStyle } from "./styles";
-import { getZokratesHelper } from "./zokrates";
 
 export class Petition extends LitElement {
     static styles = [faStyle, buttonMixin, css`
@@ -43,42 +41,26 @@ export class Petition extends LitElement {
         .toggle {
             cursor: pointer;
         }
-
-        .hidden {
-            display: none;
-            transition: 0.1s;
-        }
-
-        .descr {
-            text-align: justify;
-        }
     `]
 
-    @property({ type: Object })
-    petition: IPetition
-
     @property()
-    idx: number
+    title: string
 
     @property()
     expanded: boolean = false;
-
-    @property()
-    signable: boolean = true;
 
     render() {
         return html`
             <div class="card">
                 <div class="container">
-                    <div class="titlebar" @click=${this.toggle}>
-                        <h4>${this.petition.name}</h4>
+                    <div class="titlebar">
+                        <h4>${this.title}</h4>
                         <div @click=${this.toggle} class="toggle">${icon(faArrowDown).node}</div>
                     </div>
-                    <div class="${this.expanded ? `` : `hidden`}">
-                        <p class="descr">${this.petition.description}</p>
-                        <p>Unterschriften: ${this.petition.signers}</p>
-                        <button class="${this.signable ? "" : "disabled"}" @click=${this.signClick}>${icon(faPenToSquare).node} Unterschreiben</button>
-                    </div>
+                    ${this.expanded ? html`
+                        <p><slot></slot></p>
+                        <button @click=${this.signClick}>${icon(faPenToSquare).node} Unterschreiben</button>
+                    ` : html``}
                 </div>
             </div>
         `;
@@ -88,12 +70,9 @@ export class Petition extends LitElement {
         this.expanded = !this.expanded;
     }
 
-    async signClick(e: Event) {
+    signClick(e: Event) {
         e.stopPropagation();
         e.preventDefault();
-        this.dispatchEvent(new CustomEvent("sign", {
-            bubbles: true,
-            detail: this.idx
-        }));
+        window.alert("Noch nicht implementiert :(");
     }
 }
