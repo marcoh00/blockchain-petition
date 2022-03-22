@@ -9,6 +9,7 @@ import { ZokratesTester } from './zokrates';
 import { ErrorView, MainPage, PetitionApp } from './layoutWidgets';
 import { ConnectionPage, LandingPage, RegistryChooser, IdentityPage } from './setup';
 import { InformationalInfobar, NavigationBar } from './nav';
+import { Petition } from './petition';
 
 const IDP_ENDPOINT = "http://localhost:65535";
 const REGISTRY_CONTRACT = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
@@ -28,3 +29,4 @@ customElements.define("registry-chooser", RegistryChooser);
 customElements.define("error-view", ErrorView);
 customElements.define("identity-page", IdentityPage);
 customElements.define("main-page", MainPage);
+customElements.define("petition-card", Petition);

@@ -133,11 +133,28 @@ export class ErrorView extends decorateClassWithState(LitElement) {
 export class MainPage extends decorateClassWithState(LitElement) {
     static styles = [faStyle, basicFlex, topDownFlex, css`
         :host {
-            align-items: center;
-        }`];
+            align-items: stretch;
+        }
+        
+        .cardlist {
+            display: flex;
+            flex-flow: column wrap;
+            align-items: stretch;
+            gap: 1em;
+            margin: auto 4rem;
+        }
+        `];
     render() {
         return html`
-            <h1>Petitionen</h1>
+            <div class="cardlist">
+                <h1>Petitionen</h1>
+                <petition-card title="Petition 1">
+                    Test!
+                </petition-card>
+                <petition-card title="Petition 2">
+                    Noch ein Test! Noch ein Test! Noch ein Test! Noch ein Test! Noch ein Test! Noch ein Test! Noch ein Test! Noch ein Test!
+                </petition-card>
+            </div>
         `
     }
 }
