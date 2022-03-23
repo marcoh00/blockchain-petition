@@ -2,6 +2,7 @@ import { LitElement } from "lit";
 import Web3 from "web3";
 import { EthereumConnector } from "../../shared/web3";
 import { decorateClassWithState } from "./state";
+import { getWeb3Repository } from "./web3repository";
 
 interface IWeb3Connected {
     onWeb3Connect(provider: any): Promise<void>
@@ -95,6 +96,7 @@ export class WebEthereumConnector extends decorateClassWithWeb3(decorateClassWit
 
     async onAccountsChange(provider: any, accounts: string[]) {
         this.accounts = accounts;
+        if(accounts.length > 0) this.account = accounts[0];
         console.log("onAccountsChange, this.contract", this.registryaddr);
         await super.init();
         this.connected = true;
@@ -102,8 +104,7 @@ export class WebEthereumConnector extends decorateClassWithWeb3(decorateClassWit
     }
 
     async onWeb3Connect(provider: any): Promise<void> {
-        this.connected = true;
-        await this.updateState();
+        console.log("onWeb3connect");
     }
 
     async onError(error: string): Promise<void> {
@@ -111,10 +112,14 @@ export class WebEthereumConnector extends decorateClassWithWeb3(decorateClassWit
     }
 
     async updateState() {
+        const state = this.getState();
+        let repository = state.repository;
+        if(this.connected && state.connector !== this) repository = await getWeb3Repository(this);
         this.setState({
-            ...this.getState(),
+            ...state,
             web3connected: this.connected,
-            connector: this
+            connector: this,
+            repository
         });
     }
 }

@@ -2,6 +2,7 @@ import { icon } from "@fortawesome/fontawesome-svg-core";
 import { faArrowDown, faPenToSquare, faSign } from "@fortawesome/free-solid-svg-icons";
 import { css, CSSResultGroup, html, LitElement } from "lit";
 import { property } from "lit/decorators.js";
+import { IPetition } from "../../shared/web3";
 import { buttonMixin, faStyle } from "./styles";
 
 export class Petition extends LitElement {
@@ -43,8 +44,8 @@ export class Petition extends LitElement {
         }
     `]
 
-    @property()
-    title: string
+    @property({ type: Object })
+    petition: IPetition
 
     @property()
     expanded: boolean = false;
@@ -54,11 +55,12 @@ export class Petition extends LitElement {
             <div class="card">
                 <div class="container">
                     <div class="titlebar">
-                        <h4>${this.title}</h4>
+                        <h4>${this.petition.name}</h4>
                         <div @click=${this.toggle} class="toggle">${icon(faArrowDown).node}</div>
                     </div>
                     ${this.expanded ? html`
-                        <p><slot></slot></p>
+                        <p>${this.petition.description}</p>
+                        <p>Unterschriften: ${this.petition.signers}</p>
                         <button @click=${this.signClick}>${icon(faPenToSquare).node} Unterschreiben</button>
                     ` : html``}
                 </div>

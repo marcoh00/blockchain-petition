@@ -2,6 +2,7 @@ import { LitElement } from "lit";
 import { REGISTRY_CONTRACT } from "../../shared/addr";
 import { MerkleProof, SHA256Hash } from "../../shared/merkle";
 import { EthereumConnector } from "../../shared/web3";
+import { Web3Repository } from "./web3repository";
 import { ZokratesHelper } from "./zokrates";
 
 interface ICredentials {
@@ -25,6 +26,7 @@ export interface IState {
     privkey?: SHA256Hash,
     web3connected: boolean,
     connector?: EthereumConnector,
+    repository?: Web3Repository,
     token?: string,
     credentials?: ICredentials,
     zokrates: IZokratesState,
