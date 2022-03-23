@@ -42,6 +42,15 @@ export class Petition extends LitElement {
         .toggle {
             cursor: pointer;
         }
+
+        .hidden {
+            display: none;
+            transition: 0.1s;
+        }
+
+        .descr {
+            text-align: justify;
+        }
     `]
 
     @property({ type: Object })
@@ -54,15 +63,15 @@ export class Petition extends LitElement {
         return html`
             <div class="card">
                 <div class="container">
-                    <div class="titlebar">
+                    <div class="titlebar" @click=${this.toggle}>
                         <h4>${this.petition.name}</h4>
                         <div @click=${this.toggle} class="toggle">${icon(faArrowDown).node}</div>
                     </div>
-                    ${this.expanded ? html`
-                        <p>${this.petition.description}</p>
+                    <div class="${this.expanded ? `` : `hidden`}">
+                        <p class="descr">${this.petition.description}</p>
                         <p>Unterschriften: ${this.petition.signers}</p>
                         <button @click=${this.signClick}>${icon(faPenToSquare).node} Unterschreiben</button>
-                    ` : html``}
+                    </div>
                 </div>
             </div>
         `;
