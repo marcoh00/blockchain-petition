@@ -21,6 +21,7 @@ interface IZokratesState {
 export interface IState {
     registry: string,
     period: number,
+    customPeriod: boolean,
     identity: string,
     pubkey?: SHA256Hash,
     privkey?: SHA256Hash,
@@ -42,9 +43,12 @@ let state: IState = undefined;
 
 function localGetState(): IState {
     if(state === undefined) {
+        console.log("Initialize new state");
+        console.trace();
         localSetState({
             registry: REGISTRY_CONTRACT,
             period: -1,
+            customPeriod: false,
             identity: "",
             web3connected: false,
             zokrates: {
@@ -60,6 +64,8 @@ function localGetState(): IState {
 const decoratedClasses: Array<any> = [];
 
 function localSetState(lstate: IState) {
+    console.log("Set State", lstate);
+    console.trace();
     state = lstate;
     for(let decoratedClass of decoratedClasses) {
         decoratedClass.stateChanged(lstate);

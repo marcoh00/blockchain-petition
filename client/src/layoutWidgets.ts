@@ -148,6 +148,13 @@ export class MainPage extends decorateClassWithState(LitElement) {
             margin: auto 4rem;
         }
         `];
+    
+    connectedCallback() {
+        super.connectedCallback();
+        console.log("Main Page connected");
+        const state = this.getState();
+        this.petitions = state.repository.petitions_by_period[state.period];
+    }
 
     render() {
         console.log("Render Petitions", this.petitions);

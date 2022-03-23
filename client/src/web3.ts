@@ -112,14 +112,20 @@ export class WebEthereumConnector extends decorateClassWithWeb3(decorateClassWit
     }
 
     async updateState() {
-        const state = this.getState();
-        let repository = state.repository;
-        if(this.connected && state.connector !== this) repository = await getWeb3Repository(this);
-        this.setState({
-            ...state,
-            web3connected: this.connected,
-            connector: this,
-            repository
-        });
+        const init_state = this.getState();
+        const new_connection = this.connected && init_state.connector !== this;
+        if(new_connection) {
+            const web3added = {
+                ...init_state,
+                web3connected: this.connected,
+                connector: this
+            }
+            this.setState(web3added);
+            const repository = await getWeb3Repository(this);
+            this.setState({
+                ...this.getState(),
+                repository
+            });
+        }
     }
 }

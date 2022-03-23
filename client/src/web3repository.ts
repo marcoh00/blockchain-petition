@@ -74,6 +74,7 @@ export class Web3Repository extends decorateClassWithState(Web3RepositoryBase) {
             this.petitions_by_id[idToNumber(petition.id).toString()] = petition;
         }
         await this.startPeriodRefreshInterval();
+        this.initialized = true;
     }
 
     async addToTimeCacheIfNeccessary(period: number) {
@@ -118,19 +119,12 @@ export class Web3Repository extends decorateClassWithState(Web3RepositoryBase) {
         this.period = await this.connector.period();
         console.log("Set period from/to", pre_period, this.period);
         this.addToTimeCacheIfNeccessary(this.period);
-        if(pre_period !== this.period) this.notifyNewPeriod();
+        if(pre_period !== this.period && !this.getState().customPeriod) this.notifyNewPeriod();
     }
 
     async stateChanged(state: IState): Promise<void> {
         console.trace();
-
-        // TODO fix this - someone sets this to -1 which shouldnt be the case...
-        if(state.period !== this.period) {
-            this.setState({
-                ...state,
-                period: this.period
-            });
-        }
+        console.log("period/state period/truth", state.period, this.period);
     }
 
     notifyNewPeriod() {
