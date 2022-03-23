@@ -2,6 +2,7 @@ import { icon } from '@fortawesome/fontawesome-svg-core';
 import { faClose } from '@fortawesome/free-solid-svg-icons';
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
+import { IPetition } from '../../shared/web3';
 import { decorateClassWithState, IState } from './state';
 import { basicFlex, faStyle, topDownFlex } from './styles';
 
@@ -131,6 +132,9 @@ export class ErrorView extends decorateClassWithState(LitElement) {
 
 
 export class MainPage extends decorateClassWithState(LitElement) {
+    @property({ type: Array })
+    petitions: IPetition[] = [];
+    
     static styles = [faStyle, basicFlex, topDownFlex, css`
         :host {
             align-items: stretch;
@@ -144,17 +148,18 @@ export class MainPage extends decorateClassWithState(LitElement) {
             margin: auto 4rem;
         }
         `];
+
     render() {
+        console.log("Render Petitions", this.petitions);
         return html`
             <div class="cardlist">
                 <h1>Petitionen</h1>
-                <petition-card title="Petition 1">
-                    Test!
-                </petition-card>
-                <petition-card title="Petition 2">
-                    Noch ein Test! Noch ein Test! Noch ein Test! Noch ein Test! Noch ein Test! Noch ein Test! Noch ein Test! Noch ein Test!
-                </petition-card>
+                ${this.petitions.map(petition => html`<petition-card .petition=${petition}></petition-card>`)}
             </div>
         `
+    }
+
+    async stateChanged(state: IState): Promise<void> {
+        this.petitions = state.repository.petitions_by_period[state.period];
     }
 }

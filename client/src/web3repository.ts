@@ -28,10 +28,7 @@ class TimeSpan implements ITimeSpan {
 
     isNow(): boolean {
         const now = Date.now();
-        const after_start = this.start.getTime() <= now;
-        const before_end = this.end.getTime() > now;
-        console.log(`now: ${now} start: ${this.start.getTime()} end: ${this.end.getTime()} after: ${after_start} before: ${before_end} result: ${after_start && before_end}`);
-        return after_start && before_end;
+        return this.start.getTime() >= now && this.end.getTime() < now;
     }
 }
 
@@ -69,32 +66,14 @@ export class Web3Repository extends decorateClassWithState(Web3RepositoryBase) {
     }
 
     async init() {
-        this.setState({
-            ...this.getState(),
-            lockspinner: true,
-            locktext: "Lade Blockchain-Daten"
-        });
         await this.setPeriod();
-        await this.refresh();
-        await this.startPeriodRefreshInterval();
-        this.initialized = true;
-        this.setState({
-            ...this.getState(),
-            lockspinner: false,
-            locktext: undefined
-        });
-    }
-
-    async refresh() {
-        const byPeriod: IPetitionByPeriod = {};
         for(const petition of await this.connector.petitions()) {
-            await this.addToTimeCacheIfNeccessary(petition.period);
-            if(!byPeriod.hasOwnProperty(petition.period.toString())) byPeriod[petition.period.toString()] = [];
-            byPeriod[petition.period.toString()].push(petition);
+            this.addToTimeCacheIfNeccessary(petition.period);
+            if(!this.petitions_by_period.hasOwnProperty(petition.period.toString())) this.petitions_by_period[petition.period.toString()] = [];
+            this.petitions_by_period[petition.period.toString()].push(petition);
             this.petitions_by_id[idToNumber(petition.id).toString()] = petition;
         }
-        this.petitions_by_period = byPeriod;
-        console.log("Refresh", this.petitions_by_id, this.petitions_by_period)
+        await this.startPeriodRefreshInterval();
     }
 
     async addToTimeCacheIfNeccessary(period: number) {
@@ -107,7 +86,7 @@ export class Web3Repository extends decorateClassWithState(Web3RepositoryBase) {
 
     async startPeriodRefreshInterval() {        
         await this.setPeriod();
-        await this.addToTimeCacheIfNeccessary(this.period);
+        this.addToTimeCacheIfNeccessary(this.period);
 
         const span = this.period_time_cache[this.period].end.getTime() - this.period_time_cache[this.period].start.getTime();
         const next_period_boundary_in_s = this.period_time_cache[this.period].end.getTime() - Date.now();
@@ -139,12 +118,19 @@ export class Web3Repository extends decorateClassWithState(Web3RepositoryBase) {
         this.period = await this.connector.period();
         console.log("Set period from/to", pre_period, this.period);
         this.addToTimeCacheIfNeccessary(this.period);
-        if(pre_period !== this.period && !this.getState().customPeriod) this.notifyNewPeriod();
+        if(pre_period !== this.period) this.notifyNewPeriod();
     }
 
     async stateChanged(state: IState): Promise<void> {
         console.trace();
-        console.log("period/state period/truth", state.period, this.period);
+
+        // TODO fix this - someone sets this to -1 which shouldnt be the case...
+        if(state.period !== this.period) {
+            this.setState({
+                ...state,
+                period: this.period
+            });
+        }
     }
 
     notifyNewPeriod() {
