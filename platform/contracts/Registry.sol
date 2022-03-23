@@ -10,11 +10,15 @@ contract Registry is IRegistry {
     Verifier private pVerifier;
     bytes32 private pName;
     uint256 petitionId;
+    bool pHideByDefault;
+
+    event PetitionCreated(bytes32 indexed internalId, uint256 indexed period, bytes32 name, uint256 index);
 
     constructor(bytes32 lName, address lIdp, address lVerifier) {
         pName = lName;
         pIDP = IIDP(lIdp);
         pVerifier = Verifier(lVerifier);
+        pHideByDefault = false;
     }
 
     function name() override external view returns (bytes32) {
@@ -39,9 +43,10 @@ contract Registry is IRegistry {
             period = pIDP.period() + 1;
         }
         petitionId += 1;
-
+        bytes32 lInternalPetitionId = keccak256(abi.encode(bytes32(petitionId) ^ lName));
         pPetitions.push(
-            new Petition(lName, description, keccak256(abi.encode(bytes32(petitionId) ^ lName)), period, address(this))
+            new Petition(lName, description, lInternalPetitionId, period, address(this), pHideByDefault)
         );
+        emit PetitionCreated(lInternalPetitionId, period, lName, pPetitions.length);
     }
 }
