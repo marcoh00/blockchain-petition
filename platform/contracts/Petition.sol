@@ -11,13 +11,17 @@ contract Petition is IPetition {
     IRegistry private pRegistry;
     uint32 private pSigners;
     mapping(bytes32 => bool) private pHasSigned;
+    bool pHiddenByOperator;
 
-    constructor(bytes32 lName, string memory lDescription, bytes32 lId, uint256 lPeriod, address lRegistry) {
+    event PetitionSigned(bytes32 indexed id, bytes32 indexed identity);
+
+    constructor(bytes32 lName, string memory lDescription, bytes32 lId, uint256 lPeriod, address lRegistry, bool lHidden) {
         pName = lName;
         pDescription = lDescription;
         pId = lId;
         pPeriod = lPeriod;
         pRegistry = IRegistry(lRegistry);
+        pHiddenByOperator = lHidden;
     }
 
     function name() override external view returns (bytes32) {
@@ -67,9 +71,19 @@ contract Petition is IPetition {
         require(this.registry().verifier().verifyTx(lProof, input));
         pHasSigned[lIdentity] = true;
         pSigners += 1;
+        emit PetitionSigned(pId, lIdentity);
     }
 
     function signers() override external view returns (uint32) {
         return pSigners;
+    }
+
+    function hide(bool lHidden) external {
+        require(msg.sender == address(pRegistry));
+        pHiddenByOperator = lHidden;
+    }
+
+    function hidden() external view returns (bool) {
+        return pHiddenByOperator;
     }
 }
