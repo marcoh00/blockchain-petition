@@ -33,10 +33,6 @@ export class NavigationBar extends LitElement {
                 padding: 1rem 2rem;
                 height: 5rem;
             }
-
-            period-widget {
-                flex-grow: 2;
-            }
         `];
     render() {
         return html`
@@ -100,6 +96,9 @@ export class PeriodWidget extends decorateClassWithState(LitElement) {
         .info {
             font-size: 0.5em;
         }
+        .clickable {
+            cursor: pointer;
+        }
     `];
     @property()
     period: number = -1
@@ -113,10 +112,10 @@ export class PeriodWidget extends decorateClassWithState(LitElement) {
     render() {
         return html`
         <div class="grid">
-            <div class="larr">
+            <div class="larr clickable" @click=${this.periodBackClick}>
                 ${icon(faChevronLeft).node}
             </div>
-            <div class="logo icon">
+            <div class="logo icon clickable" @click=${this.periodResetClick}>
                 ${icon(faClock).node}
             </div>
             <div class="info text">
@@ -138,17 +137,42 @@ export class PeriodWidget extends decorateClassWithState(LitElement) {
                     </div>
                 `}
             </div>
-            <div class="rarr">
+            <div class="rarr clickable" @click=${this.periodNextClick}>
                 ${icon(faChevronRight).node}
             </div>
         </div>`;
     }
 
+    periodBackClick() {
+        this.setState({
+            ...this.getState(),
+            period: this.period - 1,
+            customPeriod: true
+        });
+    }
+
+    periodNextClick() {
+        this.setState({
+            ...this.getState(),
+            period: this.period + 1,
+            customPeriod: true
+        });
+    }
+
+    periodResetClick() {
+        const state = this.getState();
+        this.setState({
+            ...state,
+            period: state.repository.period,
+            customPeriod: false
+        });
+    }
+
     async stateChanged(state: IState) {
         if(typeof(state.repository) === "object") {
-            this.period = state.repository.period;
+            this.period = state.period;
             if(this.period > 0) {
-                state.repository.addToTimeCacheIfNeccessary(this.period);
+                await state.repository.addToTimeCacheIfNeccessary(this.period);
                 this.ts_from = state.repository.period_time_cache[this.period].start;
                 this.ts_until = state.repository.period_time_cache[this.period].end;
             }
