@@ -161,12 +161,20 @@ export class MainPage extends decorateClassWithState(LitElement) {
         return html`
             <div class="cardlist">
                 <h1>Petitionen</h1>
-                ${this.petitions.map(petition => html`<petition-card .petition=${petition}></petition-card>`)}
+                ${this.petitions.map(petition => html`<petition-card .petition=${petition} .signable=${this.isSignable(petition)}></petition-card>`)}
             </div>
         `
     }
 
     async stateChanged(state: IState): Promise<void> {
         this.petitions = state.repository.petitions_by_period[state.period];
+        if(!Array.isArray(this.petitions)) this.petitions = [];
+    }
+
+    isSignable(petition: IPetition) {
+        const state = this.getState();
+        const signable = state.repository.period_time_cache[petition.period].isNow();
+        console.log(`petition w/ period ${petition.period} is signable? ${signable}`);
+        return signable;
     }
 }

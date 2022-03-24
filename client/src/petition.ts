@@ -59,6 +59,9 @@ export class Petition extends LitElement {
     @property()
     expanded: boolean = false;
 
+    @property()
+    signable: boolean = true;
+
     render() {
         return html`
             <div class="card">
@@ -70,7 +73,7 @@ export class Petition extends LitElement {
                     <div class="${this.expanded ? `` : `hidden`}">
                         <p class="descr">${this.petition.description}</p>
                         <p>Unterschriften: ${this.petition.signers}</p>
-                        <button @click=${this.signClick}>${icon(faPenToSquare).node} Unterschreiben</button>
+                        <button class="${this.signable ? "" : "disabled"}" @click=${this.signClick}>${icon(faPenToSquare).node} Unterschreiben</button>
                     </div>
                 </div>
             </div>

@@ -28,7 +28,10 @@ class TimeSpan implements ITimeSpan {
 
     isNow(): boolean {
         const now = Date.now();
-        return this.start.getTime() >= now && this.end.getTime() < now;
+        const after_start = this.start.getTime() <= now;
+        const before_end = this.end.getTime() > now;
+        console.log(`now: ${now} start: ${this.start.getTime()} end: ${this.end.getTime()} after: ${after_start} before: ${before_end} result: ${after_start && before_end}`);
+        return after_start && before_end;
     }
 }
 
