@@ -8,7 +8,7 @@ import { LoadData } from './loading';
 import { ZokratesTester } from './zokrates';
 import { ErrorView, MainPage, PetitionApp } from './layoutWidgets';
 import { ConnectionPage, LandingPage, RegistryChooser, IdentityPage } from './setup';
-import { InformationalInfobar, NavigationBar } from './nav';
+import { InformationalInfobar, NavigationBar, PeriodWidget } from './nav';
 import { Petition } from './petition';
 
 const IDP_ENDPOINT = "http://localhost:65535";
@@ -30,3 +30,4 @@ customElements.define("error-view", ErrorView);
 customElements.define("identity-page", IdentityPage);
 customElements.define("main-page", MainPage);
 customElements.define("petition-card", Petition);
+customElements.define("period-widget", PeriodWidget);
