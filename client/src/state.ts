@@ -2,10 +2,12 @@ import { LitElement } from "lit";
 import { REGISTRY_CONTRACT } from "../../shared/addr";
 import { MerkleProof, SHA256Hash } from "../../shared/merkle";
 import { EthereumConnector } from "../../shared/web3";
+import { IDPManager } from "./idp";
+import { WebEthereumConnector } from "./web3";
 import { Web3Repository } from "./web3repository";
 import { ZokratesHelper } from "./zokrates";
 
-interface ICredentials {
+export interface ICredentials {
     hash: string,
     iteration: number,
     period: number,
@@ -22,14 +24,13 @@ export interface IState {
     registry: string,
     period: number,
     customPeriod: boolean,
-    identity: string,
+    identity?: string,
     pubkey?: SHA256Hash,
     privkey?: SHA256Hash,
     web3connected: boolean,
-    connector?: EthereumConnector,
+    connector?: WebEthereumConnector,
     repository?: Web3Repository,
-    token?: string,
-    credentials?: ICredentials,
+    idp?: IDPManager,
     zokrates: IZokratesState,
     error?: string
 }
@@ -49,7 +50,6 @@ function localGetState(): IState {
             registry: REGISTRY_CONTRACT,
             period: -1,
             customPeriod: false,
-            identity: "",
             web3connected: false,
             zokrates: {
                 initialized: false,

@@ -6,9 +6,14 @@ import { customElement, property } from 'lit/decorators.js';
 import { REGISTRY_CONTRACT } from '../../shared/addr';
 import { SHA256Hash } from '../../shared/merkle';
 import { EthereumConnector } from '../../shared/web3';
+import { getIDPManager } from './idp';
 import { decorateClassWithState, IState } from './state';
 import { basicFlex, buttonMixin, faStyle, topDownFlex } from './styles';
 import { decorateClassWithWeb3, WebEthereumConnector } from './web3';
+
+declare global {
+    interface Window { ethereum: any; }
+}
 
 export class LandingPage extends LitElement {
     static styles = [basicFlex, topDownFlex, buttonMixin, css`
@@ -266,23 +271,47 @@ export class IdentityPage extends decorateClassWithState(LitElement) {
             this.stateError("Bitte geben Sie einen gültigen Namen ein");
             return;
         }
+        const cached_creds = localStorage.getItem(`cred.${this.name}`);
+        let parsed = null;
+        if(cached_creds !== null) {
+            try {
+                parsed = JSON.parse(cached_creds);
+            } catch(e) {
+                console.log("Credentials were cached but they could not be read");
+            }
+        }
+        if(parsed === null) {
+            const privkey_src = new Uint8Array([
+                0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0
+            ]);
+            crypto.getRandomValues(privkey_src);
+            const privkey = await SHA256Hash.hashRaw(privkey_src);
+            const pubkey = await SHA256Hash.hashRaw(privkey.rawValue());
+            console.log(`priv: ${privkey.toHex()}`, `pub: ${pubkey.toHex()}`, privkey, pubkey);
 
-        const privkey_src = new Uint8Array([
-            0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0
-        ]);
-        crypto.getRandomValues(privkey_src);
-        const privkey = await SHA256Hash.hashRaw(privkey_src);
-        const pubkey = await SHA256Hash.hashRaw(privkey.rawValue());
-        console.log(`priv: ${privkey.toHex()}`, `pub: ${pubkey.toHex()}`, privkey, pubkey);
-
-        this.setState({
-            ...this.getState(),
-            identity: this.name,
-            privkey: privkey,
-            pubkey: pubkey
-        });
+            this.setState({
+                ...this.getState(),
+                identity: this.name,
+                privkey: privkey,
+                pubkey: pubkey,
+                idp: getIDPManager(this.name, privkey, pubkey)
+            });
+        }
+        else {
+            console.log("Use credentials from localStorage");
+            const privkey = SHA256Hash.fromHex(parsed.privkey);
+            const pubkey = SHA256Hash.fromHex(parsed.pubkey);
+            const credentials = parsed.credentials;
+            this.setState({
+                ...this.getState(),
+                identity: this.name,
+                privkey: privkey,
+                pubkey: pubkey,
+                idp: getIDPManager(this.name, privkey, pubkey, credentials)
+            });
+        }
     }
 }
