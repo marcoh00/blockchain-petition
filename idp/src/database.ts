@@ -23,13 +23,12 @@ export class Database {
             this.db.get(
                 `SELECT pubkey, identity, period
                 FROM idp_pubkeys
-                WHERE (identity = ? AND period = ?)
-                      OR pubkey = ?`,
-                [registration.identity, registration.period, registration.pubkey],
+                WHERE (identity = ? OR pubkey = ?) AND period = ?`,
+                [registration.identity, registration.pubkey, registration.period],
                 (err, row) => {
                     if(row === undefined) resolve(false);
                     else {
-                        console.log(row);
+                        console.log("isRegistered, dbRow:", row);
                         resolve(true);
                     }
                 });
@@ -39,11 +38,11 @@ export class Database {
     async getProofInfo(token: string): Promise<any> {
         return new Promise((resolve, reject) => {
             this.db.get(`
-                SELECT t.hash, t.iteration, t.period, pt.proof
+                SELECT p.token, t.hash, t.iteration, t.period, pt.proof
                 FROM idp_pubkeys p
-                JOIN idp_pubkey_in_tree pt
+                LEFT JOIN idp_pubkey_in_tree pt
                 ON p.pubkey = pt.pubkey
-                JOIN idp_tree_hashes t
+                LEFT JOIN idp_tree_hashes t
                 ON pt.hash = t.hash
                 WHERE p.token = ?
             `, [token], (err, row) => row === undefined ? reject(err) : resolve(row))
@@ -74,10 +73,11 @@ export class Database {
             );
 
             CREATE TABLE idp_pubkeys (
-                pubkey TEXT UNIQUE NOT NULL PRIMARY KEY,
+                pubkey TEXT NOT NULL,
                 identity TEXT NOT NULL,
                 period INTEGER NOT NULL,
-                token TEXT UNIQUE NOT NULL
+                token TEXT UNIQUE NOT NULL,
+                PRIMARY KEY(pubkey, identity, period)
             );
 
             CREATE TABLE idp_pubkey_in_tree (

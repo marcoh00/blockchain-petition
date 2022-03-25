@@ -55,27 +55,40 @@ app.post('/proof', cors(corsOptions), async (req, res) => {
     }
 
     let found = false;
-    const result_row = await database.getProofInfo(proof_request.token)
-        .then((row) => { return {
-            hash: row.hash,
-            iteration: row.iteration,
-            period: row.period,
-            proof: JSON.parse(row.proof)
-        };})
-        .catch(err => { console.log(err); return undefined; });
-    if(result_row === undefined) {
+    let database_result = null;
+    try {
+        database_result = await database.getProofInfo(proof_request.token);
+    } catch(e) {
+        res.statusCode = 500;
+        res.json({ "error": "Internal Server Error" });
+        return;
+    }
+    console.log("Proof request, db", database_result);
+    if(database_result === null || typeof(database_result.token) !== "string") {
         res.statusCode = 404;
         res.json({ "error": "Unknown Token" });
         return;
     }
-    if(typeof(result_row.iteration) !== "number") {
+    if(typeof(database_result.hash) !== "string" || typeof(database_result.period) !== "number" || typeof(database_result.proof) !== "string") {
         res.statusCode = 503;
-        res.json({ "error": "Proof is not ready yet" });
+        res.json({ "error": "Proof has not been created yet" });
         return;
     }
+    if(typeof(database_result.iteration) !== "number") {
+        res.statusCode = 503;
+        res.json({ "error": "Proof has not been added to the blockchain yet" });
+        return;
+    }
+    const result = {
+        hash: database_result.hash,
+        iteration: database_result.iteration,
+        period: database_result.period,
+        proof: JSON.parse(database_result.proof)
+    };
+    
     res.statusCode = 200;
-    res.json(result_row);
-    console.log("/proof return", result_row);
+    res.json(result);
+    console.log("/proof return", result);
 })
 
 app.options('/register', cors(corsOptions));
@@ -89,7 +102,8 @@ app.post('/register', cors(corsOptions), async (req, res) => {
         return;
     }
     if(registration.period === -1) {
-        registration.period = await ethereum.period();
+        console.log("register endpoint: request for current period");
+        registration.period = minperiod;
     }
     if(!checkRegistration(registration, minperiod, maxperiod)) {
         res.statusCode = 400;
@@ -103,10 +117,10 @@ app.post('/register', cors(corsOptions), async (req, res) => {
             return;
         }
         const token = randomBytes(32).toString("hex");
-        database.register(registration, token);
+        const result = await database.register(registration, token);
         res.statusCode = 200;
         res.json({ "token": token });
-        console.log(`💾 Registration saved to database`, registration, token);
+        console.log(`💾 Registration saved to database`, registration, token, result);
         return;
     } catch(e) {
         res.statusCode = 500;
