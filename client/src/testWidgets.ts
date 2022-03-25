@@ -1,4 +1,4 @@
-import { LitElement, html, css } from 'lit';
+/*import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 
 import { SHA256Hash } from '../../shared/merkle';
@@ -10,10 +10,6 @@ import { EthereumConnector, IPetition } from '../../shared/web3';
 import { REGISTRY_CONTRACT } from '../../shared/addr';
 import { threadId } from 'worker_threads';
 import {ZokratesTester} from "./zokrates";
-
-declare global {
-    interface Window { ethereum: any; }
-}
 
 export class MetaMaskConnector extends decorateClassWithWeb3(decorateClassWithState(LitElement)) {
     @property()
@@ -448,4 +444,4 @@ export class PetitionList extends decorateClassWithState(LitElement) {
         }
         this.zokratesAvailable = state.zokrates.initialized;
     }
-}
+}*/

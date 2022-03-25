@@ -83,6 +83,7 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
         return intArray;
     }
 
+    /*
     //rt, H_pers, pID, Kpriv, Kpub, directionSelector(bool 3), merkleproof(3*8)
     constructProof(state: IState, hpers: string, pID: string): IDualZokratesData {
         const rt = state.credentials.hash;
@@ -120,6 +121,7 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
         };
         return data;
     }
+    */
 
     static cmdProof(rt: number[], hpers: number[], pid: number[], priv: number[], pub: number[], directionSelector: number[], merkle: number[][]): string {
         return `zokrates compute-witness --input stimmrechtsbeweis -a `
