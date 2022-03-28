@@ -1,17 +1,13 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { decorateClassWithState } from './state';
+import { decorateClassWithState, IState } from './state';
 
-export class LoadData extends decorateClassWithState(LitElement) {
+export class OverlayElement extends decorateClassWithState(LitElement) {
     @property({type: Boolean})
-    active = true
+    spinner = true
 
     @property({ type: String })
-    loaded_total = ""
-    @property({ type: String })
-    total = ""
-    @property({ type: String })
-    last_loaded = "";
+    message?: string = null;
 
     static styles = css`
         .hidden {
@@ -36,18 +32,17 @@ export class LoadData extends decorateClassWithState(LitElement) {
         }
     `;
 
-    constructor() {
-        super();
-    }
-
     render() {
         return html`
-            <div class="container ${this.active ? `visible` : `hidden`}">
-                <loading-spinner></loading-spinner>
-                <p>${this.loaded_total}/${this.total}</p>
-                <p>${this.last_loaded}</p>
+            <div class="container ${typeof(this.message) !== "string" ? `visible` : `hidden`}">
+                ${this.spinner ? html`<loading-spinner></loading-spinner>` : html``}
+                ${this.message}
             </div>
         `;
+    }
+
+    async stateChanged(state: IState) {
+        //
     }
 }
 
