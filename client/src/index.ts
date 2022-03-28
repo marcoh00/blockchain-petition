@@ -1,4 +1,4 @@
-import { LoadData } from './loading';
+import { LoadingSpinner, OverlayElement } from './loading';
 import { ZokratesTester } from './zokrates';
 import { ErrorView, MainPage, PetitionApp } from './layoutWidgets';
 import { ConnectionPage, LandingPage, RegistryChooser, IdentityPage } from './setup';
@@ -9,7 +9,6 @@ const IDP_ENDPOINT = "http://localhost:65535";
 const REGISTRY_CONTRACT = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
 
 customElements.define("zokrates-tester", ZokratesTester);
-customElements.define("load-data", LoadData);
 customElements.define("petition-app", PetitionApp);
 customElements.define("landing-page", LandingPage);
 customElements.define("informational-infobar", InformationalInfobar);
@@ -22,3 +21,5 @@ customElements.define("main-page", MainPage);
 customElements.define("petition-card", Petition);
 customElements.define("period-widget", PeriodWidget);
 customElements.define("idp-widget", IDPWidget);
+customElements.define("overlay-element", OverlayElement);
+customElements.define("loading-spinner", LoadingSpinner);

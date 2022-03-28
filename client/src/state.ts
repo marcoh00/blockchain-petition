@@ -32,7 +32,9 @@ export interface IState {
     repository?: Web3Repository,
     idp?: IDPManager,
     zokrates: IZokratesState,
-    error?: string
+    error?: string,
+    locktext?: string,
+    lockspinner: boolean
 }
 
 export interface IStateAccessor {
@@ -55,7 +57,8 @@ function localGetState(): IState {
                 initialized: false,
                 text: undefined,
                 helper: undefined
-            }
+            },
+            lockspinner: true
         })
     }
     return state;
