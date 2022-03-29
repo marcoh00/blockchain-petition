@@ -34,6 +34,14 @@ export class NavigationBar extends LitElement {
                 padding: 1rem 2rem;
                 height: 5rem;
             }
+            period-widget {
+                width: 30vw;
+                max-width: 230px;
+            }
+            idp-widget {
+                width: 42vw;
+                max-width: 300px;
+            }
         `];
     render() {
         return html`
@@ -217,6 +225,12 @@ export class IDPWidget extends decorateClassWithState(LitElement) {
             margin-right: 0.1em;
 
         }
+        .isymb {
+            display: flex;
+            flex-direction: row nowrap;
+            justify-content: center;
+            align-items: center;
+        }
         .logo > svg {
             height: 1.3em;
         }
@@ -231,6 +245,10 @@ export class IDPWidget extends decorateClassWithState(LitElement) {
         .text {
             grid-area: msg;
             font-size: 0.5em;
+        }
+        loading-spinner {
+            width: 16px;
+            height: 16px;
         }
     `];
 
@@ -261,8 +279,10 @@ export class IDPWidget extends decorateClassWithState(LitElement) {
                     ${this.idpmanager.identity}
                 </div>
                 <div class="symb">
-                    ${this.working ? html`${icon(faSpinner).node}` : html``}
-                    ${this.failed ? html`${icon(faCircleXmark).node}` : html``}
+                    <div class="isymb">
+                        ${this.working ? html`<loading-spinner border="0.1em"></loading-spinner>` : html``}
+                        ${this.failed ? html`<div>${icon(faCircleXmark).node}</div>` : html``}
+                   </div>
                 </div>
                 <div class="text">
                     ${this.stateText()}
@@ -272,13 +292,23 @@ export class IDPWidget extends decorateClassWithState(LitElement) {
     }
 
     stateText() {
+        console.log("Calc state", this);
         if(this.failed) return html`<button @click=${this.obtainProofClick}>Erneut versuchen</button>`
-        if(this.stage === 1 && this.working) return html`<span>1/3 Zugangstoken abrufen</span>`;
+        if(this.working) {
+            switch(this.stage) {
+                case 1:
+                    return html`<span>1/3 Token</span>`;
+                case 2:
+                    return html`<span>2/3 Warte auf Blockchain</span>`;
+                case 3:
+                    return html`<span>3/3 Abschluss</span>`;
+            }
+        }
         switch(this.stage) {
             case 1:
                 return html`<button @click=${this.obtainProofClick}>Identitätsnachweis beantragen</button>`;
             case 2:
-                return html`<span>2/3 Beweis in Blockchain hinterlegen</span>`;
+                return html`<button @click=${this.obtainProofClick}>Identitätsnachweis beantragen</button>`;
             case 3:
                 return html`<span>OK</span>`;
         }

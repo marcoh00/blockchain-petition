@@ -18,7 +18,7 @@ export class PetitionApp extends decorateClassWithState(LitElement) {
     @property()
     stage: number = 0
 
-    static styles = [basicFlex, topDownFlex];
+    static styles = [basicFlex, topDownFlex, css`navigation-bar { max-width: 100vw; border-collapse: collapse; }`];
 
     render() {
         return html`
@@ -32,8 +32,7 @@ export class PetitionApp extends decorateClassWithState(LitElement) {
         const web3connected = state.web3connected
             && typeof(state.connector) === "object";
         const identityknown = typeof(state.identity) === "string"
-            && typeof(state.privkey) === "object"
-            && typeof(state.pubkey) === "object";
+            && typeof(state.idp) === "object";
         if(web3connected && !identityknown) {
             this.stage = 2;
         }
@@ -62,8 +61,7 @@ export class PetitionApp extends decorateClassWithState(LitElement) {
         this.stage = 2;
         const state = this.getState();
         if(typeof(state.identity) === "string"
-            && typeof(state.pubkey) === "object"
-            && typeof(state.privkey) === "object") this.proceedMain();
+            && typeof(state.idp) === "object") this.proceedMain();
     }
 
     proceedMain() {
