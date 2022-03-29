@@ -5,6 +5,8 @@ import { WebEthereumConnector } from "./web3";
 interface IRegistrationData {
     working: boolean
     failed: boolean
+    privkey?: SHA256Hash
+    pubkey?: SHA256Hash
     token?: string
     credentials?: ICredentials
 }
@@ -16,19 +18,17 @@ interface ICredentialRepository {
 class IDPManagerBase {}
 export class IDPManager extends decorateClassWithState(IDPManagerBase) {
     identity: string
-    privkey: SHA256Hash
-    pubkey: SHA256Hash
     credentials: ICredentialRepository
 
     working: boolean
     failed: boolean
 
-    constructor(identity: string, privkey: SHA256Hash, pubkey: SHA256Hash, credentials: ICredentialRepository) {
+    constructor(identity: string, credentials?: ICredentialRepository, cache: boolean = false) {
         super();
         this.identity = identity;
-        this.privkey = privkey;
-        this.pubkey = pubkey;
-        this.credentials = credentials;
+        this.credentials = typeof(credentials) === "object" && credentials !== null ? credentials : {};
+        console.log("New IDP", this.credentials);
+        if(cache) this.load();
     }
 
     getRegistrationData(period: number) {
@@ -39,11 +39,30 @@ export class IDPManager extends decorateClassWithState(IDPManagerBase) {
         return this.credentials[period];
     }
 
+    async ensureKeysAvailable(period: number) {
+        const regdata = this.getRegistrationData(period);
+        if(typeof(regdata.pubkey) === "object" && typeof(regdata.privkey) === "object") return;
+        
+        const privkey_src = new Uint8Array([
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0
+        ]);
+        crypto.getRandomValues(privkey_src);
+        const privkey = await SHA256Hash.hashRaw(privkey_src);
+        const pubkey = await SHA256Hash.hashRaw(privkey.rawValue());
+        console.log(`priv: ${privkey.toHex()}`, `pub: ${pubkey.toHex()}, period: ${period}`, privkey, pubkey);
+        regdata.privkey = privkey;
+        regdata.pubkey = pubkey;
+    }
+
     async credentialsForPeriod(period: number) {
         this.getRegistrationData(period).working = true;
         this.getRegistrationData(period).failed = false;
         this.setState(this.getState());
 
+        await this.ensureKeysAvailable(period);
         
         const endpoint = await this.getState().connector.url();
         if(typeof(this.credentials[period].token === "undefined")) {
@@ -54,7 +73,7 @@ export class IDPManager extends decorateClassWithState(IDPManagerBase) {
                 },
                 body: JSON.stringify({
                     identity: this.identity,
-                    pubkey: this.pubkey.toHex(),
+                    pubkey: this.credentials[period].pubkey.toHex(),
                     period: period
                 })
             });
@@ -86,6 +105,7 @@ export class IDPManager extends decorateClassWithState(IDPManagerBase) {
 
     async tryObtainCredentials(period: number, endpoint: string) {
         this.getRegistrationData(period).working = true;
+        this.setState(this.getState());
         const token = this.credentials[period].token;
         const proof_or_error = await fetch(`${endpoint}/proof`, {
             method: "POST",
@@ -125,22 +145,32 @@ export class IDPManager extends decorateClassWithState(IDPManagerBase) {
         console.log(`Successfully obtained credentials for identity ${this.identity} and period ${period}`, this.credentials[period]);
     }
 
-    async save() {
-        const localData = JSON.stringify({
-            privkey: this.privkey.toHex(),
-            pubkey: this.pubkey.toHex(),
-            credentials: this.credentials
-        });
+    save() {
+        const localData = JSON.stringify(
+            this.credentials,
+            (key, value) => {if(typeof(value) === "object" && value.hasOwnProperty("hash") && typeof(value.hash) !== "string") {console.log("hashy value", value); return (value as SHA256Hash).toHex();} return value;}
+        );
         localStorage.setItem(`cred.${this.identity}`, localData);
         console.log("Credentials saved to localStorage");
+    }
+
+    load() {
+        const item = localStorage.getItem(`cred.${this.identity}`);
+        if(typeof(item) !== "string") return;
+        try {
+            this.credentials = JSON.parse(
+                item, (key, value) => typeof(value) === "string" && value.length === 64 && (key === "pubkey" || key === "privkey")  ? SHA256Hash.fromHex(value) : value
+            );
+        } catch(e) {
+            this.stateError(`Konnte zwischengespeicherte Login-Daten nicht abrufen: ${e}`);
+        }
+        console.log("IDP, credentials after load", this.credentials);
     }
 }
 
 let idpmanager: IDPManager = null;
-export function getIDPManager(identity: string, privkey: SHA256Hash, pubkey: SHA256Hash, credentials: ICredentialRepository = {}): IDPManager {
+export function getIDPManager(identity: string, credentials?: ICredentialRepository, cache: boolean = false): IDPManager {
     if(idpmanager === null
-        || idpmanager.identity !== identity
-        || !idpmanager.pubkey.equals(pubkey)
-        || !idpmanager.privkey.equals(privkey)) idpmanager = new IDPManager(identity, privkey, pubkey, credentials);
+        || idpmanager.identity !== identity) idpmanager = new IDPManager(identity, credentials, cache);
     return idpmanager;
 }
