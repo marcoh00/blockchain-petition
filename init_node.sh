@@ -2,57 +2,27 @@
 
 set -e -x
 
-NETWORK=${1:-localhost}
-ADDPETITIONS=${2:-YES}
-DEPLOY=${3:-NO}
-IDPURL=${4:-http://localhost:65535}
-PIDS=""
-
-sed -i 's/export const DEFAULT_NETWORK = NETWORKS.*/export const DEFAULT_NETWORK = NETWORKS.'"${NETWORK}"'/g' ${BASH_SOURCE%/*}/shared/addr.ts
-
 pushd ${BASH_SOURCE%/*}/platform
+npx hardhat node &
+HHNODE=$!
 
-if [ ${NETWORK} = "localhost" ]
-then
-	npx hardhat node &
-	PIDS="$! ${PIDS}"
-
-	sleep 10
-fi
-
-if [ ${DEPLOY} = "YES" ]
-then
-	echo "Replace URL: ${IDPURL}"
-	sed -i 's#.*return.*// replace#return "'"${IDPURL}"'"; // replace#g' contracts/IDP.sol
-	echo "Deploying contracts..."
-	npx hardhat run --verbose --network ${NETWORK} scripts/deploy.ts
-	echo "Contracts deployed"
-
-	sleep 3
-fi
-
-if [ ${ADDPETITIONS} = "YES" ]
-then
-	echo "Creating test petitions..."
-	npx hardhat run --verbose --network ${NETWORK} scripts/testpetitions.ts
-	echo "Test petitions created"
-fi
+sleep 10
+npx hardhat run --network localhost scripts/deploy.ts
+sleep 3
+npx hardhat run --network localhost scripts/testpetitions.ts
 
 popd
 
-echo "Starting IDP..."
 pushd ${BASH_SOURCE%/*}/idp
 npm run start &
-PIDS="${PIDS} $!"
-echo "IDP started"
+IDPNODE=$!
 popd
 
-echo "Starting client..."
 pushd ${BASH_SOURCE%/*}/client
 npm run dev &
-PIDS="${PIDS} $!"
-echo "Client started"
+CLIENTNODE=$!
 popd
 
-echo "[WAIT] [WAIT] [WAIT] [WAIT] [WAIT] [WAIT] [WAIT]"
-wait $PIDS
+
+
+wait $HHNODE $IDPNODE $CLIENTNODE
