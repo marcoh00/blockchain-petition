@@ -73,11 +73,10 @@ export class Database {
             );
 
             CREATE TABLE idp_pubkeys (
-                pubkey TEXT NOT NULL,
+                pubkey TEXT NOT NULL PRIMARY KEY,
                 identity TEXT NOT NULL,
                 period INTEGER NOT NULL,
-                token TEXT UNIQUE NOT NULL,
-                PRIMARY KEY(pubkey, identity, period)
+                token TEXT UNIQUE NOT NULL
             );
 
             CREATE TABLE idp_pubkey_in_tree (
