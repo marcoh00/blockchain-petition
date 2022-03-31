@@ -4,6 +4,7 @@ import { css, CSSResultGroup, html, LitElement } from "lit";
 import { property } from "lit/decorators.js";
 import { IPetition } from "../../shared/web3";
 import { buttonMixin, faStyle } from "./styles";
+import { getZokratesHelper } from "./zokrates";
 
 export class Petition extends LitElement {
     static styles = [faStyle, buttonMixin, css`
@@ -84,9 +85,10 @@ export class Petition extends LitElement {
         this.expanded = !this.expanded;
     }
 
-    signClick(e: Event) {
+    async signClick(e: Event) {
         e.stopPropagation();
         e.preventDefault();
-        window.alert("Noch nicht implementiert :(");
+        const helper = await getZokratesHelper();
+        window.alert("ZoKrates should be initialized now");
     }
 }

@@ -31,7 +31,7 @@ export interface IState {
     connector?: WebEthereumConnector,
     repository?: Web3Repository,
     idp?: IDPManager,
-    zokrates: IZokratesState,
+    zokrates?: ZokratesHelper,
     error?: string,
     locktext?: string,
     lockspinner: boolean
@@ -53,11 +53,6 @@ function localGetState(): IState {
             period: -1,
             customPeriod: false,
             web3connected: false,
-            zokrates: {
-                initialized: false,
-                text: undefined,
-                helper: undefined
-            },
             lockspinner: true
         })
     }

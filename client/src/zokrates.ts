@@ -19,23 +19,20 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
     }
 
     async init() {
-        this.initProgress("Initialize ZoKrates provider");
+        this.initProgress("Initialisiere Beweis-Subsystem");
         this.provider = await initialize();
-        this.initProgress("Compile Application");
+        this.initProgress("Erstellung des Beweis-Programms");
         this.compilationArtifacts = await this.compile();
-        this.initProgress("Download Proving Key");
+        this.initProgress("Herunterladen des kryptografischen Schlüssels");
         await this.download_pk();
         this.initProgress(undefined, true);
     }
 
-    initProgress(text: string = undefined, initialized: boolean = false) {
+    initProgress(text: string = undefined, done: boolean = false) {
         this.setState({
             ...this.getState(),
-            zokrates: {
-                initialized: initialized,
-                helper: this,
-                text: text
-            }
+            lockspinner: !done,
+            locktext: text
         });
     }
 
@@ -151,16 +148,19 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
             const read = await reader.read();
             if(read.done) break;
             read.value.forEach(byte => data.push(byte));
-            this.initProgress(`Download: ${data.length}/${filesize} (${((data.length / filesize) * 100).toFixed(2)})`);
+            this.initProgress(`Herunterladen: ${data.length}/${filesize} (${((data.length / filesize) * 100).toFixed(1)} %)`);
         }
 
         this.provingKey = new Uint8Array(data);
     }
 }
-
+let helper: ZokratesHelper = null;
 export async function getZokratesHelper() {
-    const helper = new ZokratesHelper();
-    await helper.init();
+    if(helper === null) {
+        const helper = new ZokratesHelper();
+        await helper.init();
+    }
+    console.log("Zokrates helper is initialized, return it", helper);
     return helper;
 }
 

@@ -29,6 +29,7 @@ export class OverlayElement extends decorateClassWithState(LitElement) {
             top: 0;
             left: 0;
             z-index: 10;
+            row-gap: 10vmin;
         }
 
         loading-spinner {
@@ -40,14 +41,14 @@ export class OverlayElement extends decorateClassWithState(LitElement) {
     render() {
         return html`
             <div class="container ${typeof(this.message) === "string" ? `visible` : `hidden`}">
-                ${this.spinner ? html`<loading-spinner></loading-spinner>` : html``}
+                ${this.spinner ? html`<loading-spinner border="0.6em"></loading-spinner>` : html``}
                 ${this.message}
             </div>
         `;
     }
 
     async stateChanged(state: IState) {
-        //
+        this.message = state.locktext;
     }
 }
 
