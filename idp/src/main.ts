@@ -155,8 +155,21 @@ async function repeat() {
     await intervalTask(ethereum, database);
 }
 
+async function hashAddedEvent(err, event, subscription) {
+    console.log("HashAdded Event", err, event, subscription);
+    const hash_result = event.returnValues[0] as string
+    const hash = hash_result.startsWith("0x") ? hash_result.substring(2) : hash_result;
+    const period = event.returnValues[1];
+    const iteration = event.returnValues[2];
+    console.log("Values are", hash, period, iteration, typeof hash, typeof period, typeof iteration);
+    await database.updateTreeWithIteration(hash, iteration);
+}
+
 app.listen(PORT, async () => {
     await ethereum.init();
+    ethereum.idpcontract.events.HashAdded({
+        fromBlock: "latest"
+    }, hashAddedEvent);
     console.log(`👂 IDP listening on ${PORT}`);
     console.log(`ℹ️  Using Ethereum API ${API}`);
     console.log(`ℹ️  Using Registry Smart Contract at ${REGISTRY_CONTRACT}`);

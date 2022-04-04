@@ -34,7 +34,8 @@ export class EthereumConnector {
     }
 
     async init() {
-        if(this.chainid && await this.api.eth.getChainId() !== this.chainid) throw new Error("Wrong blockchain selected");
+        const wallet_chain_id = await this.api.eth.getChainId()
+        if(this.chainid && wallet_chain_id !== this.chainid) throw new Error(`Falsche Blockchain ausgewählt (ist ${wallet_chain_id}, soll ${this.chainid})`);
         this.registrycontract = new this.api.eth.Contract((RegistryContract.abi as any), this.registryaddr);
         const idpaddr = await this.registrycontract.methods.idp().call();
         console.log("🌐 Obtained IDP contract address", idpaddr);
@@ -49,11 +50,22 @@ export class EthereumConnector {
         }
     }
 
-    async submitHash(hash: string, period: number): Promise<number> {
-        const web3result: Promise<any> = this.idpcontract.methods.submitHash(`0x${hash}`, period).send({
-            from: this.account
-        })
-        return web3result.then(tx => Number.parseInt(tx.events.HashAdded.returnValues.iteration));
+    async submitHash(hash: string, period: number): Promise<object> {
+        const method = this.idpcontract.methods.submitHash(`0x${hash}`, period);
+        const data = method.encodeABI();
+        const gas = await method.estimateGas();
+        const raw_tx = {
+            from: this.account,
+            to: await this.registrycontract.methods.idp().call(),
+            data,
+            gas
+        };
+        console.log("Transaction", raw_tx);
+        const signed = await this.api.eth.accounts.signTransaction(raw_tx, this.privkey);
+        const web3result = await this.api.eth.sendSignedTransaction(signed.rawTransaction)
+        console.log("web3result", web3result);
+        console.log("events", web3result.logs[0].topics);
+        return web3result;
     }
 
     async period(): Promise<number> {
