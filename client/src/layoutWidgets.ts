@@ -5,6 +5,7 @@ import { customElement, property } from 'lit/decorators.js';
 import { IPetition } from '../../shared/web3';
 import { decorateClassWithState, IState } from './state';
 import { basicFlex, faStyle, topDownFlex } from './styles';
+import { getZokratesHelper } from './zokrates';
 
 export class PetitionApp extends decorateClassWithState(LitElement) {
     
@@ -159,7 +160,7 @@ export class MainPage extends decorateClassWithState(LitElement) {
         return html`
             <div class="cardlist">
                 <h1>Petitionen</h1>
-                ${this.petitions.map(petition => html`<petition-card .petition=${petition} .signable=${this.isSignable(petition)}></petition-card>`)}
+                ${this.petitions.map((petition, idx) => html`<petition-card .petition=${petition} .idx=${idx} .signable=${this.isSignable(petition)} @sign=${this.signPetition}></petition-card>`)}
             </div>
         `
     }
@@ -174,5 +175,31 @@ export class MainPage extends decorateClassWithState(LitElement) {
         const signable = state.repository.period_time_cache[petition.period].isNow();
         console.log(`petition w/ period ${petition.period} is signable? ${signable}`);
         return signable;
+    }
+
+    async signPetition(e: CustomEvent) {
+        const petition = this.petitions[e.detail as number];
+        const idp = this.getState().idp;
+        const helper = await getZokratesHelper();
+        console.log("signPetition, before proof", petition, helper);
+        const proof = await helper.constructProof(petition, idp);
+        console.log("ZoKrates should be initialized now, cmdline would've been", proof.cmdline);
+
+        this.setState({
+            ...this.getState(),
+            lockspinner: true,
+            locktext: "Petition unterschreiben"
+        });
+        try {
+            const tx = await this.getState().connector.signPetition(petition.address, proof.points, proof.hpers, idp.getRegistrationData(petition.period).credentials.iteration);
+            console.log("Petition signed successfully!", tx);
+        } catch(e) {
+            this.stateError(`Konnte Transaktion nicht versenden: ${e}`);
+        }
+        this.setState({
+            ...this.getState(),
+            lockspinner: false,
+            locktext: undefined
+        });
     }
 }

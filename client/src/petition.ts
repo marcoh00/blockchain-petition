@@ -58,6 +58,9 @@ export class Petition extends LitElement {
     petition: IPetition
 
     @property()
+    idx: number
+
+    @property()
     expanded: boolean = false;
 
     @property()
@@ -88,7 +91,9 @@ export class Petition extends LitElement {
     async signClick(e: Event) {
         e.stopPropagation();
         e.preventDefault();
-        const helper = await getZokratesHelper();
-        window.alert("ZoKrates should be initialized now");
+        this.dispatchEvent(new CustomEvent("sign", {
+            bubbles: true,
+            detail: this.idx
+        }));
     }
 }

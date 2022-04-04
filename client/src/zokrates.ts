@@ -2,11 +2,14 @@ import { html, LitElement } from "lit";
 import { property } from "lit/decorators.js";
 import { ZoKratesProvider , initialize, CompilationArtifacts, Proof } from "zokrates-js";
 import { SHA256Hash} from "../../shared/merkle";
+import { IPetition } from "../../shared/web3";
+import { IDPManager } from "./idp";
 import { decorateClassWithState, IState } from "./state";
 
 interface IDualZokratesData {
     points: Proof
     cmdline: string
+    hpers: SHA256Hash
 }
 class ZokratesBase {}
 export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
@@ -37,16 +40,12 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
     }
 
 
-    jsProof(rt: number[], hpers: number[], pid: number[], priv: number[], pub: number[], directionSelector: number[], merkle: number[][]): Proof {
-        //Proving Key auslesen
-        //const pk = new Uint8Array(fs.readFileSync('../zk/proving.key'));
-        //console.log("pk", pk)
-
+    async jsProof(rt: number[], hpers: number[], pid: number[], priv: number[], pub: number[], directionSelector: number[], merkle: number[][]): Promise<Proof> {
         // compilation
         console.log("artifacts", this.compilationArtifacts);
         // Key
         console.log("key", this.provingKey);
-
+        this.initProgress("Gültige Eingabeparameter bestimmen");
         // computation
         const { witness, output } = this.provider.computeWitness(
             this.compilationArtifacts,
@@ -64,6 +63,7 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
 
 
         // generate proof
+        this.initProgress("Unterschriftsbeweis erzeugen");
         const proof = this.provider.generateProof(this.compilationArtifacts.program, witness, this.provingKey);
         console.log("proof", proof);
         return proof;
@@ -80,33 +80,43 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
         return intArray;
     }
 
-    /*
+    
     //rt, H_pers, pID, Kpriv, Kpub, directionSelector(bool 3), merkleproof(3*8)
-    constructProof(state: IState, hpers: string, pID: string): IDualZokratesData {
-        const rt = state.credentials.hash;
+    async constructProof(petition: IPetition, idp: IDPManager): Promise<IDualZokratesData> {
+        this.initProgress("Persönliche Kennzahl errechnen");
+        const credentials = idp.getRegistrationData(petition.period);
+        // Calculate hPers
+        const pers = [
+            ...Array.from(petition.id),
+            ...Array.from(credentials.privkey.rawValue())
+        ];
+        console.log("pers", pers);
+        const hpers = await SHA256Hash.hashRaw(new Uint8Array(pers));
+
+        const rt = idp.getRegistrationData(petition.period).credentials.hash;
         console.log("rt", rt);
         console.log("hpers", hpers);
-        console.log("pID", pID);
-        console.log("Kpriv", state.privkey);
-        console.log("Kpub", state.pubkey);
-        console.log("directionSelector", state.credentials.proof.directionSelector);
-        console.log("merklePath", state.credentials.proof.path);
+        console.log("pID", petition.id);
+        console.log("Kpriv", credentials.privkey);
+        console.log("Kpub", credentials.pubkey);
+        console.log("directionSelector", credentials.credentials.proof.directionSelector);
+        console.log("merklePath", credentials.credentials.proof.path);
 
         const rt_out = this.hexStringToDecimalArray(rt, 4);
         console.log("rt-out", rt_out);
-        const hpers_out = this.hexStringToDecimalArray(hpers, 4);
+        const hpers_out = this.hexStringToDecimalArray(hpers.toHex(), 4);
         console.log("hpers-out", hpers_out);
-        const pid_out = this.hexStringToDecimalArray(pID, 4);
+        const pid_out = this.hexStringToDecimalArray(Buffer.from(petition.id).toString('hex'), 4);
         console.log("pID-out", pid_out);
-        const priv_out = this.hexStringToDecimalArray(state.privkey.toHex(), 4);
+        const priv_out = this.hexStringToDecimalArray(credentials.privkey.toHex(), 4);
         console.log("Kpriv-out", priv_out);
-        const pub_out = this.hexStringToDecimalArray(state.pubkey.toHex(), 4);
+        const pub_out = this.hexStringToDecimalArray(credentials.pubkey.toHex(), 4);
         console.log("Kpub-out", pub_out);
 
-        const directionSelectorDecimalArray: number[] = state.credentials.proof.directionSelector.map(b => b ? 1 : 0);
+        const directionSelectorDecimalArray: number[] = credentials.credentials.proof.directionSelector.map(b => b ? 1 : 0);
         console.log("direction-Selector-out", directionSelectorDecimalArray);
 
-        const merklePathDecimalArray: number[][] = state.credentials.proof.path.map(hash => this.hexStringToDecimalArray(hash, 4));
+        const merklePathDecimalArray: number[][] = credentials.credentials.proof.path.map(hash => this.hexStringToDecimalArray(hash, 4));
         console.log("merklePath-out", merklePathDecimalArray)
 
         const zokratesbeweisInput = ZokratesHelper.cmdProof(rt_out, hpers_out, pid_out, priv_out, pub_out, directionSelectorDecimalArray, merklePathDecimalArray);
@@ -114,11 +124,12 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
 
         const data: IDualZokratesData = {
             cmdline: zokratesbeweisInput,
-            points: this.jsProof(rt_out, hpers_out, pid_out, priv_out, pub_out, directionSelectorDecimalArray, merklePathDecimalArray)
+            hpers,
+            points: await this.jsProof(rt_out, hpers_out, pid_out, priv_out, pub_out, directionSelectorDecimalArray, merklePathDecimalArray)
         };
+        this.initProgress(undefined, true);
         return data;
     }
-    */
 
     static cmdProof(rt: number[], hpers: number[], pid: number[], priv: number[], pub: number[], directionSelector: number[], merkle: number[][]): string {
         return `zokrates compute-witness --input stimmrechtsbeweis -a `
@@ -157,8 +168,9 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
 let helper: ZokratesHelper = null;
 export async function getZokratesHelper() {
     if(helper === null) {
-        const helper = new ZokratesHelper();
-        await helper.init();
+        const new_helper = new ZokratesHelper();
+        await new_helper.init();
+        helper = new_helper;
     }
     console.log("Zokrates helper is initialized, return it", helper);
     return helper;
