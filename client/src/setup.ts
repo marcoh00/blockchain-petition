@@ -3,7 +3,7 @@ import { faEthereum } from '@fortawesome/free-brands-svg-icons';
 import { faQuestionCircle, faAddressCard, faCheck } from '@fortawesome/free-solid-svg-icons';
 import { LitElement, html, css, CSSResultGroup } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { REGISTRY_CONTRACT } from '../../shared/addr';
+import { REGISTRY_CONTRACT, REGISTRY_CONTRACT_GOERLI, REGISTRY_CONTRACT_HARDHAT } from '../../shared/addr';
 import { SHA256Hash } from '../../shared/merkle';
 import { EthereumConnector } from '../../shared/web3';
 import { getIDPManager } from './idp';
@@ -126,19 +126,19 @@ export class RegistryChooser extends LitElement {
     @property({type: Array})
     registries: any[] = [
         {
-            addr: REGISTRY_CONTRACT,
+            addr: REGISTRY_CONTRACT_HARDHAT,
             descr: "Testcontract auf Entwicklungs-Blockchain",
             ident: "Texteingabe",
             chainid: 31337
         },
         {
-            addr: REGISTRY_CONTRACT,
-            descr: "Petitionen der Verbraucherzentrale NRW",
+            addr: REGISTRY_CONTRACT_GOERLI,
+            descr: "Petitionen der Verbraucherzentrale NRW (Goerli)",
             ident: "Personalausweis",
-            chainid: 31337
+            chainid: 5
         },
         {
-            addr: "0xb3Aff715Cf9d2D9a65F0992F93777Ccf3c7fa6e0",
+            addr: REGISTRY_CONTRACT,
             descr: "change.org Blockchain-Petitionen",
             ident: "E-Mail",
             chainid: 31337
@@ -201,7 +201,10 @@ export class RegistryChooser extends LitElement {
         // TODO: Handle different chain ids
         this.dispatchEvent(new CustomEvent("registryClick", {
             bubbles: true,
-            detail: {contract: this.lastSelected === -1? this.customAddr : this.registries[idx].addr, chainid: 31337}
+            detail: {
+                contract: this.lastSelected === -1? this.customAddr : this.registries[idx].addr,
+                chainid: this.lastSelected === -1? undefined : this.registries[idx].chainid
+            }
         }));
         if(toggle) (this.shadowRoot.querySelector(`#contract-${idx}`) as HTMLInputElement).checked = true;
     }

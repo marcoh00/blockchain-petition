@@ -80,7 +80,7 @@ export async function intervalTask(web3: EthereumConnector, db: Database) {
     const trees_to_include = await db.treesToIncludeOnBlockchain(period);
     console.log("Trees to Include", trees_to_include);
     const iterations = await includeTrees(web3, period, trees_to_include);
-    await addIterationsToDatabase(db, trees_to_include, iterations);
+    // await addIterationsToDatabase(db, trees_to_include, iterations);
 
     intervalLock = false;
 }

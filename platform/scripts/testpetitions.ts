@@ -38,16 +38,12 @@ async function main() {
   ];
 
   const petition_promises: Promise<any>[] = [];
-  names
-    .map((name) => ethers.utils.zeroPad(ethers.utils.toUtf8Bytes(name), 32))
-    .forEach((encodedName, idx) => {
-        petition_promises.push(
-            Registry.createPetition(encodedName, descriptions[idx], periods[idx])
-                .then(() => console.log("Petition added", names[idx]))
-        );
-    }
-  );
-  await Promise.all(petition_promises);
+  const submittable_names = names
+    .map((name) => ethers.utils.zeroPad(ethers.utils.toUtf8Bytes(name), 32));
+  for(let i = 0; i < names.length; i++) {
+    await Registry.createPetition(submittable_names[i], descriptions[i], periods[i]);
+    console.log(`Petition ${names[i]} added`)
+  }
 }
 
 // We recommend this pattern to be able to use async/await everywhere
