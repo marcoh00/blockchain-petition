@@ -94,7 +94,7 @@ export class Web3Repository extends decorateClassWithState(Web3RepositoryBase) {
 
     async startPeriodRefreshInterval() {        
         await this.setPeriod();
-        this.addToTimeCacheIfNeccessary(this.period);
+        await this.addToTimeCacheIfNeccessary(this.period);
 
         const span = this.period_time_cache[this.period].end.getTime() - this.period_time_cache[this.period].start.getTime();
         const next_period_boundary_in_s = this.period_time_cache[this.period].end.getTime() - Date.now();
