@@ -7,6 +7,8 @@ import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 
+import { DEFAULT_NETWORK, NETWORKS } from "../shared/addr";
+
 dotenv.config();
 
 // This is a sample Hardhat task. To learn how to create your own go to
@@ -39,11 +41,22 @@ const config: HardhatUserConfig = {
         interval: 8000,
       },
     },
-    ropsten: {
-      url: process.env.ROPSTEN_URL || "",
+    goerli: {
+      url: NETWORKS.goerli.api,
       accounts:
-        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+        [NETWORKS.goerli.privkey]
     },
+    seclab: {
+      url: NETWORKS.seclab.api,
+      chainId: NETWORKS.seclab.chainid,
+      accounts:
+        [NETWORKS.seclab.privkey]
+    },
+    default: {
+      url: DEFAULT_NETWORK.api,
+      accounts:
+        [DEFAULT_NETWORK.privkey]
+    }
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,

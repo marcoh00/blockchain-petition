@@ -1,8 +1,9 @@
 import { ethers } from "hardhat";
+import { DEFAULT_NETWORK } from "../../shared/addr";
 
 async function main() {
   const RegistryFactory = await ethers.getContractFactory("Registry");
-  const Registry = await RegistryFactory.attach("0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0");
+  const Registry = await RegistryFactory.attach(DEFAULT_NETWORK.registry_contract as string);
 
   const IDPFactory = await ethers.getContractFactory("IDP");
   const IDP = await IDPFactory.attach(await Registry.idp());

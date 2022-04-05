@@ -3,8 +3,64 @@ export const REGISTRY_CONTRACT_GOERLI = "0x99DC5A12d18afDdfF802980353A5be36Fd724
 export const REGISTRY_CONTRACT = REGISTRY_CONTRACT_GOERLI;
 
 export const PORT = 65535;
-export const ACCOUNT = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266';
-export const PRIVKEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
-export const API = 'ws://127.0.0.1:8545';
+
+export const ACCOUNT_SECLAB = "0xA29876C7964C0aFf4190Ec78c811751F6b238CE7";
+export const PRIVKEY_SECLAB = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+export const ACCOUNT_GOERLI = "0xA007D87E607D25E0f203Bc949392142b59bb9a83";
+export const PRIVKEY_GOERLI = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+export const PRIVKEY = PRIVKEY_SECLAB;
+
+export const ACCOUNT_HARDHAT = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266';
+export const PRIVKEY_HARDHAT = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+export const ACCOUNT = ACCOUNT_SECLAB;
+
+export const API_SECLAB = "http://127.0.0.1:18444"
+export const API_HARDHAT = 'ws://127.0.0.1:8545';
+export const API_GOERLI = "https://eth-goerli.alchemyapi.io/v2/APIKEY";
+export const API_GOERLI_LOCAL = "http://192.168.178.60:8545";
+export const API_GOERLI_WS_LOCAL = "ws://192.168.178.60:8546";
+export const API = API_SECLAB;
+
 export const DBFILE = `./database.db`;
 export const PROVINGKEY = "../zk/proving.key";
+
+interface INetworkConnectionSettings {
+    api: string
+    wsapi?: string
+    chainid: number
+    account: string
+    privkey: string
+    registry_contract?: string
+}
+
+interface INetworkList {
+    [network: string]: INetworkConnectionSettings
+}
+
+export const NETWORKS: INetworkList = {
+    localhost: {
+        api: API_HARDHAT,
+        wsapi: API_HARDHAT,
+        chainid: 31337,
+        account: ACCOUNT_HARDHAT,
+        privkey: PRIVKEY_HARDHAT,
+        registry_contract: REGISTRY_CONTRACT_HARDHAT
+    },
+    goerli: {
+        api: API_GOERLI,
+        wsapi: API_GOERLI_WS_LOCAL,
+        chainid: 5,
+        account: ACCOUNT_GOERLI,
+        privkey: PRIVKEY_GOERLI,
+        registry_contract: REGISTRY_CONTRACT_GOERLI
+    },
+    seclab: {
+        api: API_SECLAB,
+        wsapi: "ws://localhost:8546",
+        chainid: 43,
+        account: ACCOUNT_SECLAB,
+        privkey: PRIVKEY_SECLAB,
+        registry_contract: "0x6fB4ae4D171f76054987507DAfa158A2DA6F5335"
+    }
+}
+export const DEFAULT_NETWORK = NETWORKS.goerli
