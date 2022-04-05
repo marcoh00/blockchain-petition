@@ -3,7 +3,7 @@ import { faEthereum } from '@fortawesome/free-brands-svg-icons';
 import { faQuestionCircle, faAddressCard, faCheck } from '@fortawesome/free-solid-svg-icons';
 import { LitElement, html, css, CSSResultGroup } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { REGISTRY_CONTRACT, REGISTRY_CONTRACT_GOERLI, REGISTRY_CONTRACT_HARDHAT } from '../../shared/addr';
+import { NETWORKS, REGISTRY_CONTRACT, REGISTRY_CONTRACT_GOERLI, REGISTRY_CONTRACT_HARDHAT } from '../../shared/addr';
 import { SHA256Hash } from '../../shared/merkle';
 import { EthereumConnector } from '../../shared/web3';
 import { getIDPManager } from './idp';
@@ -126,22 +126,22 @@ export class RegistryChooser extends LitElement {
     @property({type: Array})
     registries: any[] = [
         {
-            addr: REGISTRY_CONTRACT_HARDHAT,
+            addr: NETWORKS.localhost.registry_contract,
             descr: "Testcontract auf Entwicklungs-Blockchain",
             ident: "Texteingabe",
-            chainid: 31337
+            chainid: NETWORKS.localhost.chainid
         },
         {
-            addr: REGISTRY_CONTRACT_GOERLI,
+            addr: NETWORKS.goerli.registry_contract,
             descr: "Petitionen der Verbraucherzentrale NRW (Goerli)",
             ident: "Personalausweis",
-            chainid: 5
+            chainid: NETWORKS.goerli.chainid
         },
         {
-            addr: REGISTRY_CONTRACT,
-            descr: "change.org Blockchain-Petitionen",
+            addr: NETWORKS.seclab.registry_contract,
+            descr: "change.org Blockchain-Petitionen (SECLAB)",
             ident: "E-Mail",
-            chainid: 31337
+            chainid: NETWORKS.seclab.chainid
         },
         {
             addr: "0xbB718Ac6A21a837d1F66992F93777Ccf3c7fa6e0",

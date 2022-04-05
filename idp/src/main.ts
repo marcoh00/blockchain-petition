@@ -5,13 +5,17 @@ import { checkRegistration, checkValidType, IRegistration, IProofRequest } from 
 import { Database } from "./database";
 import { EthereumConnector } from "../../shared/web3";
 import { SHA256Hash, MerkleTree } from '../../shared/merkle';
-import {REGISTRY_CONTRACT, PORT, API, ACCOUNT, PRIVKEY, DBFILE, PROVINGKEY } from '../../shared/addr';
+import { NETWORKS, DEFAULT_NETWORK, PORT, DBFILE, PROVINGKEY } from '../../shared/addr';
 import { intervalTask } from "./task";
 
 const app = express();
 app.use(express.json());
 
 const database = new Database(DBFILE);
+const API = DEFAULT_NETWORK.wsapi;
+const REGISTRY_CONTRACT = DEFAULT_NETWORK.registry_contract;
+const ACCOUNT = DEFAULT_NETWORK.account;
+const PRIVKEY = DEFAULT_NETWORK.privkey;
 const ethereum = new EthereumConnector(API, REGISTRY_CONTRACT, ACCOUNT, PRIVKEY);
 
 const corsOptions: CorsOptions = {
