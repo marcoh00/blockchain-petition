@@ -187,7 +187,15 @@ export class MainPage extends decorateClassWithState(LitElement) {
 
     async signPetition(e: CustomEvent) {
         const petition = this.petitions[e.detail as number];
+        if(!this.isSignable(petition)) {
+            this.stateError("Es können ausschließlich Petitionen der aktuellen Abstimmungsperiode (s.o.) unterzeichnet werden");
+            return;
+        }
         const idp = this.getState().idp;
+        if(typeof(idp.getRegistrationData(petition.period).privkey) !== "object") {
+            this.stateError("Vor der Unterzeichnung muss ein Identitätsnachweis beantragt werden");
+            return;
+        }
         const helper = await getZokratesHelper();
         console.log("signPetition, before proof", petition, helper);
         const proof = await helper.constructProof(petition, idp);
@@ -273,7 +281,7 @@ export class CreatePage extends decorateClassWithState(LitElement) {
         this.setState({
             ...this.getState(),
             lockspinner: true,
-            locktext: "Petition unterschreiben"
+            locktext: "Petition erstellen"
         });
         const state = this.getState();
         try {

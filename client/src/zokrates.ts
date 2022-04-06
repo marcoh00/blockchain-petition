@@ -1,6 +1,6 @@
 import { html, LitElement } from "lit";
 import { property } from "lit/decorators.js";
-import { ZoKratesProvider , initialize, CompilationArtifacts, Proof } from "zokrates-js";
+import { ZoKratesProvider , initialize, CompilationArtifacts, Proof, ComputationResult } from "zokrates-js";
 import { SHA256Hash} from "../../shared/merkle";
 import { IPetition } from "../../shared/web3";
 import { IDPManager } from "./idp";
@@ -39,6 +39,30 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
         });
     }
 
+    compile(): Promise<CompilationArtifacts> {
+        return new Promise((resolve, reject) => {
+            const worker = new Worker(new URL("./compileZokratesWorker.js", import.meta.url));
+            worker.onmessage = (e) => e.data[0] !== "error" ? resolve(e.data[1] as CompilationArtifacts) : reject(e.data[1]);
+            worker.postMessage(["compileSource"]);
+        });
+    }
+
+    computeWitness(artifacts: CompilationArtifacts, args: any[]): Promise<ComputationResult> {
+        return new Promise((resolve, reject) => {
+            const worker = new Worker(new URL("./compileZokratesWorker.js", import.meta.url));
+            worker.onmessage = (e) => e.data[0] !== "error" ? resolve(e.data[1] as ComputationResult) : reject(e.data[1]);
+            worker.postMessage(["computeWitness", artifacts, args]);
+        });
+    }
+
+    generateProof(program: Uint8Array, witness: string, provingKey: Uint8Array): Promise<Proof> {
+        return new Promise((resolve, reject) => {
+            const worker = new Worker(new URL("./compileZokratesWorker.js", import.meta.url));
+            worker.onmessage = (e) => e.data[0] !== "error" ? resolve(e.data[1] as Proof) : reject(e.data[1]);
+            worker.postMessage(["jsProof", program, witness, provingKey]);
+        });
+    }
+
 
     async jsProof(rt: number[], hpers: number[], pid: number[], priv: number[], pub: number[], directionSelector: number[], merkle: number[][]): Promise<Proof> {
         // compilation
@@ -47,7 +71,7 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
         console.log("key", this.provingKey);
         this.initProgress("Gültige Eingabeparameter bestimmen");
         // computation
-        const { witness, output } = this.provider.computeWitness(
+        const { witness, output } = await this.computeWitness(
             this.compilationArtifacts,
             [
                 rt.map(n => n.toString()),
@@ -64,7 +88,7 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
 
         // generate proof
         this.initProgress("Unterschriftsbeweis erzeugen");
-        const proof = this.provider.generateProof(this.compilationArtifacts.program, witness, this.provingKey);
+        const proof = await this.generateProof(this.compilationArtifacts.program, witness, this.provingKey);
         console.log("proof", proof);
         return proof;
     }
@@ -136,14 +160,6 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
             + `${rt.join(" ")} ${hpers.join(" ")} ${pid.join(" ")} ${priv.join(" ")} ${pub.join(" ")} `
             + `${directionSelector.join(" ")} ${merkle.flat().join(" ")} `
             + `&& zokrates generate-proof --input stimmrechtsbeweis && cat proof.json`;
-    }
-
-    compile(): Promise<CompilationArtifacts> {
-        return new Promise((resolve, reject) => {
-            const worker = new Worker(new URL("./compileZokratesWorker.js", import.meta.url));
-            worker.onmessage = (e) => resolve(e.data as CompilationArtifacts);
-            worker.postMessage(null);
-        });
     }
 
     async download_pk() {
