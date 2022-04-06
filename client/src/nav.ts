@@ -34,6 +34,10 @@ export class NavigationBar extends LitElement {
                 padding: 1rem 2rem;
                 height: 5rem;
             }
+            a {
+                font-size: 0.8em;
+                color: #faffdb;
+            }
             period-widget {
                 width: 30vw;
                 max-width: 230px;
@@ -45,8 +49,8 @@ export class NavigationBar extends LitElement {
         `];
     render() {
         return html`
-            <a href="#">Petitionen anzeigen</a>
-            <a href="#">Petition erstellen</a>
+            <a href="#" @click=${() => this.dispatchEvent(new CustomEvent("pageClick", { bubbles: true, detail: "main" }))}>Petitionen anzeigen</a>
+            <a href="#" @click=${() => this.dispatchEvent(new CustomEvent("pageClick", { bubbles: true, detail: "create" }))}>Petition erstellen</a>
             <period-widget></period-widget>
             <idp-widget></idp-widget>
         `;

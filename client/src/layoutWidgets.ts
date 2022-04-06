@@ -1,10 +1,10 @@
 import { icon } from '@fortawesome/fontawesome-svg-core';
-import { faClose } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faClose } from '@fortawesome/free-solid-svg-icons';
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { IPetition } from '../../shared/web3';
 import { decorateClassWithState, IState } from './state';
-import { basicFlex, faStyle, topDownFlex } from './styles';
+import { basicFlex, buttonMixin, faStyle, topDownFlex } from './styles';
 import { getZokratesHelper } from './zokrates';
 
 export class PetitionApp extends decorateClassWithState(LitElement) {
@@ -18,6 +18,9 @@ export class PetitionApp extends decorateClassWithState(LitElement) {
 
     @property()
     stage: number = 0
+
+    @property()
+    page = "main";
 
     static styles = [basicFlex, topDownFlex, css`navigation-bar { max-width: 100vw; border-collapse: collapse; }`];
 
@@ -43,13 +46,14 @@ export class PetitionApp extends decorateClassWithState(LitElement) {
     }
 
     getNavigationBar() {
-        return this.stage === 0 || this.stage === 1 ? html`<informational-infobar @loginClick=${this.proceedConnection}></informational-infobar>` : html`<navigation-bar></navigation-bar>`;
+        return this.stage === 0 || this.stage === 1 ? html`<informational-infobar @loginClick=${this.proceedConnection}></informational-infobar>` : html`<navigation-bar @pageClick=${this.pageClick}></navigation-bar>`;
     }
 
     getMainPage() {
         if(this.stage === 0) return html`<landing-page @loginClick=${this.proceedConnection}></landing-page>`;
         else if(this.stage === 1) return html`<connection-page @web3connect=${this.proceedIdentity}></connection-page>`;
         else if(this.stage === 2) return html`<identity-page></identity-page>`;
+        else if(this.stage === 3 && this.page === "create") return html`<create-petition @pageClick=${this.pageClick}></create-petition>`
         return html`<main-page></main-page>`;
     }
 
@@ -67,6 +71,10 @@ export class PetitionApp extends decorateClassWithState(LitElement) {
 
     proceedMain() {
         this.stage = 3;
+    }
+
+    pageClick(e: CustomEvent) {
+        this.page = e.detail;
     }
 }
 
@@ -201,5 +209,88 @@ export class MainPage extends decorateClassWithState(LitElement) {
             lockspinner: false,
             locktext: undefined
         });
+    }
+}
+
+export class CreatePage extends decorateClassWithState(LitElement) {
+    static styles = [faStyle, basicFlex, topDownFlex, buttonMixin, css`
+        :host {
+            align-items: center;
+            margin-left: 1em;
+            margin-right: 1em;
+        }
+        
+        input {
+            width: 80%;
+            min-height: 30px;
+        }
+
+        textarea {
+            width: 80%;
+            min-height: 20vh;
+            min-width: 33vw;
+        }
+
+        .invalid {
+            border: 2px solid red;
+        }`];
+    
+    @property()
+    title: string
+
+    @property()
+    invalidTitle: boolean
+
+    render() {
+        return html`
+            <h1>Petition erstellen</h1>
+
+            <label for="title">Titel (max. 30 Zeichen)</label>
+            <input type="text" id="title" @input=${this.titleInput} class="${this.invalidTitle ? "invalid" : ""}" autofocus>
+            <label for="petitiontext">Text der Petition</label>
+            <textarea id="petitiontext"></textarea>
+            <button id="check" @click=${this.verifyClick}>${icon(faCheck).node} Petition veröffentlichen</button>
+            <p>Bitte beachten Sie, dass die Petitiondaten auf einer Blockchain gespeichert werden. Sie können nicht geändert oder gelöscht werden. Längere Petitionstexte verursachen größere Transaktionsgebühren.</p>
+        `;
+    }
+
+    titleInput(e: Event) {
+        this.title = (e.target as HTMLInputElement).value;
+        this.invalidTitle = this.title === "" || this.title.length > 30;
+    }
+
+    async verifyClick() {
+        this.titleInput(
+            ({
+                target: this.shadowRoot.querySelector("#title")
+            }) as unknown as Event
+        );
+        if(this.invalidTitle) {
+            this.stateError("Bitte geben Sie einen gültigen Titel ein");
+            return;
+        }
+        
+        this.setState({
+            ...this.getState(),
+            lockspinner: true,
+            locktext: "Petition unterschreiben"
+        });
+        const state = this.getState();
+        try {
+            await state.connector.createPetition(
+                this.title,
+                (this.shadowRoot.querySelector("#petitiontext") as HTMLInputElement).value,
+                state.period
+            )
+        } catch(e) {
+            this.stateError(`Konnte Petition nicht erstellen: ${e}`)
+        }
+        this.setState({
+            ...this.getState(),
+            lockspinner: false,
+            locktext: undefined
+        });
+        await this.getState().repository.init();
+        this.dispatchEvent(new CustomEvent("pageClick", { bubbles: true, detail: "main" }));
     }
 }
