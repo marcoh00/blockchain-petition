@@ -19,6 +19,8 @@ export class LandingPage extends LitElement {
     static styles = [basicFlex, topDownFlex, buttonMixin, css`
         :host {
             align-items: center;
+            margin-left: 1em;
+            margin-right: 1em;
         }`];
     
     render() {
@@ -254,7 +256,7 @@ export class IdentityPage extends decorateClassWithState(LitElement) {
             <h1>Identitätsprüfung über Texteingabe</h1>
 
             <label for="identity">Bitte geben Sie an, wer Sie sind</label>
-            <input type="text" id="identity" @input=${this.idInput} class="${this.invalidName ? "invalid" : ""}">
+            <input type="text" id="identity" @keyup=${this.idKeyUp} @input=${this.idInput} class="${this.invalidName ? "invalid" : ""}" autofocus>
             <button id="check" @click=${this.verifyClick}>${icon(faCheck).node} Identität bestätigen</button>
         `;
     }
@@ -262,6 +264,12 @@ export class IdentityPage extends decorateClassWithState(LitElement) {
     idInput(e: Event) {
         this.name = (e.target as HTMLInputElement).value;
         this.invalidName = this.name === "";
+    }
+
+    idKeyUp(e: KeyboardEvent) {
+        if(e.key === 'Enter' || e.keyCode === 13) {
+            this.verifyClick();
+        }
     }
 
     async verifyClick() {

@@ -69,10 +69,20 @@ export class Web3Repository extends decorateClassWithState(Web3RepositoryBase) {
     }
 
     async init() {
+        this.setState({
+            ...this.getState(),
+            lockspinner: true,
+            locktext: "Lade Blockchain-Daten"
+        });
         await this.setPeriod();
         await this.refresh();
         await this.startPeriodRefreshInterval();
         this.initialized = true;
+        this.setState({
+            ...this.getState(),
+            lockspinner: false,
+            locktext: undefined
+        });
     }
 
     async refresh() {

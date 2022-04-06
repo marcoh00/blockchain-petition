@@ -1,6 +1,6 @@
 import { LoadingSpinner, OverlayElement } from './loading';
 import { ZokratesTester } from './zokrates';
-import { ErrorView, MainPage, PetitionApp } from './layoutWidgets';
+import { CreatePage, ErrorView, MainPage, PetitionApp } from './layoutWidgets';
 import { ConnectionPage, LandingPage, RegistryChooser, IdentityPage } from './setup';
 import { IDPWidget, InformationalInfobar, NavigationBar, PeriodWidget } from './nav';
 import { Petition } from './petition';
@@ -23,3 +23,4 @@ customElements.define("period-widget", PeriodWidget);
 customElements.define("idp-widget", IDPWidget);
 customElements.define("overlay-element", OverlayElement);
 customElements.define("loading-spinner", LoadingSpinner);
+customElements.define("create-petition", CreatePage);

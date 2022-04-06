@@ -1,5 +1,5 @@
 import Web3 from 'web3';
-import { hexToUtf8, hexToBytes } from 'web3-utils';
+import { hexToUtf8, hexToBytes, asciiToHex, padLeft } from 'web3-utils';
 import { Contract } from 'web3-eth-contract';
 import IDPContract from "../platform/artifacts/contracts/IDP.sol/IDP.json";
 import RegistryContract from "../platform/artifacts/contracts/Registry.sol/Registry.json";
@@ -129,6 +129,13 @@ export class EthereumConnector {
         console.log(`web3: sign as ${hpers.toHex()} with account ${this.account}`);
         console.log(proof);
         const tx = await contract.methods.sign(Object.values(proof.proof), iteration, `0x${hpers.toHex()}`).send({ from: this.account });
+        return tx;
+    }
+
+    async createPetition(name: string, description: string, period: number) {
+        const name_b32 = padLeft(asciiToHex(name), 64);
+        console.log("Create petition", name, name_b32, description, period);
+        const tx = await this.registrycontract.methods.createPetition(name_b32, description, period).send({ from: this.account });
         return tx;
     }
 }
