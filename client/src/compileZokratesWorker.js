@@ -40,17 +40,81 @@ function doCompile(provider) {
     return provider.compile(source);
 }
 function compileSource() {
+    console.log("[Worker] compileSource");
     return initialize()
         .then(provider => {
-            console.log("[Worker] Initialized");
+            console.log("[Worker] compileSource > initialized");
             return doCompile(provider)
         })
         .then(compileArtifact => {
-            console.log("[Worker] Compilation finished");
-            postMessage(compileArtifact)
+            console.log("[Worker] compileSource > finished", compileArtifact);
+            postMessage(["compileSource", compileArtifact]);
+        })
+        .catch(e => {
+            console.log("[Worker] computeWitness > error!", e);
+            postMessage(["error", e]);
         });
 }
+
+function computeWitness(artifacts, args) {
+    console.log("[Worker] computeWitness", artifacts, args);
+    return initialize()
+        .then(provider => {
+            console.log("[Worker] computeWitness > initialized");
+            return provider.computeWitness(artifacts, args);
+        })
+        .then(result => {
+            console.log("[Worker] computeWitness > finished", result);
+            postMessage(["computeWitness", result]);
+        })
+        .catch(e => {
+            console.log("[Worker] computeWitness > error!", e);
+            postMessage(["error", e]);
+        });
+}
+
+function jsProof(program, witness, provingKey) {
+    console.log("[Worker] jsProof", program, witness, provingKey);
+    return initialize()
+        .then(provider => {
+            console.log("[Worker] jsProof > initialized");
+            return provider.generateProof(program, witness, provingKey);
+        })
+        .then(result => {
+            console.log("[Worker] jsProof > finished", result);
+            postMessage(["jsProof", result]);
+        })
+        .catch(e => {
+            console.log("[Worker] jsProof > error!", e);
+            postMessage(["error", e]);
+        });
+}
+
 onmessage = function(e) {
-    console.log("[Worker] initializing and compiling source");
-    Promise.all([compileSource()]);
+    // e.data[0] verb
+    // - compileSource
+    // - computeWitness
+    //   >> e.data[1] compilation artifacts
+    //   >> e.data[2] args
+    // - jsProof
+    //   >> e.data[1] program
+    //   >> e.data[2] witness
+    //   >> e.data[3] proving key
+
+    try {
+        switch(e.data[0]) {
+            case "compileSource":
+                Promise.all([compileSource()]);
+                break;
+            case "computeWitness":
+                Promise.all([computeWitness(e.data[1], e.data[2])]);
+                break;
+            case "jsProof":
+                Promise.all([jsProof(e.data[1], e.data[2], e.data[3])]);
+                break;
+        }
+    } catch(e) {
+        console.log("[Worker] error!", e);
+        this.postMessage(["error", e]);
+    }
 }
