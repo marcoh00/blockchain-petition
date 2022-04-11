@@ -17,8 +17,8 @@ export const ACCOUNT = ACCOUNT_SECLAB;
 export const API_SECLAB = "http://127.0.0.1:18444"
 export const API_HARDHAT = 'ws://127.0.0.1:8545';
 export const API_GOERLI = "https://eth-goerli.alchemyapi.io/v2/APIKEY";
-export const API_GOERLI_LOCAL = "http://192.168.178.60:8545";
-export const API_GOERLI_WS_LOCAL = "ws://192.168.178.60:8546";
+export const API_GOERLI_LOCAL = "http://192.168.178.50:8545";
+export const API_GOERLI_WS_LOCAL = "ws://192.168.178.50:8546";
 export const API = API_SECLAB;
 
 export const DBFILE = `./database.db`;
