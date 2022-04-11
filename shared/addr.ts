@@ -1,5 +1,6 @@
 export const REGISTRY_CONTRACT_HARDHAT = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
 export const REGISTRY_CONTRACT_GOERLI = "0x99DC5A12d18afDdfF802980353A5be36Fd7247A3";
+export const REGISTRY_CONTRACT_GOERLI_PUBLIC = "0x3f0a53A07fab624263636e921543462443BaE113";
 export const REGISTRY_CONTRACT = REGISTRY_CONTRACT_GOERLI;
 
 export const PORT = 65535;
@@ -47,12 +48,12 @@ export const NETWORKS: INetworkList = {
         registry_contract: REGISTRY_CONTRACT_HARDHAT
     },
     goerli: {
-        api: API_GOERLI,
+        api: API_GOERLI_LOCAL,
         wsapi: API_GOERLI_WS_LOCAL,
         chainid: 5,
         account: ACCOUNT_GOERLI,
         privkey: PRIVKEY_GOERLI,
-        registry_contract: REGISTRY_CONTRACT_GOERLI
+        registry_contract: REGISTRY_CONTRACT_GOERLI_PUBLIC
     },
     seclab: {
         api: API_SECLAB,
