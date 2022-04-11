@@ -1,0 +1,19 @@
+FROM quay.io/centos/centos:stream9
+
+RUN dnf up --refresh -y && dnf install -y nodejs npm
+
+COPY . /build
+
+RUN cd /build/shared && npm install && cd /build/idp && npm install && \
+        npx tsc -p /build/idp/tsconfig.json && \
+        useradd -u 1001 -m -s /sbin/nologin idp && \
+        cp -r /build/idp/{dist,node_modules,entrypoint.sh} /home/idp && \
+        cd /home/idp && chown -R idp:idp /home/idp && chmod u+x /home/idp/entrypoint.sh && rm -rf /build
+
+USER idp
+WORKDIR /home/idp
+
+EXPOSE 65535
+
+ENTRYPOINT [ "/home/idp/entrypoint.sh" ]
+CMD ["goerli", "/home/idp/database.db", "dist/idp/src/main.js"]
