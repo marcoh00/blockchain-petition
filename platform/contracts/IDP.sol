@@ -64,6 +64,6 @@ contract IDP is IIDP {
     }
 
     function url() override external view returns (string memory) {
-        return "http://localhost:65535";
+        return "https://petition.wuthoehle.de";
     }
 }
