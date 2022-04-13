@@ -1,5 +1,5 @@
 import { icon } from '@fortawesome/fontawesome-svg-core';
-import { faCheck, faClose } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faClose, faRefresh } from '@fortawesome/free-solid-svg-icons';
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { IPetition } from '../../shared/web3';
@@ -154,23 +154,32 @@ export class MainPage extends decorateClassWithState(LitElement) {
             gap: 1em;
             margin: auto 4rem;
         }
+
+        .link {
+            cursor: pointer;
+        }
         `];
     
     connectedCallback() {
         super.connectedCallback();
         console.log("Main Page connected");
         const state = this.getState();
-        this.petitions = state.repository.petitions_by_period[state.period];
+        const statePetitions = state.repository.petitions_by_period[state.period];
+        this.petitions = Array.isArray(statePetitions) ? statePetitions : [];
     }
 
     render() {
         console.log("Render Petitions", this.petitions);
         return html`
             <div class="cardlist">
-                <h1>Petitionen</h1>
+                <h1>Petitionen <span class="link" @click=${this.refreshClick}>${icon(faRefresh).node}</span></h1>
                 ${this.petitions.map((petition, idx) => html`<petition-card .petition=${petition} .idx=${idx} .signable=${this.isSignable(petition)} @sign=${this.signPetition}></petition-card>`)}
             </div>
         `
+    }
+
+    async refreshClick() {
+        await this.getState().repository.init();
     }
 
     async stateChanged(state: IState): Promise<void> {
@@ -210,13 +219,18 @@ export class MainPage extends decorateClassWithState(LitElement) {
             const tx = await this.getState().connector.signPetition(petition.address, proof.points, proof.hpers, idp.getRegistrationData(petition.period).credentials.iteration);
             console.log("Petition signed successfully!", tx);
         } catch(e) {
-            this.stateError(`Konnte Transaktion nicht versenden: ${e}`);
+            if(typeof(e) === "object" && e.hasOwnProperty("toString")) {
+                this.stateError(`Konnte Transaktion nicht versenden: ${e.toString()}`);
+            } else {
+                this.stateError(`Konnte Transaktion nicht versenden: ${e}`);
+            }
         }
         this.setState({
             ...this.getState(),
             lockspinner: false,
             locktext: undefined
         });
+        await this.getState().repository.init();
     }
 }
 

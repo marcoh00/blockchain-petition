@@ -86,12 +86,15 @@ export class Web3Repository extends decorateClassWithState(Web3RepositoryBase) {
     }
 
     async refresh() {
+        const byPeriod: IPetitionByPeriod = {};
         for(const petition of await this.connector.petitions()) {
-            this.addToTimeCacheIfNeccessary(petition.period);
-            if(!this.petitions_by_period.hasOwnProperty(petition.period.toString())) this.petitions_by_period[petition.period.toString()] = [];
-            this.petitions_by_period[petition.period.toString()].push(petition);
+            await this.addToTimeCacheIfNeccessary(petition.period);
+            if(!byPeriod.hasOwnProperty(petition.period.toString())) byPeriod[petition.period.toString()] = [];
+            byPeriod[petition.period.toString()].push(petition);
             this.petitions_by_id[idToNumber(petition.id).toString()] = petition;
         }
+        this.petitions_by_period = byPeriod;
+        console.log("Refresh", this.petitions_by_id, this.petitions_by_period)
     }
 
     async addToTimeCacheIfNeccessary(period: number) {
