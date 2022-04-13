@@ -5,6 +5,7 @@ set -e -x
 NETWORK=${1:-localhost}
 ADDPETITIONS=${2:-YES}
 DEPLOY=${3:-NO}
+IDPURL=${4:-http://localhost:65535}
 PIDS=""
 
 sed -i 's/export const DEFAULT_NETWORK = NETWORKS.*/export const DEFAULT_NETWORK = NETWORKS.'"${NETWORK}"'/g' ${BASH_SOURCE%/*}/shared/addr.ts
@@ -21,6 +22,8 @@ fi
 
 if [ ${DEPLOY} = "YES" ]
 then
+	echo "Replace URL: ${IDPURL}"
+	sed -i 's#.*return.*// replace#return "'"${IDPURL}"'"; // replace#g' contracts/IDP.sol
 	echo "Deploying contracts..."
 	npx hardhat run --verbose --network ${NETWORK} scripts/deploy.ts
 	echo "Contracts deployed"
