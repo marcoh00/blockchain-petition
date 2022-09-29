@@ -100,7 +100,7 @@ app.post('/register', cors(corsOptions), async (req, res) => {
     const registration = req.body as IRegistration;
     const minperiod = await ethereum.period();
     const maxperiod = minperiod + 2;
-    if(!checkValidType(["identity", "pubkey", "period"], registration)) {
+    if(!checkValidType(["identity", "ethAccount", "period"], registration)) {
         res.statusCode = 400;
         res.json({ "error": "Malformed Request" });
         return;
@@ -115,16 +115,13 @@ app.post('/register', cors(corsOptions), async (req, res) => {
         return;
     }
     try {
-        if(await database.isRegistered(registration)) {
-            res.statusCode = 405;
-            res.json({ "error": "Public Key is already registered for given period" });
-            return;
-        }
+        console.log("TRY TO SUBMIT ACCOUNT")
+        await ethereum.submitAccount(registration.ethAccount,registration.period);
+
         const token = randomBytes(32).toString("hex");
-        const result = await database.register(registration, token);
         res.statusCode = 200;
         res.json({ "token": token });
-        console.log(`💾 Registration saved to database`, registration, token, result);
+        console.log(`💾 Registration done`, registration, token);
         return;
     } catch(e) {
         res.statusCode = 500;
@@ -162,16 +159,16 @@ async function repeat() {
 async function hashAddedEvent(err, event, subscription) {
     console.log("HashAdded Event", err, event, subscription);
     const hash_result = event.returnValues[0] as string
-    const hash = hash_result.startsWith("0x") ? hash_result.substring(2) : hash_result;
-    const period = event.returnValues[1];
-    const iteration = event.returnValues[2];
-    console.log("Values are", hash, period, iteration, typeof hash, typeof period, typeof iteration);
-    await database.updateTreeWithIteration(hash, iteration);
+    // const hash = hash_result.startsWith("0x") ? hash_result.substring(2) : hash_result;
+    // const period = event.returnValues[1];
+    // const iteration = event.returnValues[2];
+    console.log("Values are",hash_result);
+    //await database.updateTreeWithIteration(hash, iteration);
 }
 
 app.listen(PORT, async () => {
     await ethereum.init();
-    ethereum.idpcontract.events.HashAdded({
+    ethereum.idpcontract.events.VotingRightAdded({
         fromBlock: "latest"
     }, hashAddedEvent);
     console.log(`👂 IDP listening on ${PORT}`);
@@ -182,5 +179,5 @@ app.listen(PORT, async () => {
     console.log(`💾 Connecting to database at ${DBFILE}`);
     const interval = Math.ceil(await ethereum.interval());
     console.log(`🌐 Try to create a new tree hash every ${interval}s`);
-    setInterval(repeat, interval * 1000);
+    //setInterval(repeat, interval * 1000);
 })

@@ -18,22 +18,22 @@ export class Database {
         this.db.get("SELECT schema FROM idp_meta", (err, row) => { if(row === undefined || Number.parseInt(row.schema) < 1) this.init() });
     }
 
-    async isRegistered(registration: IRegistration): Promise<boolean> {
-        return new Promise((resolve, reject) => {
-            this.db.get(
-                `SELECT pubkey, identity, period
-                FROM idp_pubkeys
-                WHERE (identity = ? OR pubkey = ?) AND period = ?`,
-                [registration.identity, registration.pubkey, registration.period],
-                (err, row) => {
-                    if(row === undefined) resolve(false);
-                    else {
-                        console.log("isRegistered, dbRow:", row);
-                        resolve(true);
-                    }
-                });
-        });
-    }
+    // async isRegistered(registration: IRegistration): Promise<boolean> {
+    //     return new Promise((resolve, reject) => {
+    //         this.db.get(
+    //             `SELECT pubkey, identity, period
+    //             FROM idp_pubkeys
+    //             WHERE (identity = ? OR pubkey = ?) AND period = ?`,
+    //             [registration.identity, registration.pubkey, registration.period],
+    //             (err, row) => {
+    //                 if(row === undefined) resolve(false);
+    //                 else {
+    //                     console.log("isRegistered, dbRow:", row);
+    //                     resolve(true);
+    //                 }
+    //             });
+    //     });
+    // }
 
     async getProofInfo(token: string): Promise<any> {
         return new Promise((resolve, reject) => {
@@ -49,16 +49,16 @@ export class Database {
         });
     }
 
-    async register(registration: IRegistration, token: string) {
-        return new Promise((resolve, reject) => {
-            this.db.run(`
-                INSERT INTO idp_pubkeys
-                (pubkey, identity, period, token)
-                VALUES
-                (?, ?, ?, ?)
-            `, [registration.pubkey, registration.identity, registration.period, token], (res, err) => res === undefined ? reject(err) : resolve(res));
-        });
-    }
+    // async register(registration: IRegistration, token: string) {
+    //     return new Promise((resolve, reject) => {
+    //         this.db.run(`
+    //             INSERT INTO idp_pubkeys
+    //             (pubkey, identity, period, token)
+    //             VALUES
+    //             (?, ?, ?, ?)
+    //         `, [registration.pubkey, registration.identity, registration.period, token], (res, err) => res === undefined ? reject(err) : resolve(res));
+    //     });
+    // }
 
     init() {
         this.db.exec(`

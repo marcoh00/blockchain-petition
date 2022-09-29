@@ -4,47 +4,22 @@ pragma solidity ^0.8;
 import "./IPetition.sol";
 
 contract IDP is IIDP {
-    uint8 private DEPTH;
-    uint8 private pLastIteration;
     uint256 PERIOD_LEN;
-    bytes32[255] private pRoot;
-    uint256[255] private pRootForPeriod;
+    mapping (address => mapping (uint256 => bool)) private authorized;
+    event VotingRightAdded(address toAllow,  uint256 indexed period);
 
-    event HashAdded(bytes32 indexed root, uint256 indexed period, uint8 iteration);
-
-    constructor(uint8 lDepth, uint256 lPeriodLen) {
-        DEPTH = lDepth;
+    constructor(uint256 lPeriodLen) {
         PERIOD_LEN = lPeriodLen;
     }
 
-    function submitHash(bytes32 rt, uint256 designatedPeriod) override external returns (uint256) {
+    function submitVotingRight(address toAllow, uint256 designatedPeriod) override external {
         require(designatedPeriod == period());
-        resetIterationCounterIfNeccessary();
-        pLastIteration += 1;
-        pRoot[pLastIteration] = rt;
-        pRootForPeriod[pLastIteration] = designatedPeriod;
-        emit HashAdded(rt, designatedPeriod, pLastIteration);
-        return pLastIteration;
+        authorized[toAllow][designatedPeriod] = true;
+        emit VotingRightAdded(toAllow, designatedPeriod);
     }
 
-    function resetIterationCounterIfNeccessary() private {
-        uint256 lastPeriod = pRootForPeriod[pLastIteration];
-        if(lastPeriod < period()) {
-            pLastIteration = 0;
-        }
-    }
-
-    function getHash(uint8 iteration) override external view returns (bytes32, uint256) {
-        require(pRoot[iteration] != 0 && pRootForPeriod[iteration] != 0);
-        return (pRoot[iteration], pRootForPeriod[iteration]);
-    }
-
-    function lastIteration() override external view returns (uint8) {
-        return pLastIteration;
-    }
-
-    function depth() override external view returns (uint8) {
-        return DEPTH;
+    function validateAuthorized(address candidate) override external view returns (bool){
+        return authorized[candidate][period()];
     }
 
     function periodlen() override external view returns (uint256) {

@@ -7,17 +7,15 @@ import "./Petition.sol";
 contract Registry is IRegistry {
     IPetition[] private pPetitions;
     IIDP private pIDP;
-    Verifier private pVerifier;
     bytes32 private pName;
     uint256 petitionId;
     bool pHideByDefault;
 
     event PetitionCreated(bytes32 indexed internalId, uint256 indexed period, bytes32 name, uint256 index);
 
-    constructor(bytes32 lName, address lIdp, address lVerifier) {
+    constructor(bytes32 lName, address lIdp) {
         pName = lName;
         pIDP = IIDP(lIdp);
-        pVerifier = Verifier(lVerifier);
         pHideByDefault = false;
     }
 
@@ -33,9 +31,6 @@ contract Registry is IRegistry {
         return pPetitions;
     }
 
-    function verifier() override external view returns (Verifier) {
-        return pVerifier;
-    }
 
     function createPetition(bytes32 lName, string calldata description, uint256 period) external {
         require(period == 0 || period >= pIDP.period());

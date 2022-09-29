@@ -10,10 +10,10 @@ contract Petition is IPetition {
     uint256 pPeriod;
     IRegistry private pRegistry;
     uint32 private pSigners;
-    mapping(bytes32 => bool) private pHasSigned;
+    mapping(address => bool) private pHasSigned;
     bool pHiddenByOperator;
 
-    event PetitionSigned(bytes32 indexed id, bytes32 indexed identity);
+    event PetitionSigned(bytes32 indexed id, address indexed identity);
 
     constructor(bytes32 lName, string memory lDescription, bytes32 lId, uint256 lPeriod, address lRegistry, bool lHidden) {
         pName = lName;
@@ -44,34 +44,13 @@ contract Petition is IPetition {
         return pPeriod;
     }
 
-    function sign(Verifier.Proof calldata lProof, uint8 lIteration, bytes32 lIdentity) override external {
-        require(pHasSigned[lIdentity] == false);
-        (bytes32 rt, uint256 rtProofPeriod) = this.registry().idp().getHash(lIteration);
-        require(rtProofPeriod == this.period());
+    function sign() override external {
+        require(!pHasSigned[msg.sender]);
+        require(this.registry().idp().validateAuthorized(msg.sender));
 
-        //Überführe die öffentlichen Eingabewerte des Stimmrechtsbeweises in die erwartete Form: Eingabewerte, portioniert auf 32Bit, zusammen in einem uint[24] Array
-        uint[24] memory input;
-        int inputPosition = 23;
-
-        for(uint i=0; i<8; i++){
-            input[uint256(inputPosition)] = uint(pId >> (32 * i)) & 0xFFFFFFFF;
-            inputPosition --;
-        }
-        for(uint i=0; i<8; i++){
-            input[uint256(inputPosition)] = uint(lIdentity >> (32 * i)) & 0xFFFFFFFF;
-            inputPosition --;
-        }
-        for(uint i=0; i<8; i++){
-            input[uint256(inputPosition)] = uint(rt >> (32 * i)) & 0xFFFFFFFF;
-            inputPosition --;
-        }
-
-
-
-        require(this.registry().verifier().verifyTx(lProof, input));
-        pHasSigned[lIdentity] = true;
+        pHasSigned[msg.sender] = true;
         pSigners += 1;
-        emit PetitionSigned(pId, lIdentity);
+        emit PetitionSigned(pId, msg.sender);
     }
 
     function signers() override external view returns (uint32) {
