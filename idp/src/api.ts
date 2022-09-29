@@ -5,7 +5,7 @@ const invalidHex = /[^0-9A-Fa-f]/;
 
 export interface IRegistration {
     identity: StringIdentity;
-    pubkey: string;
+    ethAccount: string;
     period: number;
 }
 
@@ -14,8 +14,8 @@ export interface IProofRequest {
 }
 
 export const checkRegistration = (registration: IRegistration, minperiod?: number, maxperiod?: number): boolean => {
-    if(registration.pubkey.length != 64) return false;
-    if(invalidHex.test(registration.pubkey)) return false;
+    if(registration.ethAccount.length != 42) return false;
+    //if(invalidHex.test(registration.ethAccount)) return false;
     if(minperiod && maxperiod && (registration.period < minperiod || registration.period > maxperiod)) return false;
     return true;
 }

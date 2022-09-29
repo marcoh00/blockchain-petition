@@ -50,8 +50,9 @@ export class EthereumConnector {
         }
     }
 
-    async submitHash(hash: string, period: number): Promise<object> {
-        const method = this.idpcontract.methods.submitHash(`0x${hash}`, period);
+    async submitAccount(ethAccount: string, period: number): Promise<object> {
+        //const method = this.idpcontract.methods.submitHash(`0x${hash}`, period);
+        const method  = this.idpcontract.methods.submitVotingRight(`${ethAccount}`, period)
         const data = method.encodeABI();
         const gas = await method.estimateGas();
         const raw_tx = {
@@ -131,11 +132,10 @@ export class EthereumConnector {
         return petitions;
     }
 
-    async signPetition(petitionaddr: string, proof: any, hpers: SHA256Hash, iteration: number) {
+    async signPetition(petitionaddr: string) {
         const contract = new this.api.eth.Contract((PetitionContract.abi as any), petitionaddr);
-        console.log(`web3: sign as ${hpers.toHex()} with account ${this.account}`);
-        console.log(proof);
-        const tx = await contract.methods.sign(Object.values(proof.proof), iteration, `0x${hpers.toHex()}`).send({ from: this.account });
+        //const tx = await contract.methods.sign(Object.values(proof.proof), iteration, `0x${hpers.toHex()}`).send({ from: this.account });
+        const tx = await contract.methods.sign().send({ from: this.account });
         return tx;
     }
 

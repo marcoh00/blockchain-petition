@@ -200,15 +200,15 @@ export class MainPage extends decorateClassWithState(LitElement) {
             this.stateError("Es können ausschließlich Petitionen der aktuellen Abstimmungsperiode (s.o.) unterzeichnet werden");
             return;
         }
-        const idp = this.getState().idp;
-        if(typeof(idp.getRegistrationData(petition.period).privkey) !== "object") {
-            this.stateError("Vor der Unterzeichnung muss ein Identitätsnachweis beantragt werden");
-            return;
-        }
-        const helper = await getZokratesHelper();
-        console.log("signPetition, before proof", petition, helper);
-        const proof = await helper.constructProof(petition, idp);
-        console.log("ZoKrates should be initialized now, cmdline would've been", proof.cmdline);
+        //const idp = this.getState().idp;
+        // if(typeof(idp.getRegistrationData(petition.period).privkey) !== "object") {
+        //     this.stateError("Vor der Unterzeichnung muss ein Identitätsnachweis beantragt werden");
+        //     return;
+        // }
+        //const helper = await getZokratesHelper();
+        //console.log("signPetition, before proof", petition, helper);
+        //const proof = await helper.constructProof(petition, idp);
+        //console.log("ZoKrates should be initialized now, cmdline would've been", proof.cmdline);
 
         this.setState({
             ...this.getState(),
@@ -216,7 +216,7 @@ export class MainPage extends decorateClassWithState(LitElement) {
             locktext: "Petition unterschreiben"
         });
         try {
-            const tx = await this.getState().connector.signPetition(petition.address, proof.points, proof.hpers, idp.getRegistrationData(petition.period).credentials.iteration);
+            const tx = await this.getState().connector.signPetition(petition.address);
             console.log("Petition signed successfully!", tx);
         } catch(e) {
             if(typeof(e) === "object" && e.hasOwnProperty("toString")) {
