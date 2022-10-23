@@ -1,5 +1,5 @@
 import { SHA256Hash } from "../../shared/merkle";
-import {decorateClassWithState, getStateAccessors, ICredentials, IState} from "./state";
+import { decorateClassWithState, ICredentials, IState } from "./state";
 import { WebEthereumConnector } from "./web3";
 
 interface IRegistrationData {
@@ -63,8 +63,8 @@ export class IDPManager extends decorateClassWithState(IDPManagerBase) {
         this.setState(this.getState());
 
         await this.ensureKeysAvailable(period);
-        const [endpoint, ethAccount] = await Promise.all([this.getState().connector.url(), this.getState().repository.connector.account]);
-
+        
+        const endpoint = await this.getState().connector.url();
         if(typeof(this.credentials[period].token === "undefined")) {
             const token_or_error = await fetch(`${endpoint}/register`, {
                 method: "POST",
@@ -72,10 +72,10 @@ export class IDPManager extends decorateClassWithState(IDPManagerBase) {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                        identity: this.identity,
-                        ethAccount: ethAccount,
-                        period: period
-                    })
+                    identity: this.identity,
+                    pubkey: this.credentials[period].pubkey.toHex(),
+                    period: period
+                })
             });
             const response = await token_or_error.json();
             console.log("Response from IDP", response);
@@ -97,10 +97,10 @@ export class IDPManager extends decorateClassWithState(IDPManagerBase) {
             await this.save();
         }
 
-        // if(typeof(this.getRegistrationData(period).credentials) === "undefined") {
-        //     await this.tryObtainCredentials(period, endpoint);
-        //     return;
-        // }
+        if(typeof(this.getRegistrationData(period).credentials) === "undefined") {
+            await this.tryObtainCredentials(period, endpoint);
+            return;
+        }
     }
 
     async tryObtainCredentials(period: number, endpoint: string) {
@@ -123,7 +123,7 @@ export class IDPManager extends decorateClassWithState(IDPManagerBase) {
             if(status === 503) {
                 // Not critical. We can try again later.
                 console.log("Proof doesn't seem to be ready yet, try again in 10s", period, endpoint, token);
-                //setTimeout(() => this.tryObtainCredentials(period, endpoint), 10000);
+                setTimeout(() => this.tryObtainCredentials(period, endpoint), 10000);
                 return;
             }
             this.getRegistrationData(period).working = false;
