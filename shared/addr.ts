@@ -1,7 +1,7 @@
-export const REGISTRY_CONTRACT_HARDHAT = "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512";
+export const REGISTRY_CONTRACT_HARDHAT = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
 export const REGISTRY_CONTRACT_GOERLI = "0x99DC5A12d18afDdfF802980353A5be36Fd7247A3";
 export const REGISTRY_CONTRACT_GOERLI_PUBLIC = "0xE74d9d7e37aC285634a69BC5196C0e5Fd8a025d8";
-export const REGISTRY_CONTRACT = REGISTRY_CONTRACT_HARDHAT;
+export const REGISTRY_CONTRACT = REGISTRY_CONTRACT_GOERLI;
 
 export const PORT = 65535;
 
@@ -13,14 +13,14 @@ export const PRIVKEY = PRIVKEY_SECLAB;
 
 export const ACCOUNT_HARDHAT = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266';
 export const PRIVKEY_HARDHAT = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
-export const ACCOUNT = ACCOUNT_HARDHAT;
+export const ACCOUNT = ACCOUNT_SECLAB;
 
 export const API_SECLAB = "http://127.0.0.1:18444"
 export const API_HARDHAT = 'ws://127.0.0.1:8545';
 export const API_GOERLI = "https://eth-goerli.alchemyapi.io/v2/APIKEY";
 export const API_GOERLI_LOCAL = "http://192.168.178.50:8545";
 export const API_GOERLI_WS_LOCAL = "ws://192.168.178.50:8546";
-export const API = API_HARDHAT;
+export const API = API_SECLAB;
 
 export const DBFILE = `./database.db`;
 export const PROVINGKEY = "../zk/proving.key";
@@ -64,4 +64,4 @@ export const NETWORKS: INetworkList = {
         registry_contract: "0x6fB4ae4D171f76054987507DAfa158A2DA6F5335"
     }
 }
-export const DEFAULT_NETWORK = NETWORKS.localhost
+export const DEFAULT_NETWORK = NETWORKS.seclab

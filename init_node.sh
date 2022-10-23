@@ -8,7 +8,7 @@ DEPLOY=${3:-NO}
 IDPURL=${4:-http://localhost:65535}
 PIDS=""
 
-gsed -i 's/export const DEFAULT_NETWORK = NETWORKS.*/export const DEFAULT_NETWORK = NETWORKS.'"${NETWORK}"'/g' ${BASH_SOURCE%/*}/shared/addr.ts
+sed -i 's/export const DEFAULT_NETWORK = NETWORKS.*/export const DEFAULT_NETWORK = NETWORKS.'"${NETWORK}"'/g' ${BASH_SOURCE%/*}/shared/addr.ts
 
 pushd ${BASH_SOURCE%/*}/platform
 
@@ -23,7 +23,7 @@ fi
 if [ ${DEPLOY} = "YES" ]
 then
 	echo "Replace URL: ${IDPURL}"
-	gsed -i 's#.*return.*// replace#return "'"${IDPURL}"'"; // replace#g' contracts/IDP.sol
+	sed -i 's#.*return.*// replace#return "'"${IDPURL}"'"; // replace#g' contracts/IDP.sol
 	echo "Deploying contracts..."
 	npx hardhat run --verbose --network ${NETWORK} scripts/deploy.ts
 	echo "Contracts deployed"
