@@ -1,16 +1,17 @@
 build_image:
-  image: docker:git
-  services:
-    - docker:dind
+  image: docker:20
   variables:
     DOCKER_TLS_CERTDIR: "/certs"
     http_proxy: "http://www-cache.inf.h-brs.de:8080/"
     https_proxy: "http://www-cache.inf.h-brs.de:8080/"
     no_proxy: "localhost,127.0.0.1,docker"
+  services:
+    - name: docker:20-dind
+      entrypoint: ["dockerd-entrypoint.sh", "--tls=false"]
   script:
     - env
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
-    - DOCKER_HOST=tcp://docker:2376 docker build -t $DOCKER_ENV_CI_REGISTRY_IMAGE -f Dockerfile.idp .
+    - docker build -t $DOCKER_ENV_CI_REGISTRY_IMAGE -f Dockerfile.idp .
     - docker push $DOCKER_ENV_CI_REGISTRY_IMAGE
 
 # # This is a GitLab CI configuration to build the project as a docker image
