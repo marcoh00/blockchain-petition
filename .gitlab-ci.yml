@@ -36,7 +36,7 @@ Build:
     - env
     - ps aux
     # fetches the latest image (not failing if image is not found)
-    - docker pull $CI_REGISTRY_IMAGE:latest || true
+    - DOCKER_HOST= docker pull $CI_REGISTRY_IMAGE:latest || true
     # builds the project, passing proxy variables, using OCI labels
     # notice the cache-from, which is going to use the image we just pulled locally
     # the built image is tagged locally with the commit SHA, and then pushed to 
