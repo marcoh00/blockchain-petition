@@ -5,6 +5,8 @@
 
 # do not use "latest" here, if you want this to work in the future
 image: docker:20
+services:
+    - docker:dind
 
 stages:
   - build
@@ -12,9 +14,10 @@ stages:
 
 variables:
   # fill those if you have a proxy in your environment
-  http_proxy: ""
-  https_proxy: ""
-  no_proxy: ""
+  DOCKER_TLS_CERTDIR: "/certs"
+  http_proxy: "http://www-cache.inf.h-brs.de:8080/"
+  https_proxy: "http://www-cache.inf.h-brs.de:8080/"
+  no_proxy: "localhost,127.0.0.1,docker"
 
 # Use this if your GitLab runner does not use socket binding
 # services:
