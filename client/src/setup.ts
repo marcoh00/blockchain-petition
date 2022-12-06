@@ -128,28 +128,22 @@ export class RegistryChooser extends LitElement {
     @property({type: Array})
     registries: any[] = [
         {
+            addr: NETWORKS.sepolia.registry_contract,
+            descr: "Testcontract auf Sepolia-Blockchain",
+            ident: "Texteingabe",
+            chainid: NETWORKS.sepolia.chainid
+        },
+        {
             addr: NETWORKS.localhost.registry_contract,
-            descr: "Testcontract auf Entwicklungs-Blockchain",
+            descr: "Testcontract auf lokaler Entwicklungs-Blockchain",
             ident: "Texteingabe",
             chainid: NETWORKS.localhost.chainid
         },
         {
             addr: NETWORKS.goerli.registry_contract,
-            descr: "Petitionen der Verbraucherzentrale NRW (Goerli)",
-            ident: "Personalausweis",
+            descr: "Testcontract auf Goerli-Blockchain",
+            ident: "Texteingabe",
             chainid: NETWORKS.goerli.chainid
-        },
-        {
-            addr: NETWORKS.seclab.registry_contract,
-            descr: "change.org Blockchain-Petitionen (SECLAB)",
-            ident: "E-Mail",
-            chainid: NETWORKS.seclab.chainid
-        },
-        {
-            addr: "0xbB718Ac6A21a837d1F66992F93777Ccf3c7fa6e0",
-            descr: "Dachverband kommunaler Bürgerinitiativen e.V.",
-            ident: "Facebook (OpenID)",
-            chainid: 31337
         }];
 
     @property({type: Boolean})
