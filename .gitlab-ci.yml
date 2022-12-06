@@ -10,7 +10,7 @@ build_image:
   script:
     - env
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
-    - docker build -t $DOCKER_ENV_CI_REGISTRY_IMAGE -f Dockerfile.idp .
+    - DOCKER_HOST=tcp://docker:2376 docker build -t $DOCKER_ENV_CI_REGISTRY_IMAGE -f Dockerfile.idp .
     - docker push $DOCKER_ENV_CI_REGISTRY_IMAGE
 
 # # This is a GitLab CI configuration to build the project as a docker image
