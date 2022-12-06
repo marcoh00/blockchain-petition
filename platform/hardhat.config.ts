@@ -52,6 +52,12 @@ const config: HardhatUserConfig = {
       accounts:
         [NETWORKS.seclab.privkey]
     },
+    sshsepolia: {
+      url: NETWORKS.sshsepolia.api,
+      chainId: NETWORKS.sshsepolia.chainid,
+      accounts:
+        [NETWORKS.sshsepolia.privkey]
+    },
     default: {
       url: DEFAULT_NETWORK.api,
       accounts:

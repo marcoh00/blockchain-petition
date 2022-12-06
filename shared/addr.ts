@@ -22,6 +22,11 @@ export const API_GOERLI_LOCAL = "http://192.168.178.50:8545";
 export const API_GOERLI_WS_LOCAL = "ws://192.168.178.50:8546";
 export const API = API_SECLAB;
 
+export const API_SEPOLIA_LAB = "http://192.168.66.10:8545"
+export const API_SEPOLIA_WS_LAB = "ws://192.168.66.10:8546"
+export const API_SEPOLIA_LOCAL = "http://127.0.0.1:8545"
+export const API_SEPOLIA_WS_LOCAL = "ws://127.0.0.1:8546"
+
 export const DBFILE = `./database.db`;
 export const PROVINGKEY = "../zk/proving.key";
 
@@ -47,6 +52,22 @@ export const NETWORKS: INetworkList = {
         privkey: PRIVKEY_HARDHAT,
         registry_contract: REGISTRY_CONTRACT_HARDHAT
     },
+    sepolia: {
+        api: API_SEPOLIA_LAB,
+        wsapi: API_SEPOLIA_WS_LAB,
+        chainid: 11155111,
+        account: ACCOUNT_GOERLI,
+        privkey: PRIVKEY_GOERLI,
+        registry_contract: REGISTRY_CONTRACT_GOERLI_PUBLIC
+    },
+    sshsepolia: {
+        api: API_SEPOLIA_LOCAL,
+        wsapi: API_SEPOLIA_WS_LOCAL,
+        chainid: 11155111,
+        account: ACCOUNT_GOERLI,
+        privkey: PRIVKEY_GOERLI,
+        registry_contract: REGISTRY_CONTRACT_GOERLI_PUBLIC
+    },
     goerli: {
         api: API_GOERLI_LOCAL,
         wsapi: API_GOERLI_WS_LOCAL,
@@ -64,4 +85,4 @@ export const NETWORKS: INetworkList = {
         registry_contract: "0x6fB4ae4D171f76054987507DAfa158A2DA6F5335"
     }
 }
-export const DEFAULT_NETWORK = NETWORKS.seclab
+export const DEFAULT_NETWORK = NETWORKS.sshsepolia
