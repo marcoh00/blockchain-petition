@@ -6,7 +6,7 @@
 # do not use "latest" here, if you want this to work in the future
 image: docker:20
 services:
-    - docker:dind
+  - docker:dind
 
 stages:
   - build
@@ -27,13 +27,14 @@ before_script:
   # docker login asks for the password to be passed through stdin for security
   # we use $CI_REGISTRY_PASSWORD here which is a special variable provided by GitLab
   # https://docs.gitlab.com/ce/ci/variables/predefined_variables.html
-  - echo Login to Registry $CI_REGISTRY with user $CI_REGISTRY_USER and password $CI_REGISTRY_PASSWORD
+  - env
   - echo -n $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
-  - echo Login successful
 
 Build:
   stage: build
   script:
+    - env
+    - ps aux
     # fetches the latest image (not failing if image is not found)
     - docker pull $CI_REGISTRY_IMAGE:latest || true
     # builds the project, passing proxy variables, using OCI labels
