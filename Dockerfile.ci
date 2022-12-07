@@ -3,18 +3,18 @@ FROM docker.io/node:lts AS builder
 
 COPY . /build
 RUN     echo "http_proxy={${http_proxy}}, https_proxy={${https_proxy}}" && \
-        npm config set proxy ${http_proxy} && \
-        npm config set https-proxy ${https_proxy} && \
-        echo "--- npm install shared ---" && \
-        cd  /build/shared && npm install && \
-        echo "--- npm install hardhat & compile ---" && \
-        cd /build/platform && npm install && npx hardhat compile && \
-        echo "--- npm install idp ---" && \
-        cd /build/idp && npm install && \
+        yarn config set proxy ${http_proxy} && \
+        yarn config set https-proxy ${https_proxy} && \
+        echo "--- yarn install shared ---" && \
+        cd  /build/shared && yarn install && \
+        echo "--- yarn install hardhat & compile ---" && \
+        cd /build/platform && yarn install && npx hardhat compile && \
+        echo "--- yarn install idp ---" && \
+        cd /build/idp && yarn install && \
         echo "--- tsc idp ---" && \
         npx tsc -p /build/idp/tsconfig.json && \
-        echo "--- npm install client ---" && \
-        cd /build/client && npm install && \
+        echo "--- yarn install client ---" && \
+        cd /build/client && yarn install && \
         echo "--- webpack client ---" && \
         npx webpack
 
