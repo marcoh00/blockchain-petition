@@ -12,9 +12,9 @@ build_image:
     - env
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
     - echo "Build container ${DOCKER_ENV_CI_REGISTRY_IMAGE}-idp:${CI_COMMIT_REF_NAME}-latest"
-    - docker build -t ${DOCKER_ENV_CI_REGISTRY_IMAGE}-idp:${CI_COMMIT_REF_NAME}-latest -f Dockerfile.ci --build-arg http_proxy --build-arg https_proxy --target idp .
+    - docker build -t ${DOCKER_ENV_CI_REGISTRY_IMAGE}-idp:${CI_COMMIT_REF_NAME}-latest -f Dockerfile.ci --build-arg http_proxy --build-arg https_proxy --build-arg HTTP_PROXY=$http_proxy --build-arg HTTPS_PROXY=$https_proxy --target idp .
     - echo "Build container ${DOCKER_ENV_CI_REGISTRY_IMAGE}-web:${CI_COMMIT_REF_NAME}-latest"
-    - docker build -t ${DOCKER_ENV_CI_REGISTRY_IMAGE}-web:${CI_COMMIT_REF_NAME}-latest -f Dockerfile.ci --build-arg http_proxy --build-arg https_proxy --target webapp .
+    - docker build -t ${DOCKER_ENV_CI_REGISTRY_IMAGE}-web:${CI_COMMIT_REF_NAME}-latest -f Dockerfile.ci --build-arg http_proxy --build-arg https_proxy --build-arg HTTP_PROXY=$http_proxy --build-arg HTTPS_PROXY=$https_proxy --target webapp .
     - docker push ${DOCKER_ENV_CI_REGISTRY_IMAGE}-idp:${CI_COMMIT_REF_NAME}-latest
     - docker push ${DOCKER_ENV_CI_REGISTRY_IMAGE}-web:${CI_COMMIT_REF_NAME}-latest
 
