@@ -3,24 +3,24 @@ FROM docker.io/node:lts AS builder
 
 COPY . /build
 RUN     echo "--- npm install shared ---" && \
-        cd  /build/petitionen/shared && npm install && \
+        cd  /build/shared && npm install && \
         echo "--- npm install hardhat & compile ---" && \
-        cd /build/petitionen/platform && npm install && npx hardhat compile && \
+        cd /build/platform && npm install && npx hardhat compile && \
         echo "--- npm install idp ---" && \
-        cd /build/petitionen/idp && npm install && \
+        cd /build/idp && npm install && \
         echo "--- tsc idp ---" && \
-        npx tsc -p /build/petitionen/idp/tsconfig.json && \
+        npx tsc -p /build/idp/tsconfig.json && \
         echo "--- npm install client ---" && \
-        cd /build/petitionen/client && npm install && \
+        cd /build/client && npm install && \
         echo "--- webpack client ---" && \
         npx webpack
 
 FROM builder AS idp
 
 RUN     useradd -u 1001 -m -s /usr/sbin/nologin idp && \
-        cp -r /build/petitionen/idp/dist /home/idp && \
-        cp -r /build/petitionen/idp/node_modules /home/idp && \
-        cp -r /build/petitionen/idp/entrypoint.sh /home/idp && \
+        cp -r /build/idp/dist /home/idp && \
+        cp -r /build/idp/node_modules /home/idp && \
+        cp -r /build/idp/entrypoint.sh /home/idp && \
         cd /home/idp && chown -R idp:idp /home/idp && chmod u+x /home/idp/entrypoint.sh && rm -rf /build 
 
 USER idp
