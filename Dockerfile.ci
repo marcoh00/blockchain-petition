@@ -2,7 +2,10 @@ FROM docker.io/node:lts AS builder
 
 
 COPY . /build
-RUN     echo "--- npm install shared ---" && \
+RUN     echo "http_proxy={${http_proxy}}, https_proxy={${https_proxy}}" && \
+        npm config set proxy ${http_proxy} && \
+        npm config set https-proxy ${https_proxy} && \
+        echo "--- npm install shared ---" && \
         cd  /build/shared && npm install && \
         echo "--- npm install hardhat & compile ---" && \
         cd /build/platform && npm install && npx hardhat compile && \
