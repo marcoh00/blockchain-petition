@@ -36,7 +36,7 @@ CMD ["sepolia", "/home/idp/database.db", "dist/idp/src/main.js"]
 
 FROM docker.io/nginx:stable AS webapp
 
-COPY --from=builder /build/petitionen/client/dist /usr/share/nginx/html
+COPY --from=builder /build/client/dist /usr/share/nginx/html
 RUN     rm /etc/nginx/conf.d/default.conf && echo '\
 server {\
     listen 80 default_server;\
