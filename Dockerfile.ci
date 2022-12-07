@@ -2,28 +2,25 @@ FROM docker.io/node:lts AS builder
 
 
 COPY . /build
-RUN     echo "http_proxy={${http_proxy}}, https_proxy={${https_proxy}}" && \
-        yarn config set proxy ${http_proxy} && \
-        yarn config set https-proxy ${https_proxy} && \
-        echo "--- yarn install shared ---" && \
-        cd  /build/shared && yarn install && \
-        echo "--- yarn install hardhat & compile ---" && \
-        cd /build/platform && yarn install && npx hardhat compile && \
-        echo "--- yarn install idp ---" && \
-        cd /build/idp && yarn install && \
+RUN     echo "--- npm install shared ---" && \
+        cd  /build/petitionen/shared && npm install && \
+        echo "--- npm install hardhat & compile ---" && \
+        cd /build/petitionen/platform && npm install && npx hardhat compile && \
+        echo "--- npm install idp ---" && \
+        cd /build/petitionen/idp && npm install && \
         echo "--- tsc idp ---" && \
-        npx tsc -p /build/idp/tsconfig.json && \
-        echo "--- yarn install client ---" && \
-        cd /build/client && yarn install && \
+        npx tsc -p /build/petitionen/idp/tsconfig.json && \
+        echo "--- npm install client ---" && \
+        cd /build/petitionen/client && npm install && \
         echo "--- webpack client ---" && \
         npx webpack
 
 FROM builder AS idp
 
 RUN     useradd -u 1001 -m -s /usr/sbin/nologin idp && \
-        cp -r /build/idp/dist /home/idp && \
-        cp -r /build/idp/node_modules /home/idp && \
-        cp -r /build/idp/entrypoint.sh /home/idp && \
+        cp -r /build/petitionen/idp/dist /home/idp && \
+        cp -r /build/petitionen/idp/node_modules /home/idp && \
+        cp -r /build/petitionen/idp/entrypoint.sh /home/idp && \
         cd /home/idp && chown -R idp:idp /home/idp && chmod u+x /home/idp/entrypoint.sh && rm -rf /build 
 
 USER idp
@@ -36,7 +33,7 @@ CMD ["sepolia", "/home/idp/database.db", "dist/idp/src/main.js"]
 
 FROM docker.io/nginx:stable AS webapp
 
-COPY --from=builder /build/client/dist /usr/share/nginx/html
+COPY --from=builder /build/petitionen/client/dist /usr/share/nginx/html
 RUN     rm /etc/nginx/conf.d/default.conf && echo '\
 server {\
     listen 80 default_server;\

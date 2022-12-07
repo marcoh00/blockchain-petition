@@ -11,8 +11,8 @@ build_image:
   script:
     - env
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
-    - docker build -t $DOCKER_ENV_CI_REGISTRY_IMAGE -f Dockerfile.idp .
-    - docker push $DOCKER_ENV_CI_REGISTRY_IMAGE
+    - docker build -t $DOCKER_ENV_CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME -f Dockerfile.ci .
+    - docker push $DOCKER_ENV_CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
 
 # # This is a GitLab CI configuration to build the project as a docker image
 # # The file is generic enough to be dropped in a project containing a working Dockerfile
