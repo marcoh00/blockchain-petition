@@ -86,4 +86,4 @@ export const NETWORKS: INetworkList = {
         registry_contract: "0x6fB4ae4D171f76054987507DAfa158A2DA6F5335"
     }
 }
-export const DEFAULT_NETWORK = NETWORKS.sshsepolia
+export const DEFAULT_NETWORK = NETWORKS.localhost
