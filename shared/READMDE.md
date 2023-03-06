@@ -1,0 +1,1 @@
+Die web3.ts regelt die Kommunikation mit der Blockchain und ruft die smart Contracts auf. 

@@ -10,10 +10,12 @@ contract Petition is IPetition {
     uint256 pPeriod;
     IRegistry private pRegistry;
     uint32 private pSigners;
-    mapping(bytes32 => bool) private pHasSigned;
+    mapping(bytes32 => bool) private pHasSigned_zk;
+    mapping(address => bool) private pHasSigned;
     bool pHiddenByOperator;
 
-    event PetitionSigned(bytes32 indexed id, bytes32 indexed identity);
+    event PetitionSigned_zk(bytes32 indexed id, bytes32 indexed identity);
+    event PetitionSigned(bytes32 indexed id, address indexed identity);
 
     constructor(bytes32 lName, string memory lDescription, bytes32 lId, uint256 lPeriod, address lRegistry, bool lHidden) {
         pName = lName;
@@ -44,8 +46,8 @@ contract Petition is IPetition {
         return pPeriod;
     }
 
-    function sign(Verifier.Proof calldata lProof, uint8 lIteration, bytes32 lIdentity) override external {
-        require(pHasSigned[lIdentity] == false);
+    function sign_zk(Verifier.Proof calldata lProof, uint8 lIteration, bytes32 lIdentity) override external {
+        require(pHasSigned_zk[lIdentity] == false);
         (bytes32 rt, uint256 rtProofPeriod) = this.registry().idp().getHash(lIteration);
         require(rtProofPeriod == this.period());
 
@@ -69,13 +71,27 @@ contract Petition is IPetition {
 
 
         require(this.registry().verifier().verifyTx(lProof, input));
-        pHasSigned[lIdentity] = true;
+        pHasSigned_zk[lIdentity] = true;
         pSigners += 1;
-        emit PetitionSigned(pId, lIdentity);
+        emit PetitionSigned_zk(pId, lIdentity);
+    }
+
+    function sign() override external {
+        require(!pHasSigned[msg.sender]);
+        require(this.period() == this.registry().idp().period());
+        require(this.registry().idp().validateAuthorized(msg.sender));
+
+        pHasSigned[msg.sender] = true;
+        pSigners += 1;
+        emit PetitionSigned(pId, msg.sender);
     }
 
     function signers() override external view returns (uint32) {
         return pSigners;
+    }
+
+    function hasSigned(address toCheck) override external view returns (uint32) {
+        return pHasSigned[toCheck] ? uint32(1) : uint32(0);
     }
 
     function hide(bool lHidden) external {

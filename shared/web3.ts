@@ -13,6 +13,7 @@ export interface IPetition {
     id: Uint8Array
     period: number
     signers: number
+    signed: boolean
 }
 
 export class EthereumConnector {
@@ -61,8 +62,8 @@ export class EthereumConnector {
             gas
         };
         console.log("Transaction", raw_tx);
-        const signed = await this.api.eth.accounts.signTransaction(raw_tx, this.privkey);
-        const web3result = await this.api.eth.sendSignedTransaction(signed.rawTransaction)
+        const signed = await this.api.eth.accounts.signTransaction(raw_tx, this.privkey!);
+        const web3result = await this.api.eth.sendSignedTransaction(signed.rawTransaction!)
         console.log("web3result", web3result);
         console.log("events", web3result.logs[0].topics);
         return web3result;
@@ -121,21 +122,29 @@ export class EthereumConnector {
             const info: IPetition = {
                 address: addr,
                 name: name_decoded,
+                // Calls functions of the Petition.sol contract
                 description: await contract.methods.description().call(),
                 id: new Uint8Array(hexToBytes(await contract.methods.id().call())),
                 period: Number.parseInt(await contract.methods.period().call()),
-                signers: Number.parseInt(await contract.methods.signers().call())
+                signers: Number.parseInt(await contract.methods.signers().call()),
+                signed: !!Number.parseInt(await contract.methods.hasSigned(`${this.account}`).call())
             }
             petitions.push(info);
         }
         return petitions;
     }
 
-    async signPetition(petitionaddr: string, proof: any, hpers: SHA256Hash, iteration: number) {
+    async signPetition(petitionaddr: string) {
+        const contract = new this.api.eth.Contract((PetitionContract.abi as any), petitionaddr);
+        const tx = await contract.methods.sign().send({ from: this.account });
+        return tx;
+    }
+
+    async signPetition_zk(petitionaddr: string, proof: any, hpers: SHA256Hash, iteration: number) {
         const contract = new this.api.eth.Contract((PetitionContract.abi as any), petitionaddr);
         console.log(`web3: sign as ${hpers.toHex()} with account ${this.account}`);
         console.log(proof);
-        const tx = await contract.methods.sign(Object.values(proof.proof), iteration, `0x${hpers.toHex()}`).send({ from: this.account });
+        const tx = await contract.methods.sign_zk(Object.values(proof.proof), iteration, `0x${hpers.toHex()}`).send({ from: this.account });
         return tx;
     }
 

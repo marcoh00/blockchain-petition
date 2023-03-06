@@ -173,7 +173,7 @@ export class MainPage extends decorateClassWithState(LitElement) {
         return html`
             <div class="cardlist">
                 <h1>Petitionen <span class="link" @click=${this.refreshClick}>${icon(faRefresh).node}</span></h1>
-                ${this.petitions.map((petition, idx) => html`<petition-card .petition=${petition} .idx=${idx} .signable=${this.isSignable(petition)} @sign=${this.signPetition}></petition-card>`)}
+                ${this.petitions.map((petition, idx) => html`<petition-card .petition=${petition} .idx=${idx} .signable=${this.isSignable(petition) && !petition.signed} @sign=${this.signPetition_zk}></petition-card>`)}
             </div>
         `
     }
@@ -196,6 +196,69 @@ export class MainPage extends decorateClassWithState(LitElement) {
 
     async signPetition(e: CustomEvent) {
         const petition = this.petitions[e.detail as number];
+        if(petition.signed) {
+            this.stateError("Sie haben diese Petition bereits unterzeichnet");
+            return;
+        }
+        if(!this.isSignable(petition)) {
+            this.stateError("Es können ausschließlich Petitionen der aktuellen Abstimmungsperiode (s.o.) unterzeichnet werden");
+            return;
+        }
+        const idp = this.getState().idp;
+
+         if(!await this.getState().repository.connector.idpcontract.methods.validateAuthorized(`${this.getState().identity}`).call()) {
+
+             this.setState({
+                 ...this.getState(),
+                 lockspinner: true,
+                 locktext: "Auf Petitionsplattformprovider warten…"
+             });
+
+
+             console.log("Registriere Account für aktuelle Periode durch den PPP auf der Blockchain")
+             idp.getRegistrationData(petition.period)
+             const period = this.getState().period;
+             console.log(`Obtain credentials for period ${period}`);
+             await idp.credentialsForPeriod(period);
+
+
+             this.setState({
+                 ...this.getState(),
+                 lockspinner: false,
+                 locktext: undefined
+             });
+
+         }
+
+        this.setState({
+            ...this.getState(),
+            lockspinner: true,
+            locktext: "Petition unterschreiben…"
+        });
+        try {
+            const tx = await this.getState().connector.signPetition(petition.address);
+            console.log("Petition signed successfully!", tx);
+        } catch(e) {
+            if(typeof(e) === "object" && e.hasOwnProperty("toString")) {
+                this.stateError(`Konnte Transaktion nicht versenden: ${e.toString()}`);
+            } else {
+                this.stateError(`Konnte Transaktion nicht versenden: ${e}`);
+            }
+        }
+        this.setState({
+            ...this.getState(),
+            lockspinner: false,
+            locktext: undefined
+        });
+        await this.getState().repository.init();
+    }
+
+    async signPetition_zk(e: CustomEvent) {
+        const petition = this.petitions[e.detail as number];
+        if(petition.signed) {
+            this.stateError("Sie haben diese Petition bereits unterzeichnet");
+            return;
+        }
         if(!this.isSignable(petition)) {
             this.stateError("Es können ausschließlich Petitionen der aktuellen Abstimmungsperiode (s.o.) unterzeichnet werden");
             return;
@@ -213,10 +276,10 @@ export class MainPage extends decorateClassWithState(LitElement) {
         this.setState({
             ...this.getState(),
             lockspinner: true,
-            locktext: "Petition unterschreiben"
+            locktext: "Petition unterschreiben…"
         });
         try {
-            const tx = await this.getState().connector.signPetition(petition.address, proof.points, proof.hpers, idp.getRegistrationData(petition.period).credentials.iteration);
+            const tx = await this.getState().connector.signPetition_zk(petition.address, proof.points, proof.hpers, idp.getRegistrationData(petition.period).credentials.iteration);
             console.log("Petition signed successfully!", tx);
         } catch(e) {
             if(typeof(e) === "object" && e.hasOwnProperty("toString")) {
@@ -272,7 +335,7 @@ export class CreatePage extends decorateClassWithState(LitElement) {
             <label for="petitiontext">Text der Petition</label>
             <textarea id="petitiontext"></textarea>
             <button id="check" @click=${this.verifyClick}>${icon(faCheck).node} Petition veröffentlichen</button>
-            <p>Bitte beachten Sie, dass die Petitiondaten auf einer Blockchain gespeichert werden. Sie können nicht geändert oder gelöscht werden. Längere Petitionstexte verursachen größere Transaktionsgebühren.</p>
+            <p>Bitte beachten Sie, dass die Petitiondaten auf einer Blockchain gespeichert werden. Sie können nach der Veröffentlichung nicht geändert oder gelöscht werden. Längere Petitionstexte verursachen größere Transaktionsgebühren.</p>
         `;
     }
 
