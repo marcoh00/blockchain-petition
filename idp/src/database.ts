@@ -24,7 +24,7 @@ export class Database {
                 `SELECT pubkey, identity, period
                 FROM idp_pubkeys
                 WHERE (identity = ? OR pubkey = ?) AND period = ?`,
-                [registration.identity, registration.pubkey, registration.period],
+                [registration.identity, registration.client_identity, registration.period],
                 (err, row) => {
                     if(row === undefined) resolve(false);
                     else {
@@ -56,7 +56,7 @@ export class Database {
                 (pubkey, identity, period, token)
                 VALUES
                 (?, ?, ?, ?)
-            `, [registration.pubkey, registration.identity, registration.period, token], (res, err) => res === undefined ? reject(err) : resolve(res));
+            `, [registration.client_identity, registration.identity, registration.period, token], (res, err) => res === undefined ? reject(err) : resolve(res));
         });
     }
 

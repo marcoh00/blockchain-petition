@@ -5,6 +5,7 @@ import IDPContract from "../platform/artifacts/contracts/IDP.sol/IDP.json";
 import RegistryContract from "../platform/artifacts/contracts/Registry.sol/Registry.json";
 import PetitionContract from "../platform/artifacts/contracts/Petition.sol/Petition.json";
 import { SHA256Hash } from './merkle';
+import { BLOCKTECH_TYPE, BLOCKTECH_TYPES } from './addr';
 
 export interface IPetition {
     address: string
@@ -51,8 +52,18 @@ export class EthereumConnector {
         }
     }
 
-    async submitHash(hash: string, period: number): Promise<object> {
-        const method = this.idpcontract.methods.submitHash(`0x${hash}`, period);
+    async submitHash(client_identity: string, period: number): Promise<object> {
+        /**
+         * @param {string} client_identity - Dies ist in zk die Identität die in der client Maske Eingetragen wurde.
+         * In Ohne Zk ist es der Ethereum Account 
+         */
+        let method;
+        if (BLOCKTECH_TYPE == BLOCKTECH_TYPES.mit_zk) {
+            method = this.idpcontract.methods.submitHash(`0x${client_identity}`, period);
+        } else {
+            // ohne zk
+            method  = this.idpcontract.methods.submitVotingRight(`${client_identity}`, period)
+        }
         const data = method.encodeABI();
         const gas = await method.estimateGas();
         const raw_tx = {

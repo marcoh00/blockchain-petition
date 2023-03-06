@@ -1,6 +1,7 @@
 import { SHA256Hash } from "../../shared/merkle";
 import { decorateClassWithState, ICredentials, IState } from "./state";
 import { WebEthereumConnector } from "./web3";
+import { BLOCKTECH_TYPE, BLOCKTECH_TYPES } from '../../shared/addr';
 
 interface IRegistrationData {
     working: boolean
@@ -65,6 +66,14 @@ export class IDPManager extends decorateClassWithState(IDPManagerBase) {
         await this.ensureKeysAvailable(period);
         
         const endpoint = await this.getState().connector.url();
+        let client_identity: String;
+        if (BLOCKTECH_TYPE == BLOCKTECH_TYPES.mit_zk) {
+            client_identity = this.credentials[period].pubkey.toHex();
+        } else {
+            // Ohne zk
+            client_identity = this.getState().repository.connector.account;
+        }
+        
         if(typeof(this.credentials[period].token === "undefined")) {
             const token_or_error = await fetch(`${endpoint}/register`, {
                 method: "POST",
@@ -73,7 +82,7 @@ export class IDPManager extends decorateClassWithState(IDPManagerBase) {
                 },
                 body: JSON.stringify({
                     identity: this.identity,
-                    pubkey: this.credentials[period].pubkey.toHex(),
+                    client_identity: client_identity,
                     period: period
                 })
             });
@@ -97,13 +106,18 @@ export class IDPManager extends decorateClassWithState(IDPManagerBase) {
             await this.save();
         }
 
-        if(typeof(this.getRegistrationData(period).credentials) === "undefined") {
-            await this.tryObtainCredentials(period, endpoint);
-            return;
-        }
+        if (BLOCKTECH_TYPE == BLOCKTECH_TYPES.mit_zk) {
+            if(typeof(this.getRegistrationData(period).credentials) === "undefined") {
+                await this.tryObtainCredentials(period, endpoint);
+                return;
+            }
+        } // else ohne zk
     }
 
     async tryObtainCredentials(period: number, endpoint: string) {
+        /**
+         * Wird nur in mit zk Version aufgerufen
+         */
         this.getRegistrationData(period).working = true;
         this.setState(this.getState());
         const token = this.credentials[period].token;

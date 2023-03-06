@@ -5,7 +5,7 @@ import { checkRegistration, checkValidType, IRegistration, IProofRequest } from 
 import { Database } from "./database";
 import { EthereumConnector } from "../../shared/web3";
 import { SHA256Hash, MerkleTree } from '../../shared/merkle';
-import { NETWORKS, DEFAULT_NETWORK, PORT, DBFILE, PROVINGKEY } from '../../shared/addr';
+import { NETWORKS, DEFAULT_NETWORK, PORT, DBFILE, PROVINGKEY, BLOCKTECH_TYPE, BLOCKTECH_TYPES } from '../../shared/addr';
 import { intervalTask } from "./task";
 
 const app = express();
@@ -100,7 +100,7 @@ app.post('/register', cors(corsOptions), async (req, res) => {
     const registration = req.body as IRegistration;
     const minperiod = await ethereum.period();
     const maxperiod = minperiod + 2;
-    if(!checkValidType(["identity", "pubkey", "period"], registration)) {
+    if(!checkValidType(["identity", "client_identity", "period"], registration)) {
         res.statusCode = 400;
         res.json({ "error": "Malformed Request" });
         return;
@@ -115,16 +115,23 @@ app.post('/register', cors(corsOptions), async (req, res) => {
         return;
     }
     try {
-        if(await database.isRegistered(registration)) {
-            res.statusCode = 405;
-            res.json({ "error": "Public Key is already registered for given period" });
-            return;
-        }
         const token = randomBytes(32).toString("hex");
-        const result = await database.register(registration, token);
+        if (BLOCKTECH_TYPE == BLOCKTECH_TYPES.mit_zk) {
+            if(await database.isRegistered(registration)) {
+                res.statusCode = 405;
+                res.json({ "error": "Public Key is already registered for given period" });
+                return;
+            }
+            const result = await database.register(registration, token);
+            console.log(`💾 Registration saved to database`, registration, token, result);
+        } else {
+            // Ohne zk
+            console.log("TRY TO SUBMIT ACCOUNT")
+            await ethereum.submitHash(registration.client_identity,registration.period);
+            console.log(`💾 Registration done`, registration, token);
+        }
         res.statusCode = 200;
         res.json({ "token": token });
-        console.log(`💾 Registration saved to database`, registration, token, result);
         return;
     } catch(e) {
         res.statusCode = 500;
@@ -171,6 +178,8 @@ async function hashAddedEvent(err, event, subscription) {
 
 app.listen(PORT, async () => {
     await ethereum.init();
+    // Das HashAdded Event ist nur wichtig fuer die mit zk Version
+    // Aber nur mit zk smart Contract emitieren dieses Event 
     ethereum.idpcontract.events.HashAdded({
         fromBlock: "latest"
     }, hashAddedEvent);
@@ -182,5 +191,8 @@ app.listen(PORT, async () => {
     console.log(`💾 Connecting to database at ${DBFILE}`);
     const interval = Math.ceil(await ethereum.interval());
     console.log(`🌐 Try to create a new tree hash every ${interval}s`);
-    setInterval(repeat, interval * 1000);
+    if (BLOCKTECH_TYPE == BLOCKTECH_TYPES.mit_zk) {
+        setInterval(repeat, interval * 1000);
+    } // else ohne zk
+    
 })
