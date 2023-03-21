@@ -3,7 +3,7 @@ import { faEthereum } from '@fortawesome/free-brands-svg-icons';
 import { faQuestionCircle, faAddressCard, faCheck } from '@fortawesome/free-solid-svg-icons';
 import { LitElement, html, css, CSSResultGroup } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { NETWORKS, REGISTRY_CONTRACT, REGISTRY_CONTRACT_GOERLI, REGISTRY_CONTRACT_HARDHAT } from '../../shared/addr';
+import { BLOCKTECH_TYPE, BLOCKTECH_TYPES, NETWORKS, REGISTRY_CONTRACT, REGISTRY_CONTRACT_GOERLI, REGISTRY_CONTRACT_HARDHAT } from '../../shared/addr';
 import { SHA256Hash } from '../../shared/merkle';
 import { EthereumConnector } from '../../shared/web3';
 import { getIDPManager } from './idp';
@@ -267,15 +267,21 @@ export class IdentityPage extends decorateClassWithState(LitElement) {
     }
 
     async verifyClick() {
-        this.idInput(
-            ({
-                target: this.shadowRoot.querySelector("#identity")
-            }) as unknown as Event
-        );
-        if(this.invalidName) {
-            this.stateError("Bitte geben Sie einen gültigen Namen ein");
-            return;
+        console.log("Set Identity")
+        if (BLOCKTECH_TYPE == BLOCKTECH_TYPES.mit_zk) {
+            this.idInput(
+                ({
+                    target: this.shadowRoot.querySelector("#identity")
+                }) as unknown as Event
+            );
+            if(this.invalidName) {
+                this.stateError("Bitte geben Sie einen gültigen Namen ein");
+                return;
+            }
+        } else {
+            this.name = this.getState().connector.account   
         }
+        console.log("Selected Identity:", this.name)
         this.setState({
             ...this.getState(),
             identity: this.name,

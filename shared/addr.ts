@@ -97,5 +97,5 @@ export enum BLOCKTECH_TYPES {
     ohne_zk = 1
 }
 
-let BLOCKTECH_TYPE: Number = BLOCKTECH_TYPES.mit_zk;
+let BLOCKTECH_TYPE: Number = BLOCKTECH_TYPES.ohne_zk;
 export {BLOCKTECH_TYPE}

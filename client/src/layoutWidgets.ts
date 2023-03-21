@@ -173,7 +173,7 @@ export class MainPage extends decorateClassWithState(LitElement) {
         return html`
             <div class="cardlist">
                 <h1>Petitionen <span class="link" @click=${this.refreshClick}>${icon(faRefresh).node}</span></h1>
-                ${this.petitions.map((petition, idx) => html`<petition-card .petition=${petition} .idx=${idx} .signable=${this.isSignable(petition) && !petition.signed} @sign=${this.signPetition_zk}></petition-card>`)}
+                ${this.petitions.map((petition, idx) => html`<petition-card .petition=${petition} .idx=${idx} .signable=${this.isSignable(petition) && !petition.signed} @sign=${this.signPetition}></petition-card>`)}
             </div>
         `
     }

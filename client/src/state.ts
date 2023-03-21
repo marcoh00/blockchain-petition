@@ -41,7 +41,9 @@ export interface IStateAccessor {
     getState: () => IState
     setState: (state: IState) => void
 }
-
+/**
+ * Global genutzer State!
+ */
 let state: IState = undefined;
 
 function localGetState(): IState {
