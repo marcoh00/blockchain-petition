@@ -112,6 +112,9 @@ export class WebEthereumConnector extends decorateClassWithWeb3(decorateClassWit
     }
 
     async updateState() {
+        /**
+         * UpdateState verändert den State von der PetitionApp. 
+         */
         const init_state = this.getState();
         const new_connection = this.connected && init_state.connector !== this;
         if(new_connection) {

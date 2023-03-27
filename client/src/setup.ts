@@ -246,6 +246,15 @@ export class IdentityPage extends decorateClassWithState(LitElement) {
     name: string = "";
 
     render() {
+        if (BLOCKTECH_TYPE === BLOCKTECH_TYPES.ohne_zk) {
+            this.name = this.getState().connector.account;
+            this.setState({
+                ...this.getState(),
+                identity: this.name,
+                idp: getIDPManager(this.name, null, true)
+            });
+            return;
+        }
         return html`
             <h1>Identitätsprüfung über Texteingabe</h1>
 
@@ -267,19 +276,18 @@ export class IdentityPage extends decorateClassWithState(LitElement) {
     }
 
     async verifyClick() {
+        /**
+         * Methode wird nur bei mit Zk ausgeführt.
+         */
         console.log("Set Identity")
-        if (BLOCKTECH_TYPE == BLOCKTECH_TYPES.mit_zk) {
-            this.idInput(
-                ({
-                    target: this.shadowRoot.querySelector("#identity")
-                }) as unknown as Event
-            );
-            if(this.invalidName) {
-                this.stateError("Bitte geben Sie einen gültigen Namen ein");
-                return;
-            }
-        } else {
-            this.name = this.getState().connector.account   
+        this.idInput(
+            ({
+                target: this.shadowRoot.querySelector("#identity")
+            }) as unknown as Event
+        );
+        if(this.invalidName) {
+            this.stateError("Bitte geben Sie einen gültigen Namen ein");
+            return;
         }
         console.log("Selected Identity:", this.name)
         this.setState({

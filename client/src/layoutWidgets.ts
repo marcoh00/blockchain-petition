@@ -3,10 +3,17 @@ import { faCheck, faClose, faRefresh } from '@fortawesome/free-solid-svg-icons';
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { IPetition } from '../../shared/web3';
+import { BLOCKTECH_TYPE, BLOCKTECH_TYPES } from '../../shared/addr';
 import { decorateClassWithState, IState } from './state';
 import { basicFlex, buttonMixin, faStyle, topDownFlex } from './styles';
 import { getZokratesHelper } from './zokrates';
 
+enum PageStage {
+    Landing,
+    ChooseConnection,
+    Identity,
+    PetitionSign
+}
 export class PetitionApp extends decorateClassWithState(LitElement) {
     
     /* Valid stages
@@ -17,7 +24,7 @@ export class PetitionApp extends decorateClassWithState(LitElement) {
      */
 
     @property()
-    stage: number = 0
+    stage: PageStage = PageStage.Landing;
 
     @property()
     page = "main";
@@ -38,39 +45,51 @@ export class PetitionApp extends decorateClassWithState(LitElement) {
         const identityknown = typeof(state.identity) === "string"
             && typeof(state.idp) === "object";
         if(web3connected && !identityknown) {
-            this.stage = 2;
+            this.stage = PageStage.Identity;
         }
         if(web3connected && identityknown) {
-            this.stage = 3;
+            this.stage = PageStage.PetitionSign;
         }
     }
 
     getNavigationBar() {
-        return this.stage === 0 || this.stage === 1 ? html`<informational-infobar @loginClick=${this.proceedConnection}></informational-infobar>` : html`<navigation-bar @pageClick=${this.pageClick}></navigation-bar>`;
+        if (this.stage === PageStage.Landing || this.stage === PageStage.ChooseConnection) {
+            return html`<informational-infobar @loginClick=${this.proceedConnection}></informational-infobar>`;
+        } else {
+            return html`<navigation-bar @pageClick=${this.pageClick}></navigation-bar>`;
+        }
     }
 
     getMainPage() {
-        if(this.stage === 0) return html`<landing-page @loginClick=${this.proceedConnection}></landing-page>`;
-        else if(this.stage === 1) return html`<connection-page @web3connect=${this.proceedIdentity}></connection-page>`;
-        else if(this.stage === 2) return html`<identity-page></identity-page>`;
-        else if(this.stage === 3 && this.page === "create") return html`<create-petition @pageClick=${this.pageClick}></create-petition>`
-        return html`<main-page></main-page>`;
+        switch (this.stage) {
+            case PageStage.Landing:
+                return html`<landing-page @loginClick=${this.proceedConnection}></landing-page>`;
+            case PageStage.ChooseConnection:
+                return html`<connection-page @web3connect=${this.proceedIdentity}></connection-page>`;
+            case PageStage.Identity:
+                return html`<identity-page></identity-page>`;
+            case PageStage.PetitionSign:
+                if (this.page === "create") {
+                    return html`<create-petition @pageClick=${this.pageClick}></create-petition>`;
+                }
+                return html`<main-page></main-page>`;
+        }
     }
 
     proceedConnection() {
-        this.stage = 1;
+        this.stage = PageStage.ChooseConnection;
         if(this.getState().web3connected) this.proceedIdentity();
     }
 
     proceedIdentity() {
-        this.stage = 2;
+        this.stage = PageStage.Identity;
         const state = this.getState();
         if(typeof(state.identity) === "string"
             && typeof(state.idp) === "object") this.proceedMain();
     }
 
     proceedMain() {
-        this.stage = 3;
+        this.stage = PageStage.PetitionSign;
     }
 
     pageClick(e: CustomEvent) {
@@ -205,9 +224,7 @@ export class MainPage extends decorateClassWithState(LitElement) {
             return;
         }
         const idp = this.getState().idp;
-
          if(!await this.getState().repository.connector.idpcontract.methods.validateAuthorized(`${this.getState().identity}`).call()) {
-
              this.setState({
                  ...this.getState(),
                  lockspinner: true,
