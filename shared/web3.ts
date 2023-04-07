@@ -58,7 +58,7 @@ export class EthereumConnector {
          * In Ohne Zk ist es der Ethereum Account 
          */
         let method;
-        if (BLOCKTECH_TYPE == BLOCKTECH_TYPES.mit_zk) {
+        if (BLOCKTECH_TYPE === BLOCKTECH_TYPES.mit_zk) {
             method = this.idpcontract.methods.submitHash(`0x${client_identity}`, period);
         } else {
             // ohne zk

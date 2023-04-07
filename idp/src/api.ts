@@ -15,10 +15,10 @@ export interface IProofRequest {
 }
 
 export const checkRegistration = (registration: IRegistration, minperiod?: number, maxperiod?: number): boolean => {
-    if (BLOCKTECH_TYPE == BLOCKTECH_TYPES.ohne_zk) {
+    if (BLOCKTECH_TYPE === BLOCKTECH_TYPES.ohne_zk) {
         if(registration.client_identity.length != 42) return false;
     }
-    if (BLOCKTECH_TYPE == BLOCKTECH_TYPES.mit_zk) {
+    if (BLOCKTECH_TYPE === BLOCKTECH_TYPES.mit_zk) {
         if(registration.client_identity.length != 64) return false;
         if(invalidHex.test(registration.client_identity)) return false;
     }

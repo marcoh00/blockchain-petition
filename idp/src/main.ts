@@ -116,7 +116,7 @@ app.post('/register', cors(corsOptions), async (req, res) => {
     }
     try {
         const token = randomBytes(32).toString("hex");
-        if (BLOCKTECH_TYPE == BLOCKTECH_TYPES.mit_zk) {
+        if (BLOCKTECH_TYPE === BLOCKTECH_TYPES.mit_zk) {
             if(await database.isRegistered(registration)) {
                 res.statusCode = 405;
                 res.json({ "error": "Public Key is already registered for given period" });
@@ -139,27 +139,6 @@ app.post('/register', cors(corsOptions), async (req, res) => {
         return;
     }
 })
-
-async function testMerkle() {
-    const thisPeriod = await ethereum.period();
-    console.log(`🌐 Tree ${await ethereum.lastIteration()} in period ${thisPeriod} (next period in ${Math.ceil(await ethereum.nextPeriod() - (Date.now() / 1000))}s)`);
-    const test_keys = [
-        await SHA256Hash.hashString("1"),
-        await SHA256Hash.hashString("2"),
-        await SHA256Hash.hashString("3"),
-        await SHA256Hash.hashString("4"),
-        await SHA256Hash.hashString("5"),
-        await SHA256Hash.hashString("6"),
-        await SHA256Hash.hashString("7"),
-        await SHA256Hash.hashString("8")
-    ];
-    console.log(`leafs=${test_keys.map((key) => key.toHex())}`);
-    const tree = new MerkleTree(test_keys, (x) => SHA256Hash.hashRaw(x));
-    await tree.buildTree();
-
-    const element = tree.leaf(await SHA256Hash.hashString("2"));
-    tree.getProof(element);
-}
 
 async function repeat() {
     console.log(`🌐 Try to create a new tree hash (period ${await ethereum.period()}, ${await ethereum.nextPeriod() - Math.floor((new Date()).valueOf() / 1000)}/${await ethereum.periodlen()})`);
@@ -191,7 +170,7 @@ app.listen(PORT, async () => {
     console.log(`💾 Connecting to database at ${DBFILE}`);
     const interval = Math.ceil(await ethereum.interval());
     console.log(`🌐 Try to create a new tree hash every ${interval}s`);
-    if (BLOCKTECH_TYPE == BLOCKTECH_TYPES.mit_zk) {
+    if (BLOCKTECH_TYPE === BLOCKTECH_TYPES.mit_zk) {
         setInterval(repeat, interval * 1000);
     } // else ohne zk
     

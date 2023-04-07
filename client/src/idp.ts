@@ -67,7 +67,7 @@ export class IDPManager extends decorateClassWithState(IDPManagerBase) {
         
         const endpoint = await this.getState().connector.url();
         let client_identity: String;
-        if (BLOCKTECH_TYPE == BLOCKTECH_TYPES.mit_zk) {
+        if (BLOCKTECH_TYPE === BLOCKTECH_TYPES.mit_zk) {
             client_identity = this.credentials[period].pubkey.toHex();
         } else {
             // Ohne zk
@@ -106,7 +106,7 @@ export class IDPManager extends decorateClassWithState(IDPManagerBase) {
             await this.save();
         }
 
-        if (BLOCKTECH_TYPE == BLOCKTECH_TYPES.mit_zk) {
+        if (BLOCKTECH_TYPE === BLOCKTECH_TYPES.mit_zk) {
             if(typeof(this.getRegistrationData(period).credentials) === "undefined") {
                 await this.tryObtainCredentials(period, endpoint);
                 return;
