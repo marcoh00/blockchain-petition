@@ -3,6 +3,12 @@ import { DataHash, MerkleTree, serializeMerkleProof, SHA256Hash } from "../../sh
 import { Database } from "./database";
 import { EthereumConnector } from "../../shared/web3";
 
+interface EventInformation {
+    "hash": string,
+    "period": any,
+    "iteration": any
+}
+
 async function pubkeyHashes(db: Database, period: number): Promise<Array<SHA256Hash>> {
     const pubkeys_to_include = await db.pubkeys_to_include(period);
     const hashes = new Array<SHA256Hash>();
@@ -34,11 +40,15 @@ async function generateAndInsertProofs(db: Database, tree: MerkleTree, hashes_co
     return Promise.all(promises);
 }
 
-async function includeTrees(web3: EthereumConnector, period: number, trees_to_include: Array<string>): Promise<Array<number>> {
+async function includeTrees(web3: EthereumConnector, period: number, trees_to_include: Array<string>): Promise<Array<EventInformation>> {
     const iteration_promises = [];
     for(let tree of trees_to_include) {
-        const iteration_of_tree = await web3.submitHash(tree, period);
-        iteration_promises.push(iteration_of_tree);
+        const event = await web3.submitHash(tree, period);
+        const hash_result = event.returnValues[0] as string;
+        const hash = hash_result.startsWith("0x") ? hash_result.substring(2) : hash_result;
+        iteration_promises.push({"hash": hash, 
+        "period": event.returnValues[1], 
+        "iteration": event.returnValues[2]});
     }
     return await Promise.all(iteration_promises);
 }
@@ -79,8 +89,12 @@ export async function intervalTask(web3: EthereumConnector, db: Database) {
 
     const trees_to_include = await db.treesToIncludeOnBlockchain(period);
     console.log("Trees to Include", trees_to_include);
-    const iterations = await includeTrees(web3, period, trees_to_include);
-    // await addIterationsToDatabase(db, trees_to_include, iterations);
+    const includeEvents = await includeTrees(web3, period, trees_to_include);
 
+    for (const event of includeEvents) {
+        console.log("Include Event", event);
+        await db.updateTreeWithIteration(event["hash"], event["iteration"]);
+    }
+    
     intervalLock = false;
 }

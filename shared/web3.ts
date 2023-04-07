@@ -1,6 +1,6 @@
 import Web3 from 'web3';
 import { hexToUtf8, hexToBytes, asciiToHex, padLeft } from 'web3-utils';
-import { Contract } from 'web3-eth-contract';
+import { Contract, EventData } from 'web3-eth-contract';
 import IDPContract from "../platform/artifacts/contracts/IDP.sol/IDP.json";
 import RegistryContract from "../platform/artifacts/contracts/Registry.sol/Registry.json";
 import PetitionContract from "../platform/artifacts/contracts/Petition.sol/Petition.json";
@@ -52,7 +52,7 @@ export class EthereumConnector {
         }
     }
 
-    async submitHash(client_identity: string, period: number): Promise<object> {
+    async submitHash(client_identity: string, period: number): Promise<EventData> {
         /**
          * @param {string} client_identity - Dies ist in zk die Identität die in der client Maske Eingetragen wurde.
          * In Ohne Zk ist es der Ethereum Account 
@@ -74,10 +74,17 @@ export class EthereumConnector {
         };
         console.log("Transaction", raw_tx);
         const signed = await this.api.eth.accounts.signTransaction(raw_tx, this.privkey!);
-        const web3result = await this.api.eth.sendSignedTransaction(signed.rawTransaction!)
-        console.log("web3result", web3result);
-        console.log("events", web3result.logs[0].topics);
-        return web3result;
+        const web3result = await this.api.eth.sendSignedTransaction(signed.rawTransaction!);
+        
+        if (BLOCKTECH_TYPE === BLOCKTECH_TYPES.mit_zk) {
+            // Man holt sich den "iteration" Wert von der Block chain. Dieser Wert steht im Event der 
+            // von der vorherigen Tansaktion emitiert wurde (Event vom submitHash smart contract)
+            const event = await this.idpcontract.getPastEvents("HashAdded", {filter: { transactionHash: web3result.transactionHash } });
+            if (event.length > 1) {
+                console.error(event);
+            }
+            return event[0];
+        }
     }
 
     async period(): Promise<number> {
