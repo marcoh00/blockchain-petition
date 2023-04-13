@@ -1,15 +1,13 @@
 import { icon } from '@fortawesome/fontawesome-svg-core';
 import { faEthereum } from '@fortawesome/free-brands-svg-icons';
-import { faQuestionCircle, faAddressCard, faCheck } from '@fortawesome/free-solid-svg-icons';
-import { LitElement, html, css, CSSResultGroup } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
-import { BLOCKTECH_TYPE, BLOCKTECH_TYPES, NETWORKS, REGISTRY_CONTRACT, REGISTRY_CONTRACT_GOERLI, REGISTRY_CONTRACT_HARDHAT } from '../../shared/addr';
-import { SHA256Hash } from '../../shared/merkle';
-import { EthereumConnector } from '../../shared/web3';
+import { faAddressCard, faCheck, faArrowDown } from '@fortawesome/free-solid-svg-icons';
+import { LitElement, html, css } from 'lit';
+import { property } from 'lit/decorators.js';
+import { BLOCKTECH_TYPE, BLOCKTECH_TYPES, NETWORKS} from '../../shared/addr';
 import { getIDPManager } from './idp';
 import { decorateClassWithState, IState } from './state';
 import { basicFlex, buttonMixin, faStyle, topDownFlex } from './styles';
-import { decorateClassWithWeb3, WebEthereumConnector } from './web3';
+import { WebEthereumConnector } from './web3';
 
 declare global {
     interface Window { ethereum: any; }
@@ -49,7 +47,8 @@ export class ConnectionPage extends decorateClassWithState(LitElement) {
     render() {
         const btnDsiabled = typeof(this.contract) !== "string";
         return html`
-            <span><h1>Wählen Sie eine Registrierungsstelle ${icon(faQuestionCircle).node}</h1></span>
+            <span><h1>Wählen Sie eine Registrierungsstelle.</h1> 
+            Hier müssen Sie eine Blockchain auswählen, auf der Sie eine Petition unterzeichnen möchten.</span>
             <registry-chooser @registryClick=${this.registryClick}></registry-chooser>
             <button class="mediumbtn${btnDsiabled ? " disabled" : ""}" ?disabled=${btnDsiabled} @click=${this.connectClick}>${icon(faEthereum).node} Einloggen</button>
         `;
@@ -128,16 +127,16 @@ export class RegistryChooser extends LitElement {
     @property({type: Array})
     registries: any[] = [
         {
-            addr: NETWORKS.sepolia.registry_contract,
-            descr: "Testcontract auf Sepolia-Blockchain",
-            ident: "Texteingabe",
-            chainid: NETWORKS.sepolia.chainid
-        },
-        {
             addr: NETWORKS.localhost.registry_contract,
             descr: "Testcontract auf lokaler Entwicklungs-Blockchain",
             ident: "Texteingabe",
             chainid: NETWORKS.localhost.chainid
+        },
+        {
+            addr: NETWORKS.sepolia.registry_contract,
+            descr: "Testcontract auf Sepolia-Blockchain",
+            ident: "Texteingabe",
+            chainid: NETWORKS.sepolia.chainid
         },
         {
             addr: NETWORKS.goerli.registry_contract,
@@ -147,37 +146,43 @@ export class RegistryChooser extends LitElement {
         }];
 
     @property({type: Boolean})
+    inputCustom = false
+
+    @property({type: Boolean})
     customValid = false
 
     @property({type: Boolean})
     customTouched = false
 
+    @property({type: Boolean})
+    seeAdvanced = false
+    
+    // Default Option for the HTML radio input field
+    private readonly defaultOption: number = 0;
+
     lastSelected?: number = null
     customAddr: string = ""
 
-    render() {
+    firstUpdated() {
+        /**
+         * This fuction is from LitElement. 
+         * It is called internally by LitElement after the showdowtree has been created
+         * and we use it to set the default value of the radio input box. 
+         */
+        this.select(this.defaultOption, true);
+    }
+
+    updated() {
+        /*
+         * This method is used to re-select the default option after the radio input box has been re-rendered 
+         * (Beacause after the "Weitere Blockchains" botton has been clicked the previous default option is no longer selected) 
+         */
+        this.select(this.defaultOption, true);
+    }
+
+    private customOptionTemplate() {
         return html`
-            <div class="entry">
-                <div class="aident">
-                ${icon(faAddressCard).node} Identifizierung durch
-                </div>
-            </div>
-            ${this.registries.map((registry, idx) => html`
-            <div class="entry">
-                <div class="acheckbox">
-                    <input type="radio" value="${idx}" id="contract-${idx}" name="contract" @click=${this.selectionChange}>
-                </div>
-                <div class="adescr" @click=${() => this.select(idx, true)}>
-                    ${registry.descr}
-                </div>
-                <div class="asdesc" @click=${() => this.select(idx, true)}>
-                    ${registry.addr}
-                </div>
-                <div class="aident">
-                    ${registry.ident}
-                </div>
-            </div>
-            `)}
+        ${this.inputCustom ? html`
             <div class="entry">
                 <div class="acheckbox">
                     <input type="radio" value="-1" name="contract" @click=${this.selectionChange} ?disabled=${!this.customValid}>
@@ -188,11 +193,60 @@ export class RegistryChooser extends LitElement {
                 <div class="asdesc">
                     Blockchain-Adresse einer eigenen, kompatiblen Registrierungsstelle
                 </div>
+            </div>`
+            : ``}
+        ${!this.inputCustom ? 
+            html`<button @click=${() =>this.inputCustom = !this.inputCustom}>${icon(faArrowDown).node} Selbst Erstelle Blockchain Eintragen </button>`
+            : ""}`
+    }
+
+    private selectableOptionTemplate(registry: any, idx: number) {
+        let customRadioBox: any; 
+        // Only true if we render the last element in the registries array. 
+        // This happens because the index of the registry element is equal to the length of the registries array minus one
+        if (idx === (this.registries.length - 1)) {
+            customRadioBox = this.customOptionTemplate()
+        }
+        return html`
+        <div class="entry">
+            <div class="acheckbox">
+                <input type="radio" value="${idx}" id="contract-${idx}" name="contract" @click=${this.selectionChange}>
             </div>
-        `;
+            <div class="adescr" @click=${() => this.select(idx, true)}>
+                ${registry.descr}, 
+            </div>
+            <div class="asdesc" @click=${() => this.select(idx, true)}>
+                ${registry.addr}
+            </div>
+            <div class="aident">
+            ${registry.ident}
+            </div>
+        </div> ${customRadioBox}`
+    }
+
+    render() {
+        return html`
+            <div class="entry">
+                <div class="aident">
+                ${icon(faAddressCard).node} Identifizierung durch
+                </div>
+            </div>
+            ${this.seeAdvanced ?
+                // Iterate of all registries along with their corresponding index
+                this.registries.map((registry, idx) => this.selectableOptionTemplate(registry, idx))
+                // Set the first registry as the only registry to be rendered. 
+                : this.selectableOptionTemplate(this.registries[this.defaultOption], this.defaultOption)}
+            ${!this.seeAdvanced ? 
+                html`<button @click=${() =>this.seeAdvanced = !this.seeAdvanced}>${icon(faArrowDown).node} Weitere Blockchains </button> ` 
+                : ""}
+            `;
     }
 
     select(idx: number, toggle: boolean = false) {
+        /**
+         * Function is used to set/select the chosen radio-box input field
+         * in the HTML document.
+         */
         this.lastSelected = idx;
         // TODO: Handle different chain ids
         this.dispatchEvent(new CustomEvent("registryClick", {
@@ -202,7 +256,9 @@ export class RegistryChooser extends LitElement {
                 chainid: this.lastSelected === -1? undefined : this.registries[idx].chainid
             }
         }));
-        if(toggle) (this.shadowRoot.querySelector(`#contract-${idx}`) as HTMLInputElement).checked = true;
+        if(toggle) {
+            (this.shadowRoot.querySelector(`#contract-${idx}`) as HTMLInputElement).checked = true;
+        }
     }
 
     selectionChange(e: Event) {
