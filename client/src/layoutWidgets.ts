@@ -189,10 +189,11 @@ export class MainPage extends decorateClassWithState(LitElement) {
 
     render() {
         console.log("Render Petitions", this.petitions);
+        let sign_func = (BLOCKTECH_TYPE == BLOCKTECH_TYPES.ohne_zk) ? this.signPetition : this.signPetition_zk;
         return html`
             <div class="cardlist">
                 <h1>Petitionen <span class="link" @click=${this.refreshClick}>${icon(faRefresh).node}</span></h1>
-                ${this.petitions.map((petition, idx) => html`<petition-card .petition=${petition} .idx=${idx} .signable=${this.isSignable(petition) && !petition.signed} @sign=${this.signPetition}></petition-card>`)}
+                ${this.petitions.map((petition, idx) => html`<petition-card .petition=${petition} .idx=${idx} .signable=${this.isSignable(petition) && !petition.signed} @sign=${sign_func}></petition-card>`)}
             </div>
         `
     }
