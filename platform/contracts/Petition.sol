@@ -93,6 +93,15 @@ contract Petition is IPetition {
         emit PetitionSigned(pId, msg.sender);
     }
 
+    function hasSigned_zk(uint8 lIteration, bytes32 lIdentity) override external view returns (bool) {
+        bool has_signed = pHasSigned_zk[lIdentity] ? true : false;
+        if (!has_signed) {
+            return false;
+        }
+        (bytes32 rt, uint256 rtProofPeriod) = this.registry().idp().getHash(lIteration);
+        return (rtProofPeriod == this.period()) ? true : false;
+    }
+
     function signers() override external view returns (uint32) {
         return pSigners;
     }

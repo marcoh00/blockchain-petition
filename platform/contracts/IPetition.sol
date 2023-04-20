@@ -42,4 +42,5 @@ interface IPetition {
     function sign() external;
     function signers() external view returns (uint32);
     function hasSigned(address) external view returns (uint32);
+    function hasSigned_zk(uint8, bytes32)  external view returns (bool);
 }

@@ -14,7 +14,7 @@ export interface IPetition {
     id: Uint8Array
     period: number
     signers: number
-    signed: boolean
+    signed?: boolean
 }
 
 export class EthereumConnector {
@@ -123,6 +123,16 @@ export class EthereumConnector {
 
     async url(): Promise<string> {
         return await this.idpcontract.methods.url().call();
+    }
+
+    async hasSigned_zk(petitionaddr: string, hpers: SHA256Hash, iteration: number): Promise<boolean> {
+        const contract = new this.api.eth.Contract((PetitionContract.abi as any), petitionaddr);
+        return await contract.methods.hasSigned_zk(iteration, `0x${hpers.toHex()}`).call();
+    }
+
+    async hasSigned(petitionaddr: string): Promise<boolean> {
+        const contract = new this.api.eth.Contract((PetitionContract.abi as any), petitionaddr);
+        return !!Number.parseInt(await contract.methods.hasSigned(`${this.account}`).call());
     }
 
     async petitions(): Promise<IPetition[]> {

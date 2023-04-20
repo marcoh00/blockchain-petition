@@ -189,7 +189,7 @@ export class MainPage extends decorateClassWithState(LitElement) {
 
     render() {
         console.log("Render Petitions", this.petitions);
-        let sign_func = (BLOCKTECH_TYPE == BLOCKTECH_TYPES.ohne_zk) ? this.signPetition : this.signPetition_zk;
+        let sign_func = (BLOCKTECH_TYPE === BLOCKTECH_TYPES.ohne_zk) ? this.signPetition : this.signPetition_zk;
         return html`
             <div class="cardlist">
                 <h1>Petitionen <span class="link" @click=${this.refreshClick}>${icon(faRefresh).node}</span></h1>
@@ -207,7 +207,7 @@ export class MainPage extends decorateClassWithState(LitElement) {
         if(!Array.isArray(this.petitions)) this.petitions = [];
     }
 
-    isSignable(petition: IPetition) {
+    isSignable(petition: IPetition) : boolean {
         const state = this.getState();
         const signable = state.repository.period_time_cache[petition.period].isNow();
         console.log(`petition w/ period ${petition.period} is signable? ${signable}`);

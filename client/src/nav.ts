@@ -336,5 +336,4 @@ export class IDPWidget extends decorateClassWithState(LitElement) {
         console.log(`Obtain credentials for period ${period}`);
         await this.idpmanager.credentialsForPeriod(period);
     }
-
 }

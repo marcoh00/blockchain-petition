@@ -1,3 +1,5 @@
+import { BLOCKTECH_TYPE, BLOCKTECH_TYPES } from "../../shared/addr";
+import { SHA256Hash } from "../../shared/merkle";
 import { EthereumConnector, IPetition } from "../../shared/web3";
 import { decorateClassWithState, IState } from "./state";
 
@@ -89,6 +91,26 @@ export class Web3Repository extends decorateClassWithState(Web3RepositoryBase) {
         const byPeriod: IPetitionByPeriod = {};
         for(const petition of await this.connector.petitions()) {
             await this.addToTimeCacheIfNeccessary(petition.period);
+            // Set petition.signed attribute which stands for if the petition was already signed by the user
+            if (BLOCKTECH_TYPE === BLOCKTECH_TYPES.mit_zk) {
+                if (this.getState().idp === undefined) {
+                    petition.signed = false;
+                } else {
+                    const regist_data = this.getState().idp.getRegistrationData(petition.period);
+                    if (regist_data.privkey === undefined) {
+                        petition.signed = false;
+                    } else {
+                    const pers = [
+                        ...Array.from(petition.id),
+                        ...Array.from(regist_data.privkey.rawValue())
+                    ];
+                    const hpers = await SHA256Hash.hashRaw(new Uint8Array(pers));
+                    petition.signed = await this.getState().connector.hasSigned_zk(petition.address, hpers, regist_data.credentials.iteration);
+                    }
+                }
+            } else {
+                petition.signed = await this.getState().connector.hasSigned(petition.address);
+            }
             if(!byPeriod.hasOwnProperty(petition.period.toString())) byPeriod[petition.period.toString()] = [];
             byPeriod[petition.period.toString()].push(petition);
             this.petitions_by_id[idToNumber(petition.id).toString()] = petition;
