@@ -26,6 +26,13 @@ contract Petition is IPetition {
         pHiddenByOperator = lHidden;
     }
 
+    // receive() and fallback() added due to this issue
+    // https://stackoverflow.com/questions/72101643/hardhat-what-are-the-strange-calls-to-my-smart-contract
+    receive() external payable {}
+
+    // * fallback function
+    fallback() external payable {}
+
     function name() override external view returns (bytes32) {
         return pName;
     }
