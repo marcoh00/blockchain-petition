@@ -48,7 +48,11 @@ export const buttonMixin = css`
     }
 
     .mediumbtn {
-        font-size: 1.5em;
+        font-size: 2.0em;
+    }
+
+    .smallbtn {
+        font-size: 1.0em;
     }
 
     .hugebtn {

@@ -76,7 +76,7 @@ export class ConnectionPage extends decorateClassWithState(LitElement) {
 }
 
 export class RegistryChooser extends LitElement {
-    static styles = [faStyle, basicFlex, topDownFlex, css`
+    static styles = [faStyle, basicFlex, topDownFlex, buttonMixin, css`
     :host {
         align-items: center;
         word-wrap: break-word;
@@ -86,16 +86,24 @@ export class RegistryChooser extends LitElement {
         display: grid;
         grid-template-areas:
             "cb descr descr descr ident"
-            "cb descr descr descr ident"
             "cb sdesc sdesc sdesc ident";
         grid-template-columns: repeat(5, 15vw);
         grid-template-rows: 1fr 1fr 1fr;
-        justify-items: stretch;
-        align-items: center;
-        justify-content: stretch;
-        align-content: start;
     }
 
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      
+      th, td {
+        padding: 10px;
+        text-align: center;
+        border: 1px solid #ddd;
+    }
+    
     .acheckbox {
         grid-area: cb;
     }
@@ -128,7 +136,7 @@ export class RegistryChooser extends LitElement {
     registries: any[] = [
         {
             addr: NETWORKS.localhost.registry_contract,
-            descr: "Testcontract auf lokaler Entwicklungs-Blockchain",
+            descr: "Testcontract auf lokaler Blockchain",
             ident: "Texteingabe",
             chainid: NETWORKS.localhost.chainid
         },
@@ -180,66 +188,71 @@ export class RegistryChooser extends LitElement {
         this.select(this.defaultOption, true);
     }
 
-    private customOptionTemplate() {
-        return html`
-        ${this.inputCustom ? html`
-            <div class="entry">
-                <div class="acheckbox">
-                    <input type="radio" value="-1" name="contract" @click=${this.selectionChange} ?disabled=${!this.customValid}>
-                </div>
-                <div class="adescr">
-                    <input type="text" id="customcontract" class="${this.customValid || !this.customTouched ? "" : "invalid"}" @input=${this.customAddrChange}>
-                </div>
-                <div class="asdesc">
-                    Blockchain-Adresse einer eigenen, kompatiblen Registrierungsstelle
-                </div>
-            </div>`
-            : ``}
-        ${!this.inputCustom ? 
-            html`<button @click=${() =>this.inputCustom = !this.inputCustom}>${icon(faArrowDown).node} Selbst Erstelle Blockchain Eintragen </button>`
-            : ""}`
-    }
-
-    private selectableOptionTemplate(registry: any, idx: number) {
+    private addTableRow(registry: any, idx: number) {
         let customRadioBox: any; 
-        // Only true if we render the last element in the registries array. 
+        // Only true if we render the last element in the registries array this is the choose custom Blockchain Option. 
         // This happens because the index of the registry element is equal to the length of the registries array minus one
-        if (idx === (this.registries.length - 1)) {
-            customRadioBox = this.customOptionTemplate()
+        if (this.inputCustom && (idx === (this.registries.length - 1))) {
+            // Eigene Blockchain eintragen
+            customRadioBox = html`
+            <tr>
+                <td>
+                    <div class="acheckbox">
+                        <input type="radio" value="-1" name="contract" @click=${this.selectionChange} ?disabled=${!this.customValid}>
+                    </div>
+                </td>
+                <td>
+                    <div class="adescr">
+                        <input type="text" id="customcontract" class="${this.customValid || !this.customTouched ? "" : "invalid"}" @input=${this.customAddrChange}>
+                    </div>
+                    <div class="asdesc"> Blockchain-Adresse einer eigenen, kompatiblen Registrierungsstelle </div>
+                </td>
+                <td>
+                    Selbst Wählbar
+                </td>
+            </tr>`;
         }
         return html`
-        <div class="entry">
-            <div class="acheckbox">
-                <input type="radio" value="${idx}" id="contract-${idx}" name="contract" @click=${this.selectionChange}>
-            </div>
-            <div class="adescr" @click=${() => this.select(idx, true)}>
-                ${registry.descr}, 
-            </div>
-            <div class="asdesc" @click=${() => this.select(idx, true)}>
-                ${registry.addr}
-            </div>
-            <div class="aident">
-            ${registry.ident}
-            </div>
-        </div> ${customRadioBox}`
+        <tr>
+            <td>
+                <div class="acheckbox">
+                    <input type="radio" value="${idx}" id="contract-${idx}" name="contract" @click=${this.selectionChange}>
+                </div>
+            </td>
+            <td>
+                <div class="adescr" @click=${() => this.select(idx, true)}>${registry.descr}, </div>
+                <div class="asdesc" @click=${() => this.select(idx, true)}>${registry.addr}</div>
+            </td>
+            <td>
+                ${registry.ident}
+            </td>
+        </tr> ${customRadioBox}`
     }
 
     render() {
         return html`
-            <div class="entry">
-                <div class="aident">
-                ${icon(faAddressCard).node} Identifizierung durch
-                </div>
-            </div>
-            ${this.seeAdvanced ?
-                // Iterate of all registries along with their corresponding index
-                this.registries.map((registry, idx) => this.selectableOptionTemplate(registry, idx))
-                // Set the first registry as the only registry to be rendered. 
-                : this.selectableOptionTemplate(this.registries[this.defaultOption], this.defaultOption)}
-            ${!this.seeAdvanced ? 
-                html`<button @click=${() =>this.seeAdvanced = !this.seeAdvanced}>${icon(faArrowDown).node} Weitere Blockchains </button> ` 
-                : ""}
-            `;
+        <table>
+            <thead>
+            <tr>
+                <th> </th>
+                <th>Blockchain</th>
+                <th>${icon(faAddressCard).node} Identifizierungsmethode</th>
+            </tr>
+            </thead>
+            <tbody>
+                ${this.seeAdvanced ?
+                    // Iterate of all registries along with their corresponding index
+                    this.registries.map((registry, idx) => this.addTableRow(registry, idx))
+                    // Set the first registry as the only registry to be rendered. 
+                    : this.addTableRow(this.registries[this.defaultOption], this.defaultOption)}
+            </tbody>
+        </table>
+        ${!this.seeAdvanced ? 
+            html`<button class="smallbtn" @click=${() =>this.seeAdvanced = !this.seeAdvanced}>${icon(faArrowDown).node} Weitere Blockchains </button>` 
+        // Blockchain selber eintragen (Else Fall)
+        : !this.inputCustom ? 
+            html`<button @click=${() =>this.inputCustom = !this.inputCustom}>${icon(faArrowDown).node} Selbst Erstellte Blockchain Eintragen </button>`
+            : ""}`;
     }
 
     select(idx: number, toggle: boolean = false) {

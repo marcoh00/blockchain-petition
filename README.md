@@ -79,7 +79,13 @@ Eine Petition ist einer Abstimmungsperiode fest zugeordnet.
 
 Eine aktuelle Version von [nodejs](https://nodejs.org) wird benötigt.
 
+Installation der zusammenhängenden Bibliothek (im [shared](shared) Ordner ausführen)
+```
+npm install
+```
+
 ## Smart Contract Platform
+im [platform](platform) Ordner
 
 Installation der Abhängigkeiten
 ```
@@ -105,6 +111,7 @@ npx hardhat run --network localhost scripts/testpetitions.ts
 ```
 
 ## IDP
+im [ipd](idp) Ordner
 
 Installation der Abhängigkeiten
 ```
@@ -127,6 +134,7 @@ npm run start
 ```
 
 ## Client
+im [client](client) Ordner
 
 Installation der Abhängigkeiten
 ```
