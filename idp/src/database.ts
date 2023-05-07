@@ -15,7 +15,25 @@ export class Database {
     }
 
     maybe_init() {
-        this.db.get("SELECT schema FROM idp_meta", (err, row) => { if(row === undefined || Number.parseInt(row.schema) < 1) this.init() });
+        this.db.get(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='idp_meta'",
+            (error, row: {name: string}) => {
+              if (error) {
+                console.error(error.message);
+              } else if (row) {
+                this.db.get("SELECT schema FROM idp_meta", (err, row: {schema: string}) => { 
+                    if(row === undefined || Number.parseInt(row.schema) < 1) {
+                        // DB wurde noch nicht richtig initialisiert
+                        this.init();
+                    } 
+                });
+              } else {
+                // DB wurde noch nicht initialisiert
+                this.init();
+              }
+            }
+          );
+        //;
     }
 
     async isRegistered(registration: IRegistration): Promise<boolean> {
