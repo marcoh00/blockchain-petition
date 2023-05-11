@@ -66,8 +66,8 @@ export class PeriodWidget extends decorateClassWithState(LitElement) {
                 "larr nana  descr nanc"
                 "larr clock descr rarr"
                 "larr nanb  descr nand";
-            grid-template-columns: 1fr 2fr 4fr 1fr;
-            grid-template-rows: 1fr 1fr 1fr;
+            grid-template-columns: 1fr 2fr 6fr 1fr;
+            grid-template-rows: 1fr 2fr 1fr;
             justify-items: stretch;
             align-items: center;
             justify-content: center;
@@ -134,7 +134,7 @@ export class PeriodWidget extends decorateClassWithState(LitElement) {
             </div>
             <div class="info text">
                 <div class="periodno">
-                    ${this.period <= 0 ? html`
+                 Wahlperiode: ${this.period <= 0 ? html`
                         Unbekannt
                     ` : html`
                         ${this.period}
@@ -143,7 +143,7 @@ export class PeriodWidget extends decorateClassWithState(LitElement) {
                 ${this.period <= 0 ? html`` : html`
                     <div class="timespan">
                         <div class="tsfrom">
-                            ${PeriodWidget.dateToDisplayString(this.ts_from)}
+                            Von ${PeriodWidget.dateToDisplayString(this.ts_from)}
                         </div>
                         <div class="tsuntil">
                             bis ${PeriodWidget.dateToDisplayString(this.ts_until)}
@@ -194,6 +194,9 @@ export class PeriodWidget extends decorateClassWithState(LitElement) {
     }
 
     static dateToDisplayString(d: Date) {
+        if (d === undefined) {
+            return "-1";
+        }
         let year = d.getFullYear();
         let month = d.getMonth() + 1; // Zero-indexed
         let day = d.getDate();
