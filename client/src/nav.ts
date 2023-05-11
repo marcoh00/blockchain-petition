@@ -6,6 +6,7 @@ import { icon } from '@fortawesome/fontawesome-svg-core';
 import { faAddressCard, faChevronLeft, faChevronRight, faCircleXmark, faClock, faCross, faQuestionCircle, faSpinner } from '@fortawesome/free-solid-svg-icons';
 import { faEthereum } from '@fortawesome/free-brands-svg-icons';
 import { IDPManager } from './idp';
+import { BLOCKTECH_TYPE, BLOCKTECH_TYPES } from '../../shared/addr';
 
 export class InformationalInfobar extends LitElement {
     static styles = [faStyle, basicFlex, leftRightFlex, buttonMixin, colorfulBar,
@@ -274,7 +275,8 @@ export class IDPWidget extends decorateClassWithState(LitElement) {
     }
 
     render() {
-        return this.stage < 1 ? html`Keine Identität festgelegt` : html`
+        if (BLOCKTECH_TYPE === BLOCKTECH_TYPES.mit_zk) {
+            return this.stage < 1 ? html`Keine Identität festgelegt` : html`
             <div class="grid">
                 <div class="logo">
                     ${icon(faAddressCard).node}
@@ -293,6 +295,8 @@ export class IDPWidget extends decorateClassWithState(LitElement) {
                 </div>
             </div>
         `;
+        }
+        return "";
     }
 
     stateText() {
