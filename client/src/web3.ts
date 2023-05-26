@@ -3,6 +3,7 @@ import Web3 from "web3";
 import { EthereumConnector } from "../../shared/web3";
 import { decorateClassWithState } from "./state";
 import { getWeb3Repository } from "./web3repository";
+import { BLOCKTECH_TYPES } from "../../shared/addr";
 
 interface IWeb3Connected {
     onWeb3Connect(provider: any): Promise<void>
@@ -77,9 +78,10 @@ export function decorateClassWithWeb3<T extends ClassType>(decorated: T) {
 export class WebEthereumConnector extends decorateClassWithWeb3(decorateClassWithState(EthereumConnector)) {
     accounts?: string[]
 
-    constructor(provider: any, registryaddr: string, account?: string, privkey?: string, chainid?: number) {
-        super(provider, registryaddr, account, privkey, chainid);
-        console.log("Init WebEth Web3 with provider", provider, registryaddr, account, privkey, chainid);
+    constructor(provider: any, registryaddr: string, account?: string, privkey?: string, chainid?: number,
+        blockchaintype?: BLOCKTECH_TYPES) {
+        super(provider, registryaddr, account, privkey, chainid, blockchaintype);
+        console.log("Init WebEth Web3 with provider", provider, registryaddr, account, privkey, chainid, blockchaintype);
         this.connected = false;
         this.accounts = [];
     }

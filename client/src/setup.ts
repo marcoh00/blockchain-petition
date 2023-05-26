@@ -43,6 +43,9 @@ export class ConnectionPage extends decorateClassWithState(LitElement) {
 
     @property()
     chainid?: number = null
+
+    @property()
+    blockchaintype?: BLOCKTECH_TYPES = null;
     
     render() {
         const btnDsiabled = typeof(this.contract) !== "string";
@@ -57,6 +60,7 @@ export class ConnectionPage extends decorateClassWithState(LitElement) {
     registryClick(e: CustomEvent) {
         this.contract = e.detail.contract;
         this.chainid = e.detail.chainid;
+        this.blockchaintype = e.detail.blockchaintype;
         console.log("registryClick", e);
     }
 
@@ -68,7 +72,7 @@ export class ConnectionPage extends decorateClassWithState(LitElement) {
             return;
         }
         try {
-            await new WebEthereumConnector(window.ethereum, this.contract, null, null, this.chainid).init();
+            await new WebEthereumConnector(window.ethereum, this.contract, null, null, this.chainid, this.blockchaintype).init();
         } catch(e) {
             this.stateError(`Konnte nicht zu Ethereum verbinden. Ist die Contract-Adresse korrekt? Fehler: ${e}`);
         }
@@ -276,7 +280,8 @@ export class RegistryChooser extends LitElement {
             bubbles: true,
             detail: {
                 contract: this.lastSelected === -1? this.customAddr : this.registries[idx].addr,
-                chainid: this.lastSelected === -1? undefined : this.registries[idx].chainid
+                chainid: this.lastSelected === -1? undefined : this.registries[idx].chainid,
+                blockchaintype: this.lastSelected === -1? undefined: this.registries[idx].chaintype,
             }
         }));
         if(toggle) {

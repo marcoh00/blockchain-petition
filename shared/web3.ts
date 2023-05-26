@@ -25,14 +25,22 @@ export class EthereumConnector {
     account?: string
     privkey?: string
     chainid?: number
+    blockchaintype?: BLOCKTECH_TYPES
 
-    constructor(provider: any, registryaddr: string, account?: string, privkey?: string, chainid?: number) {
-        if(Array.isArray(provider) && provider.length === 5) [provider, registryaddr, account, privkey, chainid] = provider;
+    constructor(provider: any, registryaddr: string, account?: string, privkey?: string, chainid?: number, 
+            blockchaintype?: BLOCKTECH_TYPES) {
+        if(Array.isArray(provider) && provider.length === 6) {
+            // Alle übergebenen Argumente von der decorateClassWithWeb3 Klasse sind
+            // nur in provider paramenter und müssen entpackt werden
+            // Grund: Kein Constructor overloading in typescript!
+            [provider, registryaddr, account, privkey, chainid, blockchaintype] = provider;
+        } 
         this.api = new Web3(provider);
         this.registryaddr = registryaddr;
         this.account = account;
         this.privkey = privkey;
         this.chainid = chainid;
+        this.blockchaintype = blockchaintype;
     }
 
     async init() {
