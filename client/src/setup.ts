@@ -138,19 +138,22 @@ export class RegistryChooser extends LitElement {
             addr: NETWORKS.localhost.registry_contract,
             descr: "Testcontract auf lokaler Blockchain",
             ident: "Texteingabe",
-            chainid: NETWORKS.localhost.chainid
+            chainid: NETWORKS.localhost.chainid,
+            chaintype: BLOCKTECH_TYPES.mit_zk
         },
         {
             addr: NETWORKS.sepolia.registry_contract,
             descr: "Testcontract auf Sepolia-Blockchain",
             ident: "Texteingabe",
-            chainid: NETWORKS.sepolia.chainid
+            chainid: NETWORKS.sepolia.chainid,
+            chaintype: BLOCKTECH_TYPES.ohne_zk
         },
         {
             addr: NETWORKS.goerli.registry_contract,
             descr: "Testcontract auf Goerli-Blockchain",
             ident: "Texteingabe",
-            chainid: NETWORKS.goerli.chainid
+            chainid: NETWORKS.goerli.chainid,
+            chaintype: BLOCKTECH_TYPES.ohne_zk
         }];
 
     @property({type: Boolean})
@@ -210,6 +213,9 @@ export class RegistryChooser extends LitElement {
                 <td>
                     Selbst Wählbar
                 </td>
+                <td>
+                    Unbekannt
+                </td>
             </tr>`;
         }
         return html`
@@ -226,6 +232,9 @@ export class RegistryChooser extends LitElement {
             <td>
                 ${registry.ident}
             </td>
+            <td>
+                ${registry.chaintype === BLOCKTECH_TYPES.mit_zk ? "Zero knowledge": "Ohne zero knowledge"}
+            </td>
         </tr> ${customRadioBox}`
     }
 
@@ -237,6 +246,7 @@ export class RegistryChooser extends LitElement {
                 <th> </th>
                 <th>Blockchain</th>
                 <th>${icon(faAddressCard).node} Identifizierungsmethode</th>
+                <th>BlockChain Typ</th>
             </tr>
             </thead>
             <tbody>
