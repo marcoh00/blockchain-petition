@@ -14,11 +14,12 @@ export interface IProofRequest {
     token: string
 }
 
-export const checkRegistration = (registration: IRegistration, minperiod?: number, maxperiod?: number): boolean => {
-    if (BLOCKTECH_TYPE === BLOCKTECH_TYPES.ohne_zk) {
+export const checkRegistration = (registration: IRegistration, idpType: BLOCKTECH_TYPES, 
+    minperiod?: number, maxperiod?: number,): boolean => {
+    if (idpType === BLOCKTECH_TYPES.ohne_zk) {
         if(registration.client_identity.length != 42) return false;
     }
-    if (BLOCKTECH_TYPE === BLOCKTECH_TYPES.mit_zk) {
+    if (idpType === BLOCKTECH_TYPES.mit_zk) {
         if(registration.client_identity.length != 64) return false;
         if(invalidHex.test(registration.client_identity)) return false;
     }

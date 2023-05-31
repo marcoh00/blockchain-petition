@@ -4,9 +4,9 @@ import { randomBytes } from "crypto";
 import { checkRegistration, checkValidType, IRegistration, IProofRequest } from "./api";
 import { Database } from "./database";
 import { EthereumConnector } from "../../shared/web3";
-import { SHA256Hash, MerkleTree } from '../../shared/merkle';
-import { NETWORKS, DEFAULT_NETWORK, PORT, DBFILE, PROVINGKEY, BLOCKTECH_TYPE, BLOCKTECH_TYPES } from '../../shared/addr';
+import { DEFAULT_NETWORK, DBFILE, PROVINGKEY, BLOCKTECH_TYPES } from '../../shared/addr';
 import { intervalTask } from "./task";
+import yargs from 'yargs';
 
 const app = express();
 app.use(express.json());
@@ -18,9 +18,14 @@ const ACCOUNT = DEFAULT_NETWORK.account;
 const PRIVKEY = DEFAULT_NETWORK.privkey;
 const ethereum = new EthereumConnector(API, REGISTRY_CONTRACT, ACCOUNT, PRIVKEY);
 
+const argv = yargs.argv;
+const IDPTYPE: BLOCKTECH_TYPES = argv.type === "zk" ? BLOCKTECH_TYPES.mit_zk: BLOCKTECH_TYPES.ohne_zk;
+const PORT: number = argv.port === undefined ? 65535 :parseInt(argv.port);
+console.log("Start IDP with Type:" , IDPTYPE);
+
 const corsOptions: CorsOptions = {
     methods: ["GET", "POST"],
-    origin: ["http://localhost:8080", "http://localhost:65535"]
+    origin: ["http://localhost:8080", `http://localhost:${PORT}`]
 }
 
 app.use("/proving.key", cors(corsOptions), express.static(PROVINGKEY));
@@ -109,14 +114,14 @@ app.post('/register', cors(corsOptions), async (req, res) => {
         console.log("register endpoint: request for current period");
         registration.period = minperiod;
     }
-    if(!checkRegistration(registration, minperiod, maxperiod)) {
+    if(!checkRegistration(registration, IDPTYPE, minperiod, maxperiod)) {
         res.statusCode = 400;
         res.json({ "error": "Invalid registration" });
         return;
     }
     try {
         const token = randomBytes(32).toString("hex");
-        if (BLOCKTECH_TYPE === BLOCKTECH_TYPES.mit_zk) {
+        if (IDPTYPE === BLOCKTECH_TYPES.mit_zk) {
             if(await database.isRegistered(registration)) {
                 res.statusCode = 405;
                 res.json({ "error": "Public Key is already registered for given period" });
@@ -156,7 +161,7 @@ app.listen(PORT, async () => {
     console.log(`💾 Connecting to database at ${DBFILE}`);
     const interval = Math.ceil(await ethereum.interval());
     console.log(`🌐 Try to create a new tree hash every ${interval}s`);
-    if (BLOCKTECH_TYPE === BLOCKTECH_TYPES.mit_zk) {
+    if (IDPTYPE === BLOCKTECH_TYPES.mit_zk) {
         setInterval(repeat, interval * 1000);
     } // else ohne zk
     
