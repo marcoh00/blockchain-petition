@@ -11,13 +11,15 @@ contract IDP is IIDP {
     event VotingRightAdded(address toAllow,  uint256 indexed period);
     bytes32[255] private pRoot;
     uint256[255] private pRootForPeriod;
+    string idpUrl;
 
     event HashAdded(bytes32 indexed root, uint256 indexed period, uint8 iteration);
 
     // The lDepth argument needed for zk
-    constructor(uint8 lDepth, uint256 lPeriodLen) {
+    constructor(uint8 lDepth, uint256 lPeriodLen, string memory lidpUrl) {
         DEPTH = lDepth;
         PERIOD_LEN = lPeriodLen;
+        idpUrl = lidpUrl;
     }
 
     // Needed for zk
@@ -82,6 +84,6 @@ contract IDP is IIDP {
     }
 
     function url() override external view returns (string memory) {
-return "http://localhost:65535"; // replace
+        return idpUrl;
     }
 }
