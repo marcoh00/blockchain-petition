@@ -33,6 +33,10 @@ export class LandingPage extends LitElement {
 }
 
 export class ConnectionPage extends decorateClassWithState(LitElement) {
+    /** Diese Klasse ist dafür da um die Verbindung zu der Blockchain aufzubauen.
+     * Das Eigentliche Verbindungsobjekt ist der WebEthereumConnector. 
+     * Dieses wird im globalen State abgelegt und steht dort zur verfügung (siehe implementation von init()).
+     */
     static styles = [faStyle, basicFlex, topDownFlex, buttonMixin, css`
         :host {
             align-items: center;
@@ -143,7 +147,7 @@ export class RegistryChooser extends LitElement {
             descr: "Testcontract auf lokaler Blockchain",
             ident: "Texteingabe",
             chainid: NETWORKS.localhost.chainid,
-            chaintype: BLOCKTECH_TYPES.mit_zk
+            chaintype: BLOCKTECH_TYPE
         },
         {
             addr: NETWORKS.sepolia.registry_contract,
@@ -330,7 +334,7 @@ export class IdentityPage extends decorateClassWithState(LitElement) {
     name: string = "";
 
     render() {
-        if (BLOCKTECH_TYPE === BLOCKTECH_TYPES.ohne_zk) {
+        if (this.getState().connector.blockchaintype === BLOCKTECH_TYPES.ohne_zk) {
             this.name = this.getState().connector.account;
             this.setState({
                 ...this.getState(),

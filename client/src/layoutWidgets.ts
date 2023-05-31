@@ -189,7 +189,7 @@ export class MainPage extends decorateClassWithState(LitElement) {
 
     render() {
         console.log("Render Petitions", this.petitions);
-        let sign_func = (BLOCKTECH_TYPE === BLOCKTECH_TYPES.ohne_zk) ? this.signPetition : this.signPetition_zk;
+        let sign_func = (this.getState().connector.blockchaintype === BLOCKTECH_TYPES.ohne_zk) ? this.signPetition : this.signPetition_zk;
         return html`
             <div class="cardlist">
                 <h1>Petitionen <span class="link" @click=${this.refreshClick}>${icon(faRefresh).node}</span></h1>

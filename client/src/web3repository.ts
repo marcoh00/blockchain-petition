@@ -92,7 +92,7 @@ export class Web3Repository extends decorateClassWithState(Web3RepositoryBase) {
         for(const petition of await this.connector.petitions()) {
             await this.addToTimeCacheIfNeccessary(petition.period);
             // Set petition.signed attribute which stands for if the petition was already signed by the user
-            if (BLOCKTECH_TYPE === BLOCKTECH_TYPES.mit_zk) {
+            if (this.getState().connector.blockchaintype === BLOCKTECH_TYPES.mit_zk) {
                 if (this.getState().idp === undefined) {
                     petition.signed = false;
                 } else {
