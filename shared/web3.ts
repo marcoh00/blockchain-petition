@@ -5,7 +5,7 @@ import IDPContract from "../platform/artifacts/contracts/IDP.sol/IDP.json";
 import RegistryContract from "../platform/artifacts/contracts/Registry.sol/Registry.json";
 import PetitionContract from "../platform/artifacts/contracts/Petition.sol/Petition.json";
 import { SHA256Hash } from './merkle';
-import { BLOCKTECH_TYPE, BLOCKTECH_TYPES } from './addr';
+import { BLOCKTECH_TYPES } from './addr';
 
 export interface IPetition {
     address: string
@@ -60,18 +60,12 @@ export class EthereumConnector {
         }
     }
 
-    async submitHash(client_identity: string, period: number): Promise<EventData> {
+    async submitHash_zk(client_identity: string, period: number): Promise<EventData> {
         /**
          * @param {string} client_identity - Dies ist in zk die Identität die in der client Maske Eingetragen wurde.
          * In Ohne Zk ist es der Ethereum Account 
          */
-        let method;
-        if (BLOCKTECH_TYPE === BLOCKTECH_TYPES.mit_zk) {
-            method = this.idpcontract.methods.submitHash(`0x${client_identity}`, period);
-        } else {
-            // ohne zk
-            method  = this.idpcontract.methods.submitVotingRight(`${client_identity}`, period)
-        }
+        let method = this.idpcontract.methods.submitHash(`0x${client_identity}`, period);
         const data = method.encodeABI();
         const gas = await method.estimateGas();
         const raw_tx = {
@@ -84,15 +78,28 @@ export class EthereumConnector {
         const signed = await this.api.eth.accounts.signTransaction(raw_tx, this.privkey!);
         const web3result = await this.api.eth.sendSignedTransaction(signed.rawTransaction!);
         
-        if (BLOCKTECH_TYPE === BLOCKTECH_TYPES.mit_zk) {
-            // Man holt sich den "iteration" Wert von der Block chain. Dieser Wert steht im Event der 
-            // von der vorherigen Tansaktion emitiert wurde (Event vom submitHash smart contract)
-            const event = await this.idpcontract.getPastEvents("HashAdded", {filter: { transactionHash: web3result.transactionHash } });
-            if (event.length > 1) {
-                console.error(event);
-            }
-            return event[0];
+        // Man holt sich den "iteration" Wert von der Block chain. Dieser Wert steht im Event der 
+        // von der vorherigen Tansaktion emitiert wurde (Event vom submitHash smart contract)
+        const event = await this.idpcontract.getPastEvents("HashAdded", {filter: { transactionHash: web3result.transactionHash } });
+        if (event.length > 1) {
+            console.error(event);
         }
+        return event[0];
+    }
+
+    async submitHash(client_identity: string, period: number) {
+        let method = this.idpcontract.methods.submitVotingRight(`${client_identity}`, period);
+        const data = method.encodeABI();
+        const gas = await method.estimateGas();
+        const raw_tx = {
+            from: this.account,
+            to: await this.registrycontract.methods.idp().call(),
+            data,
+            gas
+        };
+        console.log("Transaction", raw_tx);
+        const signed = await this.api.eth.accounts.signTransaction(raw_tx, this.privkey!);
+        await this.api.eth.sendSignedTransaction(signed.rawTransaction!); 
     }
 
     async period(): Promise<number> {

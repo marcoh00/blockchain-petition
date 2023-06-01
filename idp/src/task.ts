@@ -43,7 +43,7 @@ async function generateAndInsertProofs(db: Database, tree: MerkleTree, hashes_co
 async function includeTrees(web3: EthereumConnector, period: number, trees_to_include: Array<string>): Promise<Array<EventInformation>> {
     const iteration_promises = [];
     for(let tree of trees_to_include) {
-        const event = await web3.submitHash(tree, period);
+        const event = await web3.submitHash_zk(tree, period);
         const hash_result = event.returnValues[0] as string;
         const hash = hash_result.startsWith("0x") ? hash_result.substring(2) : hash_result;
         iteration_promises.push({"hash": hash, 
