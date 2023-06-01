@@ -128,9 +128,13 @@ const contract = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
 const databasefile = `/home/mhuens2m/build/petition/idp/dist/database.db`;
 ```
 
-Start des Servers
+Start des Zk Servers
 ```
-npm run start
+npm run start -- --type zk --port 65530
+```
+Start des Ohne ZK Servers
+```
+npm run start -- --type normal --port 65535
 ```
 
 ## Client
