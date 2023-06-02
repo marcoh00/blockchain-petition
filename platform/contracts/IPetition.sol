@@ -10,7 +10,6 @@ interface IIDP {
     function period() external view returns (uint256);
     function url() external view returns (string memory);
     // Needed for zk
-    function url_zk() external view returns (string memory);
     function submitHash(bytes32, uint256) external returns (uint256);
     function getHash(uint8) external view returns (bytes32, uint256);
     function lastIteration() external view returns (uint8);

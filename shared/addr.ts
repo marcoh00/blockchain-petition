@@ -1,4 +1,6 @@
-export const REGISTRY_CONTRACT_HARDHAT = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
+export const REGISTRY_CONTRACT_HARDHAT = "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9";
+export const REGISTRY_CONTRACT_HARDHAT_ZK = "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9";
+
 export const REGISTRY_CONTRACT_GOERLI = "0x99DC5A12d18afDdfF802980353A5be36Fd7247A3";
 export const REGISTRY_CONTRACT_GOERLI_PUBLIC = "0xE74d9d7e37aC285634a69BC5196C0e5Fd8a025d8";
 export const REGISTRY_CONTRACT_SEPOLIA = "0xcCB184e2aeF7fF89E4739897e5564F351469a9f0";
@@ -36,6 +38,7 @@ interface INetworkConnectionSettings {
     account: string
     privkey: string
     registry_contract?: string
+    registry_contract_zk?: string
 }
 
 interface INetworkList {
@@ -49,7 +52,16 @@ export const NETWORKS: INetworkList = {
         chainid: 31337,
         account: ACCOUNT_HARDHAT,
         privkey: PRIVKEY_HARDHAT,
-        registry_contract: REGISTRY_CONTRACT_HARDHAT
+        registry_contract: REGISTRY_CONTRACT_HARDHAT,
+        registry_contract_zk: REGISTRY_CONTRACT_HARDHAT_ZK
+    },
+    localhost_zk: {
+        api: API_HARDHAT,
+        wsapi: API_HARDHAT,
+        chainid: 31337,
+        account: ACCOUNT_HARDHAT,
+        privkey: PRIVKEY_HARDHAT,
+        registry_contract: REGISTRY_CONTRACT_HARDHAT_ZK
     },
     sepolia: {
         api: API_SEPOLIA_LAB,

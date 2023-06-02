@@ -69,7 +69,7 @@ export class IDPManager extends decorateClassWithState(IDPManagerBase) {
         let client_identity: string;
         if (this.getState().connector.blockchaintype === BLOCKTECH_TYPES.mit_zk) {
             client_identity = this.credentials[period].pubkey.toHex();
-            endpoint = await this.getState().connector.url_zk();
+            endpoint = await this.getState().connector.url();
         } else {
             // Ohne zk
             client_identity = this.getState().repository.connector.account;

@@ -17,13 +17,11 @@ contract IDP is IIDP {
     event HashAdded(bytes32 indexed root, uint256 indexed period, uint8 iteration);
 
     // The lDepth argument needed for zk
-    // lidpZkUrl soll die URL sein fuer die IDP mit zk
-    // lidpUrl soll die URL sein fuer die IDP ohne zk
-    constructor(uint8 lDepth, uint256 lPeriodLen, string memory lidpUrl, string memory lidpZkUrl) {
+    // lidpUrl soll die URL sein fuer die IDP sein
+    constructor(uint8 lDepth, uint256 lPeriodLen, string memory lidpUrl) {
         DEPTH = lDepth;
         PERIOD_LEN = lPeriodLen;
         idpUrl = lidpUrl;
-        idpZkUrl = lidpZkUrl;
     }
 
     // Needed for zk
@@ -91,7 +89,4 @@ contract IDP is IIDP {
         return idpUrl;
     }
 
-    function url_zk() override external view returns (string memory) {
-        return idpZkUrl;
-    }
 }

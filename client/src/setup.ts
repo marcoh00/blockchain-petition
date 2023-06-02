@@ -147,7 +147,14 @@ export class RegistryChooser extends LitElement {
             descr: "Testcontract auf lokaler Blockchain",
             ident: "Texteingabe",
             chainid: NETWORKS.localhost.chainid,
-            chaintype: BLOCKTECH_TYPE
+            chaintype: BLOCKTECH_TYPES.ohne_zk
+        },
+        {
+            addr: NETWORKS.localhost_zk.registry_contract,
+            descr: "Testcontract auf lokaler Blockchain mit ZK",
+            ident: "Texteingabe",
+            chainid: NETWORKS.localhost_zk.chainid,
+            chaintype: BLOCKTECH_TYPES.mit_zk
         },
         {
             addr: NETWORKS.sepolia.registry_contract,

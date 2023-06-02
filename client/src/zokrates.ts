@@ -163,7 +163,8 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
     }
 
     async download_pk() {
-        const url = `${await this.getState().connector.url_zk()}/proving.key`;
+        // url_zk() call
+        const url = `${await this.getState().connector.url()}/proving.key`;
         const response = await fetch(url);
         const filesize = Number.parseInt(response.headers.get("content-length"));
         

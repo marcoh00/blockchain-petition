@@ -4,24 +4,24 @@ import { randomBytes } from "crypto";
 import { checkRegistration, checkValidType, IRegistration, IProofRequest } from "./api";
 import { Database } from "./database";
 import { EthereumConnector } from "../../shared/web3";
-import { DEFAULT_NETWORK, DBFILE, PROVINGKEY, BLOCKTECH_TYPES } from '../../shared/addr';
+import { DEFAULT_NETWORK, DBFILE, PROVINGKEY, BLOCKTECH_TYPES, REGISTRY_CONTRACT_HARDHAT_ZK, REGISTRY_CONTRACT_HARDHAT } from '../../shared/addr';
 import { intervalTask } from "./task";
 import yargs from 'yargs';
 
 const app = express();
 app.use(express.json());
 
-const database = new Database(DBFILE);
-const API = DEFAULT_NETWORK.wsapi;
-const REGISTRY_CONTRACT = DEFAULT_NETWORK.registry_contract;
-const ACCOUNT = DEFAULT_NETWORK.account;
-const PRIVKEY = DEFAULT_NETWORK.privkey;
-const ethereum = new EthereumConnector(API, REGISTRY_CONTRACT, ACCOUNT, PRIVKEY);
-
 const argv = yargs.argv;
 const IDPTYPE: BLOCKTECH_TYPES = argv.type === "zk" ? BLOCKTECH_TYPES.mit_zk: BLOCKTECH_TYPES.ohne_zk;
 const PORT: number = argv.port === undefined ? 65535 :parseInt(argv.port);
 console.log("Start IDP with Type:" , IDPTYPE);
+
+const database = new Database(DBFILE);
+const API = DEFAULT_NETWORK.wsapi;
+const REGISTRY_CONTRACT = IDPTYPE === BLOCKTECH_TYPES.mit_zk ? DEFAULT_NETWORK.registry_contract_zk : DEFAULT_NETWORK.registry_contract;
+const ACCOUNT = DEFAULT_NETWORK.account;
+const PRIVKEY = DEFAULT_NETWORK.privkey;
+const ethereum = new EthereumConnector(API, REGISTRY_CONTRACT, ACCOUNT, PRIVKEY);
 
 const corsOptions: CorsOptions = {
     methods: ["GET", "POST"],

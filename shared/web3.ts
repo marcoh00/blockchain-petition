@@ -140,10 +140,6 @@ export class EthereumConnector {
         return await this.idpcontract.methods.url().call();
     }
 
-    async url_zk(): Promise<string> {
-        return await this.idpcontract.methods.url_zk().call();
-    }
-
     async hasSigned_zk(petitionaddr: string, hpers: SHA256Hash, iteration: number): Promise<boolean> {
         const contract = new this.api.eth.Contract((PetitionContract.abi as any), petitionaddr);
         return await contract.methods.hasSigned_zk(iteration, `0x${hpers.toHex()}`).call();

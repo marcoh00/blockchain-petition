@@ -4,9 +4,12 @@ import { DEFAULT_NETWORK } from "../../shared/addr";
 async function main() {
   const RegistryFactory = await ethers.getContractFactory("Registry");
   const Registry = await RegistryFactory.attach(DEFAULT_NETWORK.registry_contract as string);
+  const Registry_zk = await RegistryFactory.attach(DEFAULT_NETWORK.registry_contract_zk as string);
 
   const IDPFactory = await ethers.getContractFactory("IDP");
   const IDP = await IDPFactory.attach(await Registry.idp());
+
+  const IDP_zk = await IDPFactory.attach(await Registry_zk.idp());
 
   const names = [
       "Luftbrücke für die Ukraine",
@@ -38,11 +41,24 @@ async function main() {
       baseperiod + 3
   ];
 
-  const petition_promises: Promise<any>[] = [];
+  const baseperiod_zk = (await IDP_zk.period()).toNumber();
+  const periods_zk = [
+    baseperiod_zk,
+    baseperiod_zk,
+      0,
+      baseperiod_zk + 2,
+      baseperiod_zk + 3
+  ];
+
   const submittable_names = names
     .map((name) => ethers.utils.zeroPad(ethers.utils.toUtf8Bytes(name), 32));
   for(let i = 0; i < names.length; i++) {
     await Registry.createPetition(submittable_names[i], descriptions[i], periods[i]);
+    console.log(`Petition ${names[i]} added`)
+  }
+
+  for(let i = 0; i < names.length; i++) {
+    await Registry_zk.createPetition(submittable_names[i], descriptions[i], periods_zk[i]);
     console.log(`Petition ${names[i]} added`)
   }
 }
