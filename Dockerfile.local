@@ -4,19 +4,18 @@ ARG BRANCH=main
 ARG GITUSER=podmanBuildEthereumSeclab
 ARG GITPASS
 
-#RUN     dnf up --refresh -y && dnf install -y git nodejs npm && dnf clean all && \
 RUN     mkdir -p /build && cd /build && \
-        git clone -b ${BRANCH} https://${GITUSER}:${GITPASS}@git.fslab.de/mhuens2m/blocktechdiver-petitionen.git petitionen && \
-        echo "--- npm install shared ---" && \
-        cd  /build/petitionen/shared && npm install && \
-        echo "--- npm install hardhat & compile ---" && \
-        cd /build/petitionen/platform && npm install && npx hardhat compile && \
-        echo "--- npm install idp ---" && \
-        cd /build/petitionen/idp && npm install && \
+        git clone -b ${BRANCH} https://${GITUSER}:${GITPASS}@git.inf.h-brs.de/mhuens2m/btdv-petition.git petitionen && \
+        echo "--- yarn install shared ---" && \
+        cd  /build/petitionen/shared && yarn install && \
+        echo "--- yarn install hardhat & compile ---" && \
+        cd /build/petitionen/platform && yarn install && npx hardhat compile && \
+        echo "--- yarn install idp ---" && \
+        cd /build/petitionen/idp && yarn install && \
         echo "--- tsc idp ---" && \
         npx tsc -p /build/petitionen/idp/tsconfig.json && \
-        echo "--- npm install client ---" && \
-        cd /build/petitionen/client && npm install && \
+        echo "--- yarn install client ---" && \
+        cd /build/petitionen/client && yarn install && \
         echo "--- webpack client ---" && \
         npx webpack
 
