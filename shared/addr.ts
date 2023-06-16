@@ -79,6 +79,15 @@ export const NETWORKS: INetworkList = {
         privkey: PRIVKEY_GOERLI,
         registry_contract: REGISTRY_CONTRACT_GOERLI_PUBLIC
     },
+    tdf: {
+        api: API_SEPOLIA_LAB,
+        wsapi: API_SEPOLIA_WS_LAB,
+        chainid: 11155111,
+        account: ACCOUNT_GOERLI,
+        privkey: PRIVKEY_GOERLI,
+        registry_contract: "0x1ca6b867DdefA063916669DA26224169aEAE7470",
+        registry_contract_zk: "0x2696A79F93618B3F5e0154aFb87067e8A2f675D0"
+    },
     goerli: {
         api: API_GOERLI_LOCAL,
         wsapi: API_GOERLI_WS_LOCAL,
