@@ -143,6 +143,20 @@ export class RegistryChooser extends LitElement {
     @property({type: Array})
     registries: any[] = [
         {
+            addr: NETWORKS.tdf.registry_contract,
+            descr: "Testcontract im Sepolia-Netzwerk",
+            ident: "Texteingabe",
+            chainid: NETWORKS.tdf.chainid,
+            chaintype: BLOCKTECH_TYPES.ohne_zk
+        },
+        {
+            addr: NETWORKS.tdf.registry_contract_zk,
+            descr: "Testcontract im Sepolia-Netzwerk (ZK)",
+            ident: "Texteingabe",
+            chainid: NETWORKS.tdf.chainid,
+            chaintype: BLOCKTECH_TYPES.mit_zk
+        },
+        {
             addr: NETWORKS.localhost.registry_contract,
             descr: "Testcontract auf lokaler Blockchain",
             ident: "Texteingabe",
@@ -248,7 +262,7 @@ export class RegistryChooser extends LitElement {
                 ${registry.ident}
             </td>
             <td>
-                ${registry.chaintype === BLOCKTECH_TYPES.mit_zk ? "Zero knowledge": "Ohne zero knowledge"}
+                ${registry.chaintype === BLOCKTECH_TYPES.mit_zk ? "Zero Knowledge": "Ethereum-Adresse"}
             </td>
         </tr> ${customRadioBox}`
     }
@@ -269,7 +283,8 @@ export class RegistryChooser extends LitElement {
                     // Iterate of all registries along with their corresponding index
                     this.registries.map((registry, idx) => this.addTableRow(registry, idx))
                     // Set the first registry as the only registry to be rendered. 
-                    : this.addTableRow(this.registries[this.defaultOption], this.defaultOption)}
+                    : html`${this.addTableRow(this.registries[this.defaultOption], this.defaultOption)}${this.addTableRow(this.registries[this.defaultOption + 1], this.defaultOption + 1)}`
+                }
             </tbody>
         </table>
         ${!this.seeAdvanced ? 
