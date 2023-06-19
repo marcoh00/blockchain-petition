@@ -251,7 +251,7 @@ export class MainPage extends decorateClassWithState(LitElement) {
         this.setState({
             ...this.getState(),
             lockspinner: true,
-            locktext: "Petition unterschreiben…"
+            locktext: "Bestätigung durch Blockchain abwarten"
         });
         try {
             const tx = await this.getState().connector.signPetition(petition.address);
@@ -376,7 +376,7 @@ export class CreatePage extends decorateClassWithState(LitElement) {
         this.setState({
             ...this.getState(),
             lockspinner: true,
-            locktext: "Petition erstellen"
+            locktext: "Bestätigung durch Blockchain abwarten"
         });
         const state = this.getState();
         try {
