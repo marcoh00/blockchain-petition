@@ -55,7 +55,7 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
         });
     }
 
-    generateProof(program: Uint8Array, witness: string, provingKey: Uint8Array): Promise<Proof> {
+    generateProof(program: Uint8Array, witness: Uint8Array, provingKey: Uint8Array): Promise<Proof> {
         return new Promise((resolve, reject) => {
             const worker = new Worker(new URL("./compileZokratesWorker.js", import.meta.url));
             worker.onmessage = (e) => e.data[0] !== "error" ? resolve(e.data[1] as Proof) : reject(e.data[1]);
