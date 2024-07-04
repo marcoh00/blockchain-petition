@@ -1,33 +1,34 @@
-import "hashes/sha256/256bitPadded" as hash
-import "hashes/sha256/512bitPadded" as hash_concat
+from "hashes/sha256/256bitPadded" import main as hash;
+from "hashes/sha256/512bitPadded" import main as hash_concat;
 
-const u32 DEPTH = 3
+const u32 DEPTH = 3;
 
-def select(bool condition, u32[8] left, u32[8] right) -> (u32[8], u32[8]):
-	return if condition then right else left fi, if condition then left else right fi
+def select(bool condition, u32[8] left, u32[8] right) -> (u32[8], u32[8]) {
+	return (if condition { right } else { left }, if condition { left } else { right });
+}
 
-def merkleProofValidation(u32[8] merkleRoot, u32[8] leaf, bool[DEPTH] directionSelector, u32[DEPTH][8] path) -> bool:
+def merkleProofValidation(u32[8] merkleRoot, u32[8] leaf, bool[DEPTH] directionSelector, u32[DEPTH][8] path) -> bool {
 	// Start from the leaf
-	u32[8] digest = leaf
+	u32[8] mut digest = leaf;
 
 	// Loop up the tree
-	for u32 i in 0..DEPTH do
-		u32[8] left, u32[8] right = select(directionSelector[i], digest, path[i])
-		digest = hash_concat(left, right)
-	endfor
+	for u32 i in 0..DEPTH {
+		(u32[8], u32[8]) h = select(directionSelector[i], digest, path[i]);
+		digest = hash_concat(h.0, h.1);
+	}
 
-	return digest == merkleRoot
+	return digest == merkleRoot;
+}
 	
 
 
-def main(public u32[8] rt, public u32[8] H_pers, public u32[8] ID_Petition, private u32[8] K_priv, private u32[8] K_pub, private bool[DEPTH] directionSelector,  private u32[DEPTH][8] merkleproof):
+def main(public u32[8] rt, public u32[8] H_pers, public u32[8] ID_Petition, private u32[8] K_priv, private u32[8] K_pub, private bool[DEPTH] directionSelector,  private u32[DEPTH][8] merkleproof) {
 	//K_priv ist Urbild von  K_pub
-	assert(K_pub == hash(K_priv))
+	assert(K_pub == hash(K_priv));
 
 	//H_pers wurde korrekt berechnet
-	assert(H_pers == hash_concat(ID_Petition,K_priv))
+	assert(H_pers == hash_concat(ID_Petition,K_priv));
 	
 	//rt enthält K_pub
-	assert(merkleProofValidation(rt, K_pub, directionSelector, merkleproof))
-	
-	return
+	assert(merkleProofValidation(rt, K_pub, directionSelector, merkleproof));
+}

@@ -3,12 +3,26 @@
 set -e -x
 
 NETWORK=${1:-localhost}
-ADDPETITIONS=${2:-YES}
-DEPLOY=${3:-NO}
-IDPURL=${4:-http://localhost:65535}
+TYPE=${2:-zk}
+ADDPETITIONS=${3:-YES}
+DEPLOY=${4:-NO}
+STARTIDP=${5-YES}
+STARTCLIENT=${6:-YES}
+IDPURL=${7:-http://localhost:65535}
 PIDS=""
 
 sed -i 's/export const DEFAULT_NETWORK = NETWORKS.*/export const DEFAULT_NETWORK = NETWORKS.'"${NETWORK}"'/g' ${BASH_SOURCE%/*}/shared/addr.ts
+
+pushd ${BASH_SOURCE%/*}/zk
+
+if [ ! -f verification.key ] || [ ! -f proving.key ]; then
+	zokrates compile -i stimmrechtsbeweis.zok
+	zokrates setup
+	zokrates export-verifier
+	mv verifier.sol ../platform/contracts/StimmrechtsbeweisVerifier.sol
+fi
+
+popd
 
 pushd ${BASH_SOURCE%/*}/platform
 
@@ -40,19 +54,25 @@ fi
 
 popd
 
-echo "Starting IDP..."
-pushd ${BASH_SOURCE%/*}/idp
-npm run start &
-PIDS="${PIDS} $!"
-echo "IDP started"
-popd
+if [ ${STARTIDP} = "YES" ]
+then
+	echo "Starting IDP..."
+	pushd ${BASH_SOURCE%/*}/idp
+	npm run start -- $TYPE &
+	PIDS="${PIDS} $!"
+	echo "IDP started"
+	popd
+fi
 
-echo "Starting client..."
-pushd ${BASH_SOURCE%/*}/client
-npm run dev &
-PIDS="${PIDS} $!"
-echo "Client started"
-popd
+if [ ${STARTCLIENT} = "YES" ]
+then
+	echo "Starting client..."
+	pushd ${BASH_SOURCE%/*}/client
+	npm run dev &
+	PIDS="${PIDS} $!"
+	echo "Client started"
+	popd
+fi
 
 echo "[WAIT] [WAIT] [WAIT] [WAIT] [WAIT] [WAIT] [WAIT]"
 wait $PIDS
