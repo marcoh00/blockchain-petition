@@ -10,13 +10,16 @@
             "cwd": "${workspaceFolder}/idp",
             "runtimeArgs": [
                 "run",
-                "start"
+                "start",
+                "--",
+                "--type",
+                "zk"
             ],
             "runtimeExecutable": "npm",
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node"
         }
     ]
 }
