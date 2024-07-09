@@ -4,8 +4,8 @@ set -e -x
 
 NETWORK=${1:-localhost}
 TYPE=${2:-zk}
-ADDPETITIONS=${3:-YES}
-DEPLOY=${4:-NO}
+DEPLOY=${3:-NO}
+ADDPETITIONS=${4:-YES}
 STARTIDP=${5-YES}
 STARTCLIENT=${6:-YES}
 IDPURL=${7:-http://localhost:65535}
