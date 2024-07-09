@@ -1,11 +1,12 @@
 import Web3 from 'web3';
 import { hexToUtf8, hexToBytes, asciiToHex, padLeft } from 'web3-utils';
 import { Contract, EventData } from 'web3-eth-contract';
-import IDPContract from "../platform/artifacts/contracts/IDP.sol/IDP.json";
 import RegistryContract from "../platform/artifacts/contracts/Registry.sol/Registry.json";
-import PetitionContract from "../platform/artifacts/contracts/Petition.sol/Petition.json";
+import NaiveIDPContract from "../platform/artifacts/contracts/IDP.sol/NaiveIDP.json";
+import ZKIDPContract from "../platform/artifacts/contracts/IDP.sol/ZKIDP.json";
+import NaivePetitionContract from "../platform/artifacts/contracts/Petition.sol/NaivePetition.json";
+import ZKPetitionContract from "../platform/artifacts/contracts/Petition.sol/ZKPetition.json";
 import { SHA256Hash } from './merkle';
-import { BLOCKTECH_TYPES } from './addr';
 
 export interface IPetition {
     address: string
@@ -17,39 +18,56 @@ export interface IPetition {
     signed?: boolean
 }
 
-export class EthereumConnector {
+export async function getWeb3Connector(provider: any, registryaddr: string, account?: string, privkey?: string, chainid?: number): Promise<EthereumConnector> {
+    if(Array.isArray(provider) && provider.length === 6) {
+        // Alle übergebenen Argumente von der decorateClassWithWeb3 Klasse sind
+        // nur in provider paramenter und müssen entpackt werden
+        // Grund: Kein Constructor overloading in typescript!
+        [provider, registryaddr, account, privkey, chainid] = provider;
+    }
+    const web3 = new Web3(provider);
+    const registry = new web3.eth.Contract((RegistryContract.abi as any), registryaddr);
+    const regtype = Number.parseInt(await registry.methods.petitiontype().call()) as PetitionType;
+
+    let ethereum_connector = null;
+    switch(regtype) {
+        case PetitionType.Naive: {
+            ethereum_connector = new NaiveEthereumConnector(web3, registry, account, privkey, chainid);
+            break;
+        }
+        case PetitionType.ZK: {
+            ethereum_connector = new ZKEthereumConnector(web3, registry, account, privkey, chainid);
+            break;
+        }
+        default: throw Error("Unknown petition type");
+
+    }
+    await ethereum_connector.init();
+    return ethereum_connector;
+}
+
+export abstract class EthereumConnector {
     api: Web3
-    registryaddr: string
     registrycontract: Contract
     idpcontract: Contract
     account?: string
     privkey?: string
     chainid?: number
-    blockchaintype?: BLOCKTECH_TYPES
 
-    constructor(provider: any, registryaddr: string, account?: string, privkey?: string, chainid?: number, 
-            blockchaintype?: BLOCKTECH_TYPES) {
-        if(Array.isArray(provider) && provider.length === 6) {
-            // Alle übergebenen Argumente von der decorateClassWithWeb3 Klasse sind
-            // nur in provider paramenter und müssen entpackt werden
-            // Grund: Kein Constructor overloading in typescript!
-            [provider, registryaddr, account, privkey, chainid, blockchaintype] = provider;
-        } 
-        this.api = new Web3(provider);
-        this.registryaddr = registryaddr;
+    constructor(provider: Web3, registry: Contract, account?: string, privkey?: string, chainid?: number) {
+        this.api = provider;
+        this.registrycontract = registry;
         this.account = account;
         this.privkey = privkey;
         this.chainid = chainid;
-        this.blockchaintype = blockchaintype;
     }
 
     async init() {
         const wallet_chain_id = await this.api.eth.getChainId()
         if(this.chainid && wallet_chain_id !== this.chainid) throw new Error(`Falsche Blockchain ausgewählt (ist ${wallet_chain_id}, soll ${this.chainid})`);
-        this.registrycontract = new this.api.eth.Contract((RegistryContract.abi as any), this.registryaddr);
         const idpaddr = await this.registrycontract.methods.idp().call();
         console.log("🌐 Obtained IDP contract address", idpaddr);
-        this.idpcontract = new this.api.eth.Contract((IDPContract.abi as any), idpaddr);
+        this.idpcontract = this.idp(idpaddr);
 
         if(typeof(this.account) === "undefined") {
             const accounts = await this.api.eth.getAccounts();
@@ -60,54 +78,8 @@ export class EthereumConnector {
         }
     }
 
-    async submitHash_zk(client_identity: string, period: number): Promise<EventData> {
-        /**
-         * @param {string} client_identity - Dies ist in zk die Identität die in der client Maske Eingetragen wurde.
-         * In Ohne Zk ist es der Ethereum Account 
-         */
-        let method = this.idpcontract.methods.submitHash(`0x${client_identity}`, period);
-        const data = method.encodeABI();
-        const gas = await method.estimateGas();
-        const raw_tx = {
-            from: this.account,
-            to: await this.registrycontract.methods.idp().call(),
-            data,
-            gas
-        };
-        console.log("Transaction", raw_tx);
-        const signed = await this.api.eth.accounts.signTransaction(raw_tx, this.privkey!);
-        const web3result = await this.api.eth.sendSignedTransaction(signed.rawTransaction!);
-        
-        // Man holt sich den "iteration" Wert von der Block chain. Dieser Wert steht im Event der 
-        // von der vorherigen Tansaktion emitiert wurde (Event vom submitHash smart contract)
-        const event = await this.idpcontract.getPastEvents("HashAdded", {filter: { transactionHash: web3result.transactionHash } });
-        if (event.length > 1) {
-            console.error(event);
-        }
-        return event[0];
-    }
-
-    async submitHash(client_identity: string, period: number) {
-        let method = this.idpcontract.methods.submitVotingRight(`${client_identity}`, period);
-        const data = method.encodeABI();
-        const gas = await method.estimateGas();
-        const raw_tx = {
-            from: this.account,
-            to: await this.registrycontract.methods.idp().call(),
-            data,
-            gas
-        };
-        console.log("Transaction", raw_tx);
-        const signed = await this.api.eth.accounts.signTransaction(raw_tx, this.privkey!);
-        await this.api.eth.sendSignedTransaction(signed.rawTransaction!); 
-    }
-
     async period(): Promise<number> {
         return Number.parseInt(await this.idpcontract.methods.period().call());
-    }
-
-    async depth(): Promise<number> {
-        return Number.parseInt(await this.idpcontract.methods.depth().call());
     }
 
     async startPeriod(period?: number): Promise<number> {
@@ -140,21 +112,11 @@ export class EthereumConnector {
         return await this.idpcontract.methods.url().call();
     }
 
-    async hasSigned_zk(petitionaddr: string, hpers: SHA256Hash, iteration: number): Promise<boolean> {
-        const contract = new this.api.eth.Contract((PetitionContract.abi as any), petitionaddr);
-        return await contract.methods.hasSigned_zk(iteration, `0x${hpers.toHex()}`).call();
-    }
-
-    async hasSigned(petitionaddr: string): Promise<boolean> {
-        const contract = new this.api.eth.Contract((PetitionContract.abi as any), petitionaddr);
-        return !!Number.parseInt(await contract.methods.hasSigned(`${this.account}`).call());
-    }
-
     async petitions(): Promise<IPetition[]> {
         const petitions: IPetition[] = [];
         const addr_list: string[] = await this.registrycontract.methods.petitions().call();
         for(const addr of addr_list) {
-            const contract = new this.api.eth.Contract((PetitionContract.abi as any), addr);
+            const contract = this.petition(addr);
             const name = await contract.methods.name().call();
             let name_decoded = "";
             try {
@@ -177,20 +139,6 @@ export class EthereumConnector {
         return petitions;
     }
 
-    async signPetition(petitionaddr: string) {
-        const contract = new this.api.eth.Contract((PetitionContract.abi as any), petitionaddr);
-        const tx = await contract.methods.sign().send({ from: this.account });
-        return tx;
-    }
-
-    async signPetition_zk(petitionaddr: string, proof: any, hpers: SHA256Hash, iteration: number) {
-        const contract = new this.api.eth.Contract((PetitionContract.abi as any), petitionaddr);
-        console.log(`web3: sign as ${hpers.toHex()} with account ${this.account}`);
-        console.log(proof);
-        const tx = await contract.methods.sign_zk(Object.values(proof.proof), iteration, `0x${hpers.toHex()}`).send({ from: this.account });
-        return tx;
-    }
-
     async createPetition(name: string, description: string, period: number) {
         const name_b32 = padLeft(asciiToHex(name), 64);
         console.log("Create petition", name, name_b32, description, period);
@@ -210,8 +158,126 @@ export class EthereumConnector {
         }
         return output;
     }
+
+    abstract petitiontype(): PetitionType;
+    abstract idp(addr: string): Contract;
+    abstract petition(addr: string): Contract;
 }
 
 interface ITable {
     [hexbyte: string]: string
+}
+
+export class ZKEthereumConnector extends EthereumConnector {
+    constructor(provider: Web3, registry: Contract, account?: string, privkey?: string, chainid?: number) {
+        super(provider, registry, account, privkey, chainid);
+    }
+
+    async signPetition_zk(petitionaddr: string, proof: any, hpers: SHA256Hash, iteration: number) {
+        const contract = this.petition(petitionaddr);
+        console.log(`web3: sign as ${hpers.toHex()} with account ${this.account}`);
+        console.log(proof);
+        const tx = await contract.methods.sign_zk(Object.values(proof.proof), iteration, `0x${hpers.toHex()}`).send({ from: this.account });
+        return tx;
+    }
+
+    async hasSigned_zk(petitionaddr: string, hpers: SHA256Hash, iteration: number): Promise<boolean> {
+        const contract = this.petition(petitionaddr);
+        return await contract.methods.hasSigned_zk(iteration, `0x${hpers.toHex()}`).call();
+    }
+
+    async depth(): Promise<number> {
+        return Number.parseInt(await this.idpcontract.methods.depth().call());
+    }
+
+    async submitHash_zk(client_identity: string, period: number): Promise<EventData> {
+        /**
+         * @param {string} client_identity - Dies ist in zk die Identität die in der client Maske Eingetragen wurde.
+         * In Ohne Zk ist es der Ethereum Account 
+         */
+        let method = this.idpcontract.methods.submitHash(`0x${client_identity}`, period);
+        const data = method.encodeABI();
+        const gas = await method.estimateGas();
+        const raw_tx = {
+            from: this.account,
+            to: await this.registrycontract.methods.idp().call(),
+            data,
+            gas
+        };
+        console.log("Transaction", raw_tx);
+        const signed = await this.api.eth.accounts.signTransaction(raw_tx, this.privkey!);
+        const web3result = await this.api.eth.sendSignedTransaction(signed.rawTransaction!);
+        
+        // Man holt sich den "iteration" Wert von der Block chain. Dieser Wert steht im Event der 
+        // von der vorherigen Tansaktion emitiert wurde (Event vom submitHash smart contract)
+        const event = await this.idpcontract.getPastEvents("HashAdded", {filter: { transactionHash: web3result.transactionHash } });
+        if (event.length > 1) {
+            console.error(event);
+        }
+        return event[0];
+    }
+
+    petitiontype(): PetitionType {
+        return PetitionType.ZK;
+    }
+    idp(addr: string): Contract {
+        return new this.api.eth.Contract((ZKIDPContract.abi as any), addr);
+    }
+    petition(addr: string): Contract {
+        return new this.api.eth.Contract((ZKPetitionContract.abi as any), addr);
+    }
+}
+
+export class NaiveEthereumConnector extends EthereumConnector {
+    constructor(provider: Web3, registry: Contract, account?: string, privkey?: string, chainid?: number) {
+        super(provider, registry, account, privkey, chainid);
+    }
+
+    async signPetition(petitionaddr: string) {
+        const contract = this.petition(petitionaddr);
+        const tx = await contract.methods.sign().send({ from: this.account });
+        return tx;
+    }
+
+    async hasSigned(petitionaddr: string): Promise<boolean> {
+        const contract = this.petition(petitionaddr);
+        return !!Number.parseInt(await contract.methods.hasSigned(`${this.account}`).call());
+    }
+
+    async submitHash(client_identity: string, period: number) {
+        let method = this.idpcontract.methods.submitVotingRight(`${client_identity}`, period);
+        const data = method.encodeABI();
+        const gas = await method.estimateGas();
+        const raw_tx = {
+            from: this.account,
+            to: await this.registrycontract.methods.idp().call(),
+            data,
+            gas
+        };
+        console.log("Transaction", raw_tx);
+        const signed = await this.api.eth.accounts.signTransaction(raw_tx, this.privkey!);
+        await this.api.eth.sendSignedTransaction(signed.rawTransaction!);
+    }
+
+    async interval(): Promise<number> {
+        // Once per slot
+        return 12;
+    }
+
+    petitiontype(): PetitionType {
+        return PetitionType.Naive;
+    }
+
+    idp(addr: string): Contract {
+        return new this.api.eth.Contract((NaiveIDPContract.abi as any), addr);
+    }
+
+    petition(addr: string): Contract {
+        return new this.api.eth.Contract((NaivePetitionContract.abi as any), addr);
+    }
+}
+
+export enum PetitionType {
+    Naive = 0,
+    ZK = 1
 }
