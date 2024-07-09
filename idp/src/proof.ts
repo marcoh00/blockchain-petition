@@ -243,9 +243,13 @@ export class NaiveProofHandler implements IProofHandler {
         // TODO, see "register": pubkey = tree = client_identity = ethereum_address
         const pubkeys_to_include = await this.database.treesToIncludeOnBlockchain(period);
         for(const pubkey of pubkeys_to_include) {
-            await this.connector.submitHash(pubkey, period);
-            console.log(`🌐 Submitted address ${pubkey} to the blockchain`);
-            await this.database.updateTreeWithIteration(pubkey, 1);
+            try {
+                await this.connector.submitHash(pubkey, period);
+                console.log(`🌐 Submitted address ${pubkey} to the blockchain`);
+                await this.database.updateTreeWithIteration(pubkey, 1);
+            } catch(e) {
+                console.log("❌ Unable to submit address", e);
+            }
         }
 
         this.interval_lock = false;
