@@ -6,6 +6,9 @@ import { IDPManager } from "./idp";
 import { WebEthereumConnector } from "./web3";
 import { Web3Repository } from "./web3repository";
 import { ZokratesHelper } from "./zokrates";
+import { KeyManager } from "./keys";
+import { IClientProvider } from "./provider";
+import { IdentityProof } from "../../shared/idp";
 
 export interface ICredentials {
     hash: string,
@@ -24,14 +27,15 @@ export interface IState {
     registry: string,
     period: number,
     customPeriod: boolean,
-    identity?: string,
+    identity?: IdentityProof,
     pubkey?: SHA256Hash,
     privkey?: SHA256Hash,
     web3connected: boolean,
     connector?: WebEthereumConnector,
     repository?: Web3Repository,
     idp?: IDPManager,
-    zokrates?: ZokratesHelper,
+    keymanager?: KeyManager<any, any>,
+    provider?: IClientProvider,
     error?: string,
     locktext?: string,
     lockspinner: boolean

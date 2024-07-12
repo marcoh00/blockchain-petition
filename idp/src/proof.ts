@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 import { DataHash, MerkleTree, serializeMerkleProof, SHA256Hash } from "../../shared/merkle";
 import { NaiveEthereumConnector, ZKEthereumConnector } from "../../shared/web3";
-import { checkValidType, IRegistration } from "./api"
+import { IRegistration, checkValidType } from "../../shared/idp";
 import { Database } from "./database";
 
 class WebResult {

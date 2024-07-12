@@ -356,15 +356,6 @@ export class IdentityPage extends decorateClassWithState(LitElement) {
     name: string = "";
 
     render() {
-        if (this.getState().connector.blockchaintype === BLOCKTECH_TYPES.ohne_zk) {
-            this.name = this.getState().connector.account;
-            this.setState({
-                ...this.getState(),
-                identity: this.name,
-                idp: getIDPManager(this.name, null, true)
-            });
-            return;
-        }
         return html`
             <h1>Identitätsprüfung über Texteingabe</h1>
 
@@ -386,9 +377,6 @@ export class IdentityPage extends decorateClassWithState(LitElement) {
     }
 
     async verifyClick() {
-        /**
-         * Methode wird nur bei mit Zk ausgeführt.
-         */
         console.log("Set Identity")
         this.idInput(
             ({

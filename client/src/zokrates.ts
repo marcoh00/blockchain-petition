@@ -1,10 +1,11 @@
 import { html, LitElement } from "lit";
 import { property } from "lit/decorators.js";
 import { ZoKratesProvider , initialize, CompilationArtifacts, Proof, ComputationResult } from "zokrates-js";
-import { SHA256Hash} from "../../shared/merkle";
+import { DataHash, SHA256Hash} from "../../shared/merkle";
 import { IPetition } from "../../shared/web3";
 import { IDPManager } from "./idp";
 import { decorateClassWithState, IState } from "./state";
+import { IZKKey, IZKProofResponse } from "./keys";
 
 interface IDualZokratesData {
     points: Proof
@@ -106,25 +107,16 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
 
     
     //rt, H_pers, pID, Kpriv, Kpub, directionSelector(bool 3), merkleproof(3*8)
-    async constructProof(petition: IPetition, idp: IDPManager): Promise<IDualZokratesData> {
+    async constructProof(petition: IPetition, hpers: DataHash, credentials: IZKKey, proof_parts: IZKProofResponse): Promise<IDualZokratesData> {
         this.initProgress("Persönliche Kennzahl errechnen");
-        const credentials = idp.getRegistrationData(petition.period);
-        // Calculate hPers
-        const pers = [
-            ...Array.from(petition.id),
-            ...Array.from(credentials.privkey.rawValue())
-        ];
-        console.log("pers", pers);
-        const hpers = await SHA256Hash.hashRaw(new Uint8Array(pers));
-
-        const rt = idp.getRegistrationData(petition.period).credentials.hash;
+        const rt = proof_parts.hash;
         console.log("rt", rt);
         console.log("hpers", hpers);
         console.log("pID", petition.id);
         console.log("Kpriv", credentials.privkey);
         console.log("Kpub", credentials.pubkey);
-        console.log("directionSelector", credentials.credentials.proof.directionSelector);
-        console.log("merklePath", credentials.credentials.proof.path);
+        console.log("directionSelector", proof_parts.proof.directionSelector);
+        console.log("merklePath", proof_parts.proof.path);
 
         const rt_out = this.hexStringToDecimalArray(rt, 4);
         console.log("rt-out", rt_out);
@@ -137,10 +129,10 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
         const pub_out = this.hexStringToDecimalArray(credentials.pubkey.toHex(), 4);
         console.log("Kpub-out", pub_out);
 
-        const directionSelectorDecimalArray: number[] = credentials.credentials.proof.directionSelector.map(b => b ? 1 : 0);
+        const directionSelectorDecimalArray: number[] = proof_parts.proof.directionSelector.map(b => b ? 1 : 0);
         console.log("direction-Selector-out", directionSelectorDecimalArray);
 
-        const merklePathDecimalArray: number[][] = credentials.credentials.proof.path.map(hash => this.hexStringToDecimalArray(hash, 4));
+        const merklePathDecimalArray: number[][] = proof_parts.proof.path.map(hash => this.hexStringToDecimalArray(hash, 4));
         console.log("merklePath-out", merklePathDecimalArray)
 
         const zokratesbeweisInput = ZokratesHelper.cmdProof(rt_out, hpers_out, pid_out, priv_out, pub_out, directionSelectorDecimalArray, merklePathDecimalArray);
@@ -182,6 +174,7 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
         this.provingKey = new Uint8Array(data);
     }
 }
+
 let helper: ZokratesHelper = null;
 export async function getZokratesHelper() {
     if(helper === null) {

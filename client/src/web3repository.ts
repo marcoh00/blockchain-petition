@@ -1,5 +1,3 @@
-import { BLOCKTECH_TYPE, BLOCKTECH_TYPES } from "../../shared/addr";
-import { SHA256Hash } from "../../shared/merkle";
 import { EthereumConnector, IPetition } from "../../shared/web3";
 import { decorateClassWithState, IState } from "./state";
 
@@ -87,36 +85,36 @@ export class Web3Repository extends decorateClassWithState(Web3RepositoryBase) {
         });
     }
 
-    async refresh() {
+    async refresh(reload: boolean = false) {
+        if(reload) {
+            this.setState({
+                ...this.getState(),
+                lockspinner: true,
+                locktext: "Load petitions..."
+            });
+        }
         const byPeriod: IPetitionByPeriod = {};
         for(const petition of await this.connector.petitions()) {
             await this.addToTimeCacheIfNeccessary(petition.period);
-            // Set petition.signed attribute which stands for if the petition was already signed by the user
-            if (this.getState().connector.blockchaintype === BLOCKTECH_TYPES.mit_zk) {
-                if (this.getState().idp === undefined) {
-                    petition.signed = false;
-                } else {
-                    const regist_data = this.getState().idp.getRegistrationData(petition.period);
-                    if (regist_data.privkey === undefined) {
-                        petition.signed = false;
-                    } else {
-                    const pers = [
-                        ...Array.from(petition.id),
-                        ...Array.from(regist_data.privkey.rawValue())
-                    ];
-                    const hpers = await SHA256Hash.hashRaw(new Uint8Array(pers));
-                    petition.signed = await this.getState().connector.hasSigned_zk(petition.address, hpers, regist_data.credentials.iteration);
-                    }
-                }
-            } else {
-                petition.signed = await this.getState().connector.hasSigned(petition.address);
-            }
+            // Time-signable (= current period) is checked in the petition widget in layoutWidgets.ts
+            // Updating both provider_signable and time_signable here would need to occur on every new period
+            // which puts a high load on the web3 api endpoint
+            const provider_signable = await this.getState().provider.signable(petition);
+            petition.signable = provider_signable
+
             if(!byPeriod.hasOwnProperty(petition.period.toString())) byPeriod[petition.period.toString()] = [];
             byPeriod[petition.period.toString()].push(petition);
             this.petitions_by_id[idToNumber(petition.id).toString()] = petition;
         }
         this.petitions_by_period = byPeriod;
         console.log("Refresh", this.petitions_by_id, this.petitions_by_period)
+        if(reload) {
+            this.setState({
+                ...this.getState(),
+                lockspinner: false,
+                locktext: undefined
+            });
+        }
     }
 
     async addToTimeCacheIfNeccessary(period: number) {

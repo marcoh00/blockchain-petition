@@ -2,34 +2,38 @@ import { SHA256Hash } from "../../shared/merkle";
 import { decorateClassWithState, ICredentials, IState } from "./state";
 import { WebEthereumConnector } from "./web3";
 import { BLOCKTECH_TYPE, BLOCKTECH_TYPES } from '../../shared/addr';
+import { IdentityProof, IProofResponse } from "../../shared/idp";
 
-interface IRegistrationData {
+interface ICredentialState {
     working: boolean
     failed: boolean
-    privkey?: SHA256Hash
-    pubkey?: SHA256Hash
-    token?: string
-    credentials?: ICredentials
+    token?: string,
+    response?: IProofResponse
 }
 
-interface ICredentialRepository {
-    [period: string]: IRegistrationData
+interface ICredentialStateRepository {
+    [period: string]: ICredentialState
 }
 
 class IDPManagerBase {}
-export class IDPManager extends decorateClassWithState(IDPManagerBase) {
-    identity: string
-    credentials: ICredentialRepository
+export abstract class IDPManager extends decorateClassWithState(IDPManagerBase) {
+    id?: string
+    identity?: string
+    credentials: ICredentialStateRepository
+    endpoint: string
 
-    working: boolean
-    failed: boolean
-
-    constructor(identity: string, credentials?: ICredentialRepository, cache: boolean = false) {
+    constructor(endpoint: string) {
         super();
+        this.endpoint = endpoint;
+    }
+
+    async setIdentity(identity: IdentityProof) {
         this.identity = identity;
-        this.credentials = typeof(credentials) === "object" && credentials !== null ? credentials : {};
-        console.log("New IDP", this.credentials);
-        if(cache) this.load();
+        this.id = (await SHA256Hash.hashString(JSON.stringify({
+            identity: this.identity,
+            idp: this.endpoint
+        }))).toHex();
+        this.load();
     }
 
     getRegistrationData(period: number) {
@@ -40,24 +44,6 @@ export class IDPManager extends decorateClassWithState(IDPManagerBase) {
         return this.credentials[period];
     }
 
-    async ensureKeysAvailable(period: number) {
-        const regdata = this.getRegistrationData(period);
-        if(typeof(regdata.pubkey) === "object" && typeof(regdata.privkey) === "object") return;
-        
-        const privkey_src = new Uint8Array([
-            0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0
-        ]);
-        crypto.getRandomValues(privkey_src);
-        const privkey = await SHA256Hash.hashRaw(privkey_src);
-        const pubkey = await SHA256Hash.hashRaw(privkey.rawValue());
-        console.log(`priv: ${privkey.toHex()}`, `pub: ${pubkey.toHex()}, period: ${period}`, privkey, pubkey);
-        regdata.privkey = privkey;
-        regdata.pubkey = pubkey;
-    }
-
     async credentialsForPeriod(period: number) {
         this.getRegistrationData(period).working = true;
         this.getRegistrationData(period).failed = false;
@@ -65,15 +51,12 @@ export class IDPManager extends decorateClassWithState(IDPManagerBase) {
 
         await this.ensureKeysAvailable(period);
         
-        let endpoint: string;
+        let endpoint: string = await this.getState().connector.url();
         let client_identity: string;
         if (this.getState().connector.blockchaintype === BLOCKTECH_TYPES.mit_zk) {
             client_identity = this.credentials[period].pubkey.toHex();
-            endpoint = await this.getState().connector.url();
         } else {
-            // Ohne zk
             client_identity = this.getState().repository.connector.account;
-            endpoint = await this.getState().connector.url();
         }
         
         if(typeof(this.credentials[period].token === "undefined")) {
@@ -108,18 +91,13 @@ export class IDPManager extends decorateClassWithState(IDPManagerBase) {
             await this.save();
         }
 
-        if (this.getState().connector.blockchaintype === BLOCKTECH_TYPES.mit_zk) {
-            if(typeof(this.getRegistrationData(period).credentials) === "undefined") {
-                await this.tryObtainCredentials(period, endpoint);
-                return;
-            }
-        } // else ohne zk
+        if(typeof(this.getRegistrationData(period).credentials) === "undefined") {
+            await this.tryObtainCredentials(period, endpoint);
+            return;
+        }
     }
 
     async tryObtainCredentials(period: number, endpoint: string) {
-        /**
-         * Wird nur in mit zk Version aufgerufen
-         */
         this.getRegistrationData(period).working = true;
         this.setState(this.getState());
         const token = this.credentials[period].token;
@@ -167,6 +145,7 @@ export class IDPManager extends decorateClassWithState(IDPManagerBase) {
             (key, value) => {if(typeof(value) === "object" && value.hasOwnProperty("hash") && typeof(value.hash) !== "string") {console.log("hashy value", value); return (value as SHA256Hash).toHex();} return value;}
         );
         localStorage.setItem(`cred.${this.identity}`, localData);
+        SHA256Hash.hashString
         console.log("Credentials saved to localStorage");
     }
 

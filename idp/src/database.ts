@@ -1,8 +1,5 @@
 import * as sqlite3 from "sqlite3";
-import { IRegistration } from "./api";
-import { DataHash, SHA256Hash } from '../../shared/merkle';
-import { rejects } from "assert";
-import { resolve } from "path/posix";
+import { IRegistration } from "../../shared/idp";
 
 export class Database {
     filename: string;

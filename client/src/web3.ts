@@ -1,9 +1,6 @@
-import { LitElement } from "lit";
-import Web3 from "web3";
-import { EthereumConnector } from "../../shared/web3";
+import { EthereumConnector, getWeb3Connector } from "../../shared/web3";
 import { decorateClassWithState } from "./state";
 import { getWeb3Repository } from "./web3repository";
-import { BLOCKTECH_TYPES } from "../../shared/addr";
 
 interface IWeb3Connected {
     onWeb3Connect(provider: any): Promise<void>
@@ -75,13 +72,19 @@ export function decorateClassWithWeb3<T extends ClassType>(decorated: T) {
     }
 }
 
-export class WebEthereumConnector extends decorateClassWithWeb3(decorateClassWithState(EthereumConnector)) {
-    accounts?: string[]
+class WebEthereumConnectorBase {}
+export class WebEthereumConnector extends decorateClassWithWeb3(decorateClassWithState(WebEthereumConnectorBase)) {
+    accounts: string[]
+    provider: any
+    registryaddr: string
+    connector?: EthereumConnector
+    connected: boolean
 
-    constructor(provider: any, registryaddr: string, account?: string, privkey?: string, chainid?: number,
-        blockchaintype?: BLOCKTECH_TYPES) {
-        super(provider, registryaddr, account, privkey, chainid, blockchaintype);
-        console.log("Init WebEth Web3 with provider", provider, registryaddr, account, privkey, chainid, blockchaintype);
+    constructor(provider: any, registryaddr: string) {
+        super();
+        console.log("Init WebEth Web3 with provider", provider, registryaddr);
+        this.provider = provider;
+        this.registryaddr = registryaddr;
         this.connected = false;
         this.accounts = [];
     }
@@ -90,18 +93,17 @@ export class WebEthereumConnector extends decorateClassWithWeb3(decorateClassWit
         console.log("webeth.web3connect");
         console.trace()
         await this.web3Connect();
-        console.log("webeth.super.init");
-        await super.init();
+        console.log("webeth.connector.init");
+        this.connector = await getWeb3Connector(this.provider, this.registryaddr);
         this.connected = true;
         await this.updateState();
     }
 
     async onAccountsChange(provider: any, accounts: string[]) {
         this.accounts = accounts;
-        if(accounts.length > 0) this.account = accounts[0];
         console.log("onAccountsChange, this.contract", this.registryaddr);
         await super.init();
-        this.connected = true;
+        this.connected = this.accounts.length > 0;
         await this.updateState();
     }
 
@@ -126,7 +128,7 @@ export class WebEthereumConnector extends decorateClassWithWeb3(decorateClassWit
                 connector: this
             }
             this.setState(web3added);
-            const repository = await getWeb3Repository(this);
+            const repository = await getWeb3Repository(this.connector);
             this.setState({
                 ...this.getState(),
                 repository

@@ -278,7 +278,6 @@ export class IDPWidget extends decorateClassWithState(LitElement) {
     }
 
     render() {
-        if (this.getState().connector.blockchaintype === BLOCKTECH_TYPES.mit_zk) {
             return this.stage < 1 ? html`Keine Identität festgelegt` : html`
             <div class="grid">
                 <div class="logo">
@@ -298,7 +297,6 @@ export class IDPWidget extends decorateClassWithState(LitElement) {
                 </div>
             </div>
         `;
-        }
         return "";
     }
 

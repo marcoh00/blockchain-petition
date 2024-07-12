@@ -14,8 +14,8 @@ export interface IPetition {
     description: string
     id: Uint8Array
     period: number
-    signers: number
-    signed?: boolean
+    signers: number,
+    signable?: boolean
 }
 
 export async function getWeb3Connector(provider: any, registryaddr: string, account?: string, privkey?: string, chainid?: number): Promise<EthereumConnector> {
@@ -131,8 +131,7 @@ export abstract class EthereumConnector {
                 description: await contract.methods.description().call(),
                 id: new Uint8Array(hexToBytes(await contract.methods.id().call())),
                 period: Number.parseInt(await contract.methods.period().call()),
-                signers: Number.parseInt(await contract.methods.signers().call()),
-                signed: !!Number.parseInt(await contract.methods.hasSigned(`${this.account}`).call())
+                signers: Number.parseInt(await contract.methods.signers().call())
             }
             petitions.push(info);
         }

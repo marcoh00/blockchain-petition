@@ -7,6 +7,7 @@ import { BLOCKTECH_TYPE, BLOCKTECH_TYPES } from '../../shared/addr';
 import { decorateClassWithState, IState } from './state';
 import { basicFlex, buttonMixin, faStyle, topDownFlex } from './styles';
 import { getZokratesHelper } from './zokrates';
+import { NoEntryError } from './keys';
 
 enum PageStage {
     Landing,
@@ -121,7 +122,8 @@ export class ErrorView extends decorateClassWithState(LitElement) {
         }
 
         .message {
-            flex-grow: 9
+            flex-grow: 9;
+            overflow: scroll;
         }
 
         .btn {
@@ -193,7 +195,7 @@ export class MainPage extends decorateClassWithState(LitElement) {
         return html`
             <div class="cardlist">
                 <h1>Petitionen <span class="link" @click=${this.refreshClick}>${icon(faRefresh).node}</span></h1>
-                ${this.petitions.map((petition, idx) => html`<petition-card .petition=${petition} .idx=${idx} .signable=${this.isSignable(petition) && !petition.signed} @sign=${sign_func}></petition-card>`)}
+                ${this.petitions.map((petition, idx) => html`<petition-card .petition=${petition} .idx=${idx} .signable=${this.isSignable(petition) && petition.signable} @sign=${sign_func}></petition-card>`)}
             </div>
         `
     }
@@ -216,7 +218,7 @@ export class MainPage extends decorateClassWithState(LitElement) {
 
     async signPetition(e: CustomEvent) {
         const petition = this.petitions[e.detail as number];
-        if(petition.signed) {
+        if(!petition.signable) {
             this.stateError("Sie haben diese Petition bereits unterzeichnet");
             return;
         }
@@ -224,93 +226,16 @@ export class MainPage extends decorateClassWithState(LitElement) {
             this.stateError("Es können ausschließlich Petitionen der aktuellen Abstimmungsperiode (s.o.) unterzeichnet werden");
             return;
         }
-        const idp = this.getState().idp;
-         if(!await this.getState().repository.connector.idpcontract.methods.validateAuthorized(`${this.getState().identity}`).call()) {
-             this.setState({
-                 ...this.getState(),
-                 lockspinner: true,
-                 locktext: "Auf Petitionsplattformprovider warten…"
-             });
-
-
-             console.log("Registriere Account für aktuelle Periode durch den PPP auf der Blockchain")
-             idp.getRegistrationData(petition.period)
-             const period = this.getState().period;
-             console.log(`Obtain credentials for period ${period}`);
-             await idp.credentialsForPeriod(period);
-
-
-             this.setState({
-                 ...this.getState(),
-                 lockspinner: false,
-                 locktext: undefined
-             });
-
-         }
-
-        this.setState({
-            ...this.getState(),
-            lockspinner: true,
-            locktext: "Bestätigung durch Blockchain abwarten"
-        });
         try {
-            const tx = await this.getState().connector.signPetition(petition.address);
-            console.log("Petition signed successfully!", tx);
-        } catch(e) {
-            if(typeof(e) === "object" && e.hasOwnProperty("toString")) {
-                this.stateError(`Konnte Transaktion nicht versenden: ${e.toString()}`);
+            await this.getState().provider.sign(petition);
+        }
+        catch(e) {
+            if(e == NoEntryError) {
+                this.stateError("Please register with the identity provider first");
             } else {
-                this.stateError(`Konnte Transaktion nicht versenden: ${e}`);
+                this.stateError(`Could not sign petition: ${e}`);
             }
         }
-        this.setState({
-            ...this.getState(),
-            lockspinner: false,
-            locktext: undefined
-        });
-        await this.getState().repository.init();
-    }
-
-    async signPetition_zk(e: CustomEvent) {
-        const petition = this.petitions[e.detail as number];
-        if(petition.signed) {
-            this.stateError("Sie haben diese Petition bereits unterzeichnet");
-            return;
-        }
-        if(!this.isSignable(petition)) {
-            this.stateError("Es können ausschließlich Petitionen der aktuellen Abstimmungsperiode (s.o.) unterzeichnet werden");
-            return;
-        }
-        const idp = this.getState().idp;
-        if(typeof(idp.getRegistrationData(petition.period).privkey) !== "object") {
-            this.stateError("Vor der Unterzeichnung muss ein Identitätsnachweis beantragt werden");
-            return;
-        }
-        const helper = await getZokratesHelper();
-        console.log("signPetition, before proof", petition, helper);
-        const proof = await helper.constructProof(petition, idp);
-        console.log("ZoKrates should be initialized now, cmdline would've been", proof.cmdline);
-
-        this.setState({
-            ...this.getState(),
-            lockspinner: true,
-            locktext: "Petition unterschreiben…"
-        });
-        try {
-            const tx = await this.getState().connector.signPetition_zk(petition.address, proof.points, proof.hpers, idp.getRegistrationData(petition.period).credentials.iteration);
-            console.log("Petition signed successfully!", tx);
-        } catch(e) {
-            if(typeof(e) === "object" && e.hasOwnProperty("toString")) {
-                this.stateError(`Konnte Transaktion nicht versenden: ${e.toString()}`);
-            } else {
-                this.stateError(`Konnte Transaktion nicht versenden: ${e}`);
-            }
-        }
-        this.setState({
-            ...this.getState(),
-            lockspinner: false,
-            locktext: undefined
-        });
         await this.getState().repository.init();
     }
 }

@@ -1,7 +1,7 @@
 import express from "express";
 import cors, { CorsOptions } from "cors";
 import { randomBytes } from "crypto";
-import { checkValidType, IRegistration, IProofRequest } from "./api";
+import { IRegistration, checkValidType, IProofRequest } from "../../shared/idp";
 import { Database } from "./database";
 import { NaiveEthereumConnector, ZKEthereumConnector, getWeb3Connector, EthereumConnector, PetitionType } from "../../shared/web3";
 import { DEFAULT_NETWORK, DBFILE, PROVINGKEY, REGISTRY_CONTRACT_HARDHAT_ZK, REGISTRY_CONTRACT_HARDHAT } from '../../shared/addr';
