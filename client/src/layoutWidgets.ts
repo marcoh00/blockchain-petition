@@ -1,12 +1,10 @@
 import { icon } from '@fortawesome/fontawesome-svg-core';
 import { faCheck, faClose, faRefresh } from '@fortawesome/free-solid-svg-icons';
 import { LitElement, html, css } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { property } from 'lit/decorators.js';
 import { IPetition } from '../../shared/web3';
-import { BLOCKTECH_TYPE, BLOCKTECH_TYPES } from '../../shared/addr';
 import { decorateClassWithState, IState } from './state';
 import { basicFlex, buttonMixin, faStyle, topDownFlex } from './styles';
-import { getZokratesHelper } from './zokrates';
 import { NoEntryError } from './keys';
 
 enum PageStage {
@@ -16,7 +14,7 @@ enum PageStage {
     PetitionSign
 }
 export class PetitionApp extends decorateClassWithState(LitElement) {
-    
+
     /* Valid stages
      * 0 = Landing Page
      * 1 = Registry + Wallet
@@ -41,14 +39,36 @@ export class PetitionApp extends decorateClassWithState(LitElement) {
     }
 
     async stateChanged(state: IState): Promise<void> {
-        const web3connected = state.web3connected
-            && typeof(state.connector) === "object";
-        const identityknown = typeof(state.identity) === "string"
-            && typeof(state.idp) === "object";
-        if(web3connected && !identityknown) {
+        const web3connected = typeof (state.connector) === "object"
+            && state.connector.connected;
+        const identityknown = state.identity
+            && typeof (state.idp) === "object"
+            && state.idp.identity
+            && state.idp.id;
+
+        const need_provider = identityknown && (typeof state.provider !== "object" || typeof state.keymanager !== "object");
+
+        if (web3connected && !identityknown) {
+            try {
+                console.log("Identity unknown. Expected: ID, object, ID, IDhash", state.identity, typeof state.idp, state.idp.identity, state.idp.id);
+            } catch (e) { }
             this.stage = PageStage.Identity;
         }
-        if(web3connected && identityknown) {
+
+        if (web3connected && identityknown) {
+            if (need_provider) {
+                const provider = await state.connector.client_provider();
+                const keymanager = provider.key_manager(state.idp);
+                keymanager.load()
+                const state_with_provider = {
+                    ...state,
+                    keymanager,
+                    provider
+                };
+                this.setState(state_with_provider);
+                await state_with_provider.repository.init();
+                return;
+            }
             this.stage = PageStage.PetitionSign;
         }
     }
@@ -79,14 +99,14 @@ export class PetitionApp extends decorateClassWithState(LitElement) {
 
     proceedConnection() {
         this.stage = PageStage.ChooseConnection;
-        if(this.getState().web3connected) this.proceedIdentity();
+        if (typeof (this.getState().connector) === "object" && this.getState().connector.connected) this.proceedIdentity();
     }
 
     proceedIdentity() {
         this.stage = PageStage.Identity;
         const state = this.getState();
-        if(typeof(state.identity) === "string"
-            && typeof(state.idp) === "object") this.proceedMain();
+        if (typeof (state.identity) === "string"
+            && typeof (state.idp) === "object") this.proceedMain();
     }
 
     proceedMain() {
@@ -134,7 +154,7 @@ export class ErrorView extends decorateClassWithState(LitElement) {
     `];
 
     render() {
-        return typeof(this.error) === "string"? html`
+        return typeof (this.error) === "string" ? html`
             <div class="container">
                 <div class="message">
                     ${this.error}
@@ -162,7 +182,7 @@ export class ErrorView extends decorateClassWithState(LitElement) {
 export class MainPage extends decorateClassWithState(LitElement) {
     @property({ type: Array })
     petitions: IPetition[] = [];
-    
+
     static styles = [faStyle, basicFlex, topDownFlex, css`
         :host {
             align-items: stretch;
@@ -180,7 +200,7 @@ export class MainPage extends decorateClassWithState(LitElement) {
             cursor: pointer;
         }
         `];
-    
+
     connectedCallback() {
         super.connectedCallback();
         console.log("Main Page connected");
@@ -191,11 +211,10 @@ export class MainPage extends decorateClassWithState(LitElement) {
 
     render() {
         console.log("Render Petitions", this.petitions);
-        let sign_func = (this.getState().connector.blockchaintype === BLOCKTECH_TYPES.ohne_zk) ? this.signPetition : this.signPetition_zk;
         return html`
             <div class="cardlist">
                 <h1>Petitionen <span class="link" @click=${this.refreshClick}>${icon(faRefresh).node}</span></h1>
-                ${this.petitions.map((petition, idx) => html`<petition-card .petition=${petition} .idx=${idx} .signable=${this.isSignable(petition) && petition.signable} @sign=${sign_func}></petition-card>`)}
+                ${this.petitions.map((petition, idx) => html`<petition-card .petition=${petition} .idx=${idx} .signable=${this.isSignable(petition) && petition.signable} @sign=${this.signPetition}></petition-card>`)}
             </div>
         `
     }
@@ -206,31 +225,31 @@ export class MainPage extends decorateClassWithState(LitElement) {
 
     async stateChanged(state: IState): Promise<void> {
         this.petitions = state.repository.petitions_by_period[state.period];
-        if(!Array.isArray(this.petitions)) this.petitions = [];
+        if (!Array.isArray(this.petitions)) this.petitions = [];
     }
 
-    isSignable(petition: IPetition) : boolean {
+    isSignable(petition: IPetition): boolean {
         const state = this.getState();
         const signable = state.repository.period_time_cache[petition.period].isNow();
-        console.log(`petition w/ period ${petition.period} is signable? ${signable}`);
+        console.log(`petition w/ period ${petition.period} is signable? ${signable}. Already signed? ${petition.signable}`);
         return signable;
     }
 
     async signPetition(e: CustomEvent) {
         const petition = this.petitions[e.detail as number];
-        if(!petition.signable) {
+        if (!petition.signable) {
             this.stateError("Sie haben diese Petition bereits unterzeichnet");
             return;
         }
-        if(!this.isSignable(petition)) {
+        if (!this.isSignable(petition)) {
             this.stateError("Es können ausschließlich Petitionen der aktuellen Abstimmungsperiode (s.o.) unterzeichnet werden");
             return;
         }
         try {
             await this.getState().provider.sign(petition);
         }
-        catch(e) {
-            if(e == NoEntryError) {
+        catch (e) {
+            if (e == NoEntryError) {
                 this.stateError("Please register with the identity provider first");
             } else {
                 this.stateError(`Could not sign petition: ${e}`);
@@ -262,7 +281,7 @@ export class CreatePage extends decorateClassWithState(LitElement) {
         .invalid {
             border: 2px solid red;
         }`];
-    
+
     @property()
     title: string
 
@@ -293,11 +312,11 @@ export class CreatePage extends decorateClassWithState(LitElement) {
                 target: this.shadowRoot.querySelector("#title")
             }) as unknown as Event
         );
-        if(this.invalidTitle) {
+        if (this.invalidTitle) {
             this.stateError("Bitte geben Sie einen gültigen Titel ein");
             return;
         }
-        
+
         this.setState({
             ...this.getState(),
             lockspinner: true,
@@ -310,7 +329,7 @@ export class CreatePage extends decorateClassWithState(LitElement) {
                 (this.shadowRoot.querySelector("#petitiontext") as HTMLInputElement).value,
                 state.period
             )
-        } catch(e) {
+        } catch (e) {
             this.stateError(`Konnte Petition nicht erstellen: ${e}`)
         }
         this.setState({

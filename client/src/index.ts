@@ -1,11 +1,9 @@
 import { LoadingSpinner, OverlayElement } from './loading';
-import { ZokratesTester } from './zokrates';
 import { CreatePage, ErrorView, MainPage, PetitionApp } from './layoutWidgets';
 import { ConnectionPage, LandingPage, RegistryChooser, IdentityPage } from './setup';
 import { IDPWidget, InformationalInfobar, NavigationBar, PeriodWidget } from './nav';
 import { Petition } from './petition';
 
-customElements.define("zokrates-tester", ZokratesTester);
 customElements.define("petition-app", PetitionApp);
 customElements.define("landing-page", LandingPage);
 customElements.define("informational-infobar", InformationalInfobar);

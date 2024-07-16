@@ -1,9 +1,7 @@
-import { LitElement } from "lit";
 import { REGISTRY_CONTRACT } from "../../shared/addr";
 import { MerkleProof, SHA256Hash } from "../../shared/merkle";
-import { EthereumConnector } from "../../shared/web3";
 import { IDPManager } from "./idp";
-import { WebEthereumConnector } from "./web3";
+import { WalletConnector } from "./web3";
 import { Web3Repository } from "./web3repository";
 import { ZokratesHelper } from "./zokrates";
 import { KeyManager } from "./keys";
@@ -28,10 +26,7 @@ export interface IState {
     period: number,
     customPeriod: boolean,
     identity?: IdentityProof,
-    pubkey?: SHA256Hash,
-    privkey?: SHA256Hash,
-    web3connected: boolean,
-    connector?: WebEthereumConnector,
+    connector?: WalletConnector,
     repository?: Web3Repository,
     idp?: IDPManager,
     keymanager?: KeyManager<any, any>,
@@ -51,14 +46,13 @@ export interface IStateAccessor {
 let state: IState = undefined;
 
 function localGetState(): IState {
-    if(state === undefined) {
+    if (state === undefined) {
         console.log("Initialize new state");
         console.trace();
         localSetState({
             registry: REGISTRY_CONTRACT,
             period: -1,
             customPeriod: false,
-            web3connected: false,
             lockspinner: true
         })
     }
@@ -71,7 +65,7 @@ function localSetState(lstate: IState) {
     console.log("Set State", lstate);
     console.trace();
     state = lstate;
-    for(let decoratedClass of decoratedClasses) {
+    for (let decoratedClass of decoratedClasses) {
         decoratedClass.stateChanged(lstate);
     }
 }

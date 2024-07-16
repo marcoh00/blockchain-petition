@@ -1,18 +1,19 @@
 import { html, LitElement } from "lit";
 import { property } from "lit/decorators.js";
-import { ZoKratesProvider , initialize, CompilationArtifacts, Proof, ComputationResult } from "zokrates-js";
-import { DataHash, SHA256Hash} from "../../shared/merkle";
+import { ZoKratesProvider, initialize, CompilationArtifacts, Proof, ComputationResult } from "zokrates-js";
+import { DataHash, SHA256Hash } from "../../shared/merkle";
 import { IPetition } from "../../shared/web3";
 import { IDPManager } from "./idp";
 import { decorateClassWithState, IState } from "./state";
 import { IZKKey, IZKProofResponse } from "./keys";
+import { ZKClientProvider } from "./provider";
 
 interface IDualZokratesData {
     points: Proof
     cmdline: string
     hpers: SHA256Hash
 }
-class ZokratesBase {}
+class ZokratesBase { }
 export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
     provider?: ZoKratesProvider;
     provingKey?: Uint8Array;
@@ -84,7 +85,7 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
                 merkle.map(a => a.map(n => n.toString()))
             ]
         );
-        console.log("witness, output", witness,  output);
+        console.log("witness, output", witness, output);
 
 
         // generate proof
@@ -96,7 +97,7 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
 
     hexStringToDecimalArray(hexString: string, bytesPerNumber: number): number[] {
         const hexCharsPerDecimal = 2 * bytesPerNumber;
-        if(hexString.length % hexCharsPerDecimal !== 0) throw Error(`Incorrect length of hex string (len=${hexString.length}, hexCharsPerDecimal=${hexCharsPerDecimal})`);
+        if (hexString.length % hexCharsPerDecimal !== 0) throw Error(`Incorrect length of hex string (len=${hexString.length}, hexCharsPerDecimal=${hexCharsPerDecimal})`);
 
         const intArray: number[] = [];
         for (let i = 0; i < hexString.length; i += hexCharsPerDecimal) {
@@ -105,7 +106,7 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
         return intArray;
     }
 
-    
+
     //rt, H_pers, pID, Kpriv, Kpub, directionSelector(bool 3), merkleproof(3*8)
     async constructProof(petition: IPetition, hpers: DataHash, credentials: IZKKey, proof_parts: IZKProofResponse): Promise<IDualZokratesData> {
         this.initProgress("Persönliche Kennzahl errechnen");
@@ -159,53 +160,18 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
         const url = `${await this.getState().connector.url()}/proving.key`;
         const response = await fetch(url);
         const filesize = Number.parseInt(response.headers.get("content-length"));
-        
+
         const data: number[] = [];
         const reader = response.body.getReader();
         let recv = 0;
 
-        while(true) {
+        while (true) {
             const read = await reader.read();
-            if(read.done) break;
+            if (read.done) break;
             read.value.forEach(byte => data.push(byte));
             this.initProgress(`Herunterladen: ${data.length}/${filesize} (${((data.length / filesize) * 100).toFixed(1)} %)`);
         }
 
         this.provingKey = new Uint8Array(data);
-    }
-}
-
-let helper: ZokratesHelper = null;
-export async function getZokratesHelper() {
-    if(helper === null) {
-        const new_helper = new ZokratesHelper();
-        await new_helper.init();
-        helper = new_helper;
-    }
-    console.log("Zokrates helper is initialized, return it", helper);
-    return helper;
-}
-
-export class ZokratesTester extends decorateClassWithState(LitElement) {
-    @property()
-    zinit: boolean = false
-
-    @property()
-    status?: string
-
-    render() {
-        return this.zinit ? html`` : html`
-            <button @click=${this.initializeZokrates}>Initialize ZoKrates</button>
-            <div class="status">${this.status}</div>
-        `;
-    }
-
-    async stateChanged(state: IState): Promise<void> {
-        this.zinit = state.zokrates.initialized;
-        this.status = state.zokrates.text;
-    }
-
-    initializeZokrates() {
-        getZokratesHelper().then(helper => console.log("helper initialized", helper));
     }
 }

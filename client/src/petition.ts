@@ -1,10 +1,9 @@
 import { icon } from "@fortawesome/fontawesome-svg-core";
 import { faArrowDown, faPenToSquare, faSign } from "@fortawesome/free-solid-svg-icons";
-import { css, CSSResultGroup, html, LitElement } from "lit";
+import { css, html, LitElement } from "lit";
 import { property } from "lit/decorators.js";
 import { IPetition } from "../../shared/web3";
 import { buttonMixin, faStyle } from "./styles";
-import { getZokratesHelper } from "./zokrates";
 
 export class Petition extends LitElement {
     static styles = [faStyle, buttonMixin, css`

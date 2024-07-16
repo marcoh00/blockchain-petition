@@ -3,8 +3,8 @@ import { decorateClassWithState, IState } from "./state";
 
 function idToNumber(id: number[] | Uint8Array): number {
     let result = 0;
-    for(const byte of id) {
-        if(byte > 0xff) throw new Error(`Invalid byte: ${byte}`)
+    for (const byte of id) {
+        if (byte > 0xff) throw new Error(`Invalid byte: ${byte}`)
         result = (result << 8) | byte;
     }
     console.log("idToNumber", id, result);
@@ -47,7 +47,7 @@ interface IPetitionById {
     [id: string]: IPetition
 }
 
-class Web3RepositoryBase {}
+class Web3RepositoryBase { }
 export class Web3Repository extends decorateClassWithState(Web3RepositoryBase) {
     connector: EthereumConnector
     period: number
@@ -86,7 +86,7 @@ export class Web3Repository extends decorateClassWithState(Web3RepositoryBase) {
     }
 
     async refresh(reload: boolean = false) {
-        if(reload) {
+        if (reload) {
             this.setState({
                 ...this.getState(),
                 lockspinner: true,
@@ -94,21 +94,22 @@ export class Web3Repository extends decorateClassWithState(Web3RepositoryBase) {
             });
         }
         const byPeriod: IPetitionByPeriod = {};
-        for(const petition of await this.connector.petitions()) {
+        for (const petition of await this.connector.petitions()) {
             await this.addToTimeCacheIfNeccessary(petition.period);
             // Time-signable (= current period) is checked in the petition widget in layoutWidgets.ts
             // Updating both provider_signable and time_signable here would need to occur on every new period
             // which puts a high load on the web3 api endpoint
             const provider_signable = await this.getState().provider.signable(petition);
+            console.log("Provider told us that the petition is signable?", provider_signable, petition.period, petition.name);
             petition.signable = provider_signable
 
-            if(!byPeriod.hasOwnProperty(petition.period.toString())) byPeriod[petition.period.toString()] = [];
+            if (!byPeriod.hasOwnProperty(petition.period.toString())) byPeriod[petition.period.toString()] = [];
             byPeriod[petition.period.toString()].push(petition);
             this.petitions_by_id[idToNumber(petition.id).toString()] = petition;
         }
         this.petitions_by_period = byPeriod;
         console.log("Refresh", this.petitions_by_id, this.petitions_by_period)
-        if(reload) {
+        if (reload) {
             this.setState({
                 ...this.getState(),
                 lockspinner: false,
@@ -118,20 +119,20 @@ export class Web3Repository extends decorateClassWithState(Web3RepositoryBase) {
     }
 
     async addToTimeCacheIfNeccessary(period: number) {
-        if(!this.period_time_cache.hasOwnProperty(period)) {
+        if (!this.period_time_cache.hasOwnProperty(period)) {
             const start = new Date(await this.connector.startPeriod(period) * 1000);
             const end = new Date(await this.connector.startPeriod(period + 1) * 1000);
             this.period_time_cache[period] = new TimeSpan(start, end);
         }
     }
 
-    async startPeriodRefreshInterval() {        
+    async startPeriodRefreshInterval() {
         await this.setPeriod();
         await this.addToTimeCacheIfNeccessary(this.period);
 
         const span = this.period_time_cache[this.period].end.getTime() - this.period_time_cache[this.period].start.getTime();
         const next_period_boundary_in_s = this.period_time_cache[this.period].end.getTime() - Date.now();
-        
+
         const refresh = () => {
             console.log("Refresh period");
             this.setPeriod();
@@ -145,7 +146,7 @@ export class Web3Repository extends decorateClassWithState(Web3RepositoryBase) {
         setTimeout(refresh, (next_period_boundary_in_s + 10) * 1000)
 
         // 10 seconds before (or now if there are less than 10s left)
-        if(next_period_boundary_in_s > 10) {
+        if (next_period_boundary_in_s > 10) {
             setTimeout(refresh, (next_period_boundary_in_s - 10) * 1000);
         } else {
             setTimeout(refresh, (next_period_boundary_in_s + span - 10) * 1000);
@@ -159,7 +160,7 @@ export class Web3Repository extends decorateClassWithState(Web3RepositoryBase) {
         this.period = await this.connector.period();
         console.log("Set period from/to", pre_period, this.period);
         this.addToTimeCacheIfNeccessary(this.period);
-        if(pre_period !== this.period && !this.getState().customPeriod) this.notifyNewPeriod();
+        if (pre_period !== this.period && !this.getState().customPeriod) this.notifyNewPeriod();
     }
 
     async stateChanged(state: IState): Promise<void> {
@@ -178,7 +179,7 @@ export class Web3Repository extends decorateClassWithState(Web3RepositoryBase) {
 
 let localWeb3repository: Web3Repository = null;
 export async function getWeb3Repository(connector: EthereumConnector) {
-    if(localWeb3repository === null) localWeb3repository = new Web3Repository(connector);
-    if(!localWeb3repository.initialized) await localWeb3repository.init();
+    if (localWeb3repository === null) localWeb3repository = new Web3Repository(connector);
+    if (!localWeb3repository.initialized) await localWeb3repository.init();
     return localWeb3repository;
 }
