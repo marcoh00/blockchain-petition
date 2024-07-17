@@ -6,47 +6,102 @@ import "./Petition.sol";
 
 contract Registry is IRegistry {
     IPetition[] private pPetitions;
-    IIDP private pIDP;
-    Verifier private pVerifier;
+    address private pIDP;
+    address private pVerifier;
     bytes32 private pName;
     uint256 petitionId;
     bool pHideByDefault;
+    PetitionType pPetitionType;
 
-    event PetitionCreated(bytes32 indexed internalId, uint256 indexed period, bytes32 name, uint256 index);
+    event PetitionCreated(
+        bytes32 indexed internalId,
+        uint256 indexed period,
+        bytes32 name,
+        uint256 index
+    );
 
-    constructor(bytes32 lName, address lIdp, address lVerifier) {
+    constructor(
+        bytes32 lName,
+        address lIdp,
+        address lVerifier,
+        PetitionType lPetitionType
+    ) {
         pName = lName;
-        pIDP = IIDP(lIdp);
-        pVerifier = Verifier(lVerifier);
+        pIDP = lIdp;
         pHideByDefault = false;
+        pPetitionType = lPetitionType;
+        
+        if(lPetitionType == PetitionType.ZK) {
+            require(IIDP(lIdp).petitiontype() == PetitionType.ZK);
+            pVerifier = lVerifier;
+        }
     }
 
-    function name() override external view returns (bytes32) {
+    function name() external view override returns (bytes32) {
         return pName;
     }
 
-    function idp() override external view returns (IIDP) {
+    function idp() external view override returns (address) {
         return pIDP;
     }
 
-    function petitions() override external view returns (IPetition[] memory) {
+    function petitions() external view override returns (IPetition[] memory) {
         return pPetitions;
     }
 
-    function verifier() override external view returns (Verifier) {
+    function verifier() external view override returns (address) {
         return pVerifier;
     }
 
-    function createPetition(bytes32 lName, string calldata description, uint256 period) external {
-        require(period == 0 || period >= pIDP.period());
-        if(period == 0) {
-            period = pIDP.period() + 1;
+    function createPetition(
+        bytes32 lName,
+        string calldata description,
+        uint256 period
+    ) external {
+        require(period == 0 || period >= IIDP(pIDP).period());
+        if (period == 0) {
+            period = IIDP(pIDP).period() + 1;
         }
         petitionId += 1;
-        bytes32 lInternalPetitionId = keccak256(abi.encode(bytes32(petitionId) ^ lName));
-        pPetitions.push(
-            new Petition(lName, description, lInternalPetitionId, period, address(this), pHideByDefault)
+        bytes32 lInternalPetitionId = keccak256(
+            abi.encodePacked(petitionId, lName)
         );
-        emit PetitionCreated(lInternalPetitionId, period, lName, pPetitions.length);
+
+        if (pPetitionType == PetitionType.Naive) {
+            pPetitions.push(
+                new NaivePetition(
+                    lName,
+                    description,
+                    lInternalPetitionId,
+                    period,
+                    address(this),
+                    pHideByDefault
+                )
+            );
+        } else if (pPetitionType == PetitionType.ZK) {
+            pPetitions.push(
+                new ZKPetition(
+                    lName,
+                    description,
+                    lInternalPetitionId,
+                    period,
+                    address(this),
+                    pHideByDefault
+                )
+            );
+        } else {
+            revert();
+        }
+
+        emit PetitionCreated(
+            lInternalPetitionId,
+            period,
+            lName,
+            pPetitions.length
+        );
+    }
+
+    function petitiontype() external view override returns (PetitionType) {
+        return pPetitionType;
     }
 }

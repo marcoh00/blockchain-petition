@@ -1,12 +1,12 @@
 import { icon } from '@fortawesome/fontawesome-svg-core';
 import { faCheck, faClose, faRefresh } from '@fortawesome/free-solid-svg-icons';
 import { LitElement, html, css } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { property } from 'lit/decorators.js';
 import { IPetition } from '../../shared/web3';
-import { BLOCKTECH_TYPE, BLOCKTECH_TYPES } from '../../shared/addr';
 import { decorateClassWithState, IState } from './state';
 import { basicFlex, buttonMixin, faStyle, topDownFlex } from './styles';
-import { getZokratesHelper } from './zokrates';
+import { NoEntryError } from './keys';
+import { checkValidType } from '../../shared/idp';
 
 enum PageStage {
     Landing,
@@ -15,7 +15,7 @@ enum PageStage {
     PetitionSign
 }
 export class PetitionApp extends decorateClassWithState(LitElement) {
-    
+
     /* Valid stages
      * 0 = Landing Page
      * 1 = Registry + Wallet
@@ -35,19 +35,37 @@ export class PetitionApp extends decorateClassWithState(LitElement) {
         return html`
             ${this.getNavigationBar()}
             ${this.getMainPage()}
-            <error-view></error-view>
         `;
     }
 
     async stateChanged(state: IState): Promise<void> {
-        const web3connected = state.web3connected
-            && typeof(state.connector) === "object";
-        const identityknown = typeof(state.identity) === "string"
-            && typeof(state.idp) === "object";
-        if(web3connected && !identityknown) {
+        const web3connected = typeof (state.connector) === "object"
+            && state.connector.connected;
+        const identityknown = state.identity
+            && typeof (state.idp) === "object"
+            && state.idp.identity
+            && state.idp.id;
+
+        const need_provider = identityknown && (typeof state.provider !== "object" || typeof state.keymanager !== "object");
+
+        if (web3connected && !identityknown) {
             this.stage = PageStage.Identity;
         }
-        if(web3connected && identityknown) {
+
+        if (web3connected && identityknown) {
+            if (need_provider) {
+                const provider = await state.connector.client_provider();
+                const keymanager = provider.key_manager(state.idp);
+                keymanager.load()
+                const state_with_provider = {
+                    ...state,
+                    keymanager,
+                    provider
+                };
+                this.setState(state_with_provider);
+                await state_with_provider.repository.init();
+                return;
+            }
             this.stage = PageStage.PetitionSign;
         }
     }
@@ -78,14 +96,14 @@ export class PetitionApp extends decorateClassWithState(LitElement) {
 
     proceedConnection() {
         this.stage = PageStage.ChooseConnection;
-        if(this.getState().web3connected) this.proceedIdentity();
+        if (typeof (this.getState().connector) === "object" && this.getState().connector.connected) this.proceedIdentity();
     }
 
     proceedIdentity() {
         this.stage = PageStage.Identity;
         const state = this.getState();
-        if(typeof(state.identity) === "string"
-            && typeof(state.idp) === "object") this.proceedMain();
+        if (typeof (state.identity) === "string"
+            && typeof (state.idp) === "object") this.proceedMain();
     }
 
     proceedMain() {
@@ -98,16 +116,16 @@ export class PetitionApp extends decorateClassWithState(LitElement) {
 }
 
 export class ErrorView extends decorateClassWithState(LitElement) {
-    @property({ type: String })
-    error?: string = null;
+    @property({ type: Object })
+    error?: Array<string> = null;
 
     static styles = [faStyle, css`
         .container {
             position: fixed;
-            width: 90%;
+            width: 85%;
             height: 10%;
             min-height: 3rem;
-            left: 5%;
+            margin: 0 5%;
             bottom: 2rem;
             border-radius: 0.4em;
             background-color: #f8961e;
@@ -121,7 +139,18 @@ export class ErrorView extends decorateClassWithState(LitElement) {
         }
 
         .message {
-            flex-grow: 9
+            flex-grow: 9;
+            height: 100%;
+            overflow: scroll;
+        }
+
+        .note {
+            margin-top: 0;
+            font-size: 0.5em;
+        }
+
+        .main {
+            margin-bottom: 0.5rem;
         }
 
         .btn {
@@ -132,10 +161,18 @@ export class ErrorView extends decorateClassWithState(LitElement) {
     `];
 
     render() {
-        return typeof(this.error) === "string"? html`
+        return this.error !== null && typeof (this.error) === "object" ? html`
             <div class="container">
                 <div class="message">
-                    ${this.error}
+                    ${this.error.map(
+            (value, index) => {
+                if (index === 0) {
+                    return html`<p class="main">${value}</p>`;
+                } else {
+                    return html`<p class="note">${value}</p>`;
+                }
+            }
+        )}
                 </div>
                 <div class="btn" @click=${this.closeClick}>
                     ${icon(faClose).node}
@@ -160,7 +197,7 @@ export class ErrorView extends decorateClassWithState(LitElement) {
 export class MainPage extends decorateClassWithState(LitElement) {
     @property({ type: Array })
     petitions: IPetition[] = [];
-    
+
     static styles = [faStyle, basicFlex, topDownFlex, css`
         :host {
             align-items: stretch;
@@ -178,10 +215,9 @@ export class MainPage extends decorateClassWithState(LitElement) {
             cursor: pointer;
         }
         `];
-    
+
     connectedCallback() {
         super.connectedCallback();
-        console.log("Main Page connected");
         const state = this.getState();
         const statePetitions = state.repository.petitions_by_period[state.period];
         this.petitions = Array.isArray(statePetitions) ? statePetitions : [];
@@ -189,11 +225,10 @@ export class MainPage extends decorateClassWithState(LitElement) {
 
     render() {
         console.log("Render Petitions", this.petitions);
-        let sign_func = (this.getState().connector.blockchaintype === BLOCKTECH_TYPES.ohne_zk) ? this.signPetition : this.signPetition_zk;
         return html`
             <div class="cardlist">
                 <h1>Petitionen <span class="link" @click=${this.refreshClick}>${icon(faRefresh).node}</span></h1>
-                ${this.petitions.map((petition, idx) => html`<petition-card .petition=${petition} .idx=${idx} .signable=${this.isSignable(petition) && !petition.signed} @sign=${sign_func}></petition-card>`)}
+                ${this.petitions.map((petition, idx) => html`<petition-card .petition=${petition} .idx=${idx} .signable=${this.isSignable(petition) && petition.signable} @sign=${this.signPetition}></petition-card>`)}
             </div>
         `
     }
@@ -204,113 +239,36 @@ export class MainPage extends decorateClassWithState(LitElement) {
 
     async stateChanged(state: IState): Promise<void> {
         this.petitions = state.repository.petitions_by_period[state.period];
-        if(!Array.isArray(this.petitions)) this.petitions = [];
+        if (!Array.isArray(this.petitions)) this.petitions = [];
     }
 
-    isSignable(petition: IPetition) : boolean {
+    isSignable(petition: IPetition): boolean {
         const state = this.getState();
         const signable = state.repository.period_time_cache[petition.period].isNow();
-        console.log(`petition w/ period ${petition.period} is signable? ${signable}`);
+        console.log(`petition w/ period ${petition.period} is time signable? ${signable}. Provider signable? ${petition.signable}`, petition);
         return signable;
     }
 
     async signPetition(e: CustomEvent) {
         const petition = this.petitions[e.detail as number];
-        if(petition.signed) {
+        if (!petition.signable) {
             this.stateError("Sie haben diese Petition bereits unterzeichnet");
             return;
         }
-        if(!this.isSignable(petition)) {
+        if (!this.isSignable(petition)) {
             this.stateError("Es können ausschließlich Petitionen der aktuellen Abstimmungsperiode (s.o.) unterzeichnet werden");
             return;
         }
-        const idp = this.getState().idp;
-         if(!await this.getState().repository.connector.idpcontract.methods.validateAuthorized(`${this.getState().identity}`).call()) {
-             this.setState({
-                 ...this.getState(),
-                 lockspinner: true,
-                 locktext: "Auf Petitionsplattformprovider warten…"
-             });
-
-
-             console.log("Registriere Account für aktuelle Periode durch den PPP auf der Blockchain")
-             idp.getRegistrationData(petition.period)
-             const period = this.getState().period;
-             console.log(`Obtain credentials for period ${period}`);
-             await idp.credentialsForPeriod(period);
-
-
-             this.setState({
-                 ...this.getState(),
-                 lockspinner: false,
-                 locktext: undefined
-             });
-
-         }
-
-        this.setState({
-            ...this.getState(),
-            lockspinner: true,
-            locktext: "Bestätigung durch Blockchain abwarten"
-        });
         try {
-            const tx = await this.getState().connector.signPetition(petition.address);
-            console.log("Petition signed successfully!", tx);
-        } catch(e) {
-            if(typeof(e) === "object" && e.hasOwnProperty("toString")) {
-                this.stateError(`Konnte Transaktion nicht versenden: ${e.toString()}`);
+            await this.getState().provider.sign(petition);
+        }
+        catch (e) {
+            if (e == NoEntryError) {
+                this.stateError("Please register with the identity provider first");
             } else {
-                this.stateError(`Konnte Transaktion nicht versenden: ${e}`);
+                this.stateError(`Could not sign petition`, e, 99999999999999);
             }
         }
-        this.setState({
-            ...this.getState(),
-            lockspinner: false,
-            locktext: undefined
-        });
-        await this.getState().repository.init();
-    }
-
-    async signPetition_zk(e: CustomEvent) {
-        const petition = this.petitions[e.detail as number];
-        if(petition.signed) {
-            this.stateError("Sie haben diese Petition bereits unterzeichnet");
-            return;
-        }
-        if(!this.isSignable(petition)) {
-            this.stateError("Es können ausschließlich Petitionen der aktuellen Abstimmungsperiode (s.o.) unterzeichnet werden");
-            return;
-        }
-        const idp = this.getState().idp;
-        if(typeof(idp.getRegistrationData(petition.period).privkey) !== "object") {
-            this.stateError("Vor der Unterzeichnung muss ein Identitätsnachweis beantragt werden");
-            return;
-        }
-        const helper = await getZokratesHelper();
-        console.log("signPetition, before proof", petition, helper);
-        const proof = await helper.constructProof(petition, idp);
-        console.log("ZoKrates should be initialized now, cmdline would've been", proof.cmdline);
-
-        this.setState({
-            ...this.getState(),
-            lockspinner: true,
-            locktext: "Petition unterschreiben…"
-        });
-        try {
-            const tx = await this.getState().connector.signPetition_zk(petition.address, proof.points, proof.hpers, idp.getRegistrationData(petition.period).credentials.iteration);
-            console.log("Petition signed successfully!", tx);
-        } catch(e) {
-            if(typeof(e) === "object" && e.hasOwnProperty("toString")) {
-                this.stateError(`Konnte Transaktion nicht versenden: ${e.toString()}`);
-            } else {
-                this.stateError(`Konnte Transaktion nicht versenden: ${e}`);
-            }
-        }
-        this.setState({
-            ...this.getState(),
-            lockspinner: false,
-            locktext: undefined
-        });
         await this.getState().repository.init();
     }
 }
@@ -337,7 +295,7 @@ export class CreatePage extends decorateClassWithState(LitElement) {
         .invalid {
             border: 2px solid red;
         }`];
-    
+
     @property()
     title: string
 
@@ -368,11 +326,11 @@ export class CreatePage extends decorateClassWithState(LitElement) {
                 target: this.shadowRoot.querySelector("#title")
             }) as unknown as Event
         );
-        if(this.invalidTitle) {
+        if (this.invalidTitle) {
             this.stateError("Bitte geben Sie einen gültigen Titel ein");
             return;
         }
-        
+
         this.setState({
             ...this.getState(),
             lockspinner: true,
@@ -385,7 +343,7 @@ export class CreatePage extends decorateClassWithState(LitElement) {
                 (this.shadowRoot.querySelector("#petitiontext") as HTMLInputElement).value,
                 state.period
             )
-        } catch(e) {
+        } catch (e) {
             this.stateError(`Konnte Petition nicht erstellen: ${e}`)
         }
         this.setState({

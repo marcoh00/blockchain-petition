@@ -3,12 +3,10 @@
 set -e -x
 
 NETWORK=${1:-localhost}
-TYPE=${2:-zk}
+DEPLOY=${2:-NO}
 ADDPETITIONS=${3:-YES}
-DEPLOY=${4:-NO}
-STARTIDP=${5-YES}
-STARTCLIENT=${6:-YES}
-IDPURL=${7:-http://localhost:65535}
+STARTCLIENT=${4:-YES}
+STARTIDP=${5-""}
 PIDS=""
 
 sed -i 's/export const DEFAULT_NETWORK = NETWORKS.*/export const DEFAULT_NETWORK = NETWORKS.'"${NETWORK}"'/g' ${BASH_SOURCE%/*}/shared/addr.ts

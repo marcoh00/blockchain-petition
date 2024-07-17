@@ -1,8 +1,6 @@
 import { css, unsafeCSS } from 'lit';
 import fa from "@fortawesome/fontawesome-svg-core/styles.css";
 export const faStyle = unsafeCSS(fa);
-console.log(fa, faStyle);
-//export const faStyle = css``;
 
 export const basicFlex = css`
 :host {

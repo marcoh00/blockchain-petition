@@ -3,22 +3,31 @@ pragma solidity ^0.8;
 
 import "./StimmrechtsbeweisVerifier.sol";
 
+enum PetitionType {
+    Naive,
+    ZK
+}
+
 interface IIDP {
-    function submitVotingRight(address, uint256) external;
-    function validateAuthorized(address) external view returns (bool);
+    function petitiontype() external view returns (PetitionType);
     function periodlen() external view returns (uint256);
     function period() external view returns (uint256);
     function url() external view returns (string memory);
-    // Needed for zk
+}
+
+interface INaiveIDP is IIDP {
+    function submitVotingRight(address, uint256) external;
+    function validateAuthorized(address, uint256) external view returns (bool);
+}
+
+interface IZKIDP is IIDP {
     function submitHash(bytes32, uint256) external returns (uint256);
     function getHash(uint8) external view returns (bytes32, uint256);
     function lastIteration() external view returns (uint8);
     function depth() external view returns (uint8);
-
 }
 
-// Interface needed for zk
-interface IVerifier {
+interface IZKVerifier {
     function pk() external view returns (uint256[] memory);
     function vk() external view returns (uint256[] memory);
     function checkProof(bytes calldata, bytes32, bytes32) external view returns (bool);
@@ -26,10 +35,11 @@ interface IVerifier {
 
 interface IRegistry {
     function name() external view returns (bytes32);
-    function idp() external view returns (IIDP);
+    function idp() external view returns (address);
     function petitions() external view returns (IPetition[] memory);
     // Needed for zk
-    function verifier() external view returns (Verifier);
+    function verifier() external view returns (address);
+    function petitiontype() external view returns (PetitionType);
 }
 
 interface IPetition {
@@ -37,10 +47,16 @@ interface IPetition {
     function description() external view returns (string memory);
     function id() external view returns (bytes32);
     function registry() external view returns (IRegistry);
-    function period() external view returns (uint256);
-    function sign_zk(Verifier.Proof calldata, uint8, bytes32) external;
+    function period() external view returns (uint256);    
+    function signers() external view returns (uint256);
+}
+
+interface INaivePetition is IPetition {
     function sign() external;
-    function signers() external view returns (uint32);
     function hasSigned(address) external view returns (uint32);
-    function hasSigned_zk(uint8, bytes32)  external view returns (bool);
+}
+
+interface IZKPetition is IPetition {
+    function sign(Verifier.Proof calldata, uint8, bytes32) external;
+    function hasSigned(bytes32) external view returns (bool);
 }

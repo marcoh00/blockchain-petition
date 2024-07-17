@@ -6,7 +6,6 @@ import { icon } from '@fortawesome/fontawesome-svg-core';
 import { faAddressCard, faChevronLeft, faChevronRight, faCircleXmark, faClock, faCross, faQuestionCircle, faSpinner } from '@fortawesome/free-solid-svg-icons';
 import { faEthereum } from '@fortawesome/free-brands-svg-icons';
 import { IDPManager } from './idp';
-import { BLOCKTECH_TYPE, BLOCKTECH_TYPES } from '../../shared/addr';
 
 export class InformationalInfobar extends LitElement {
     static styles = [faStyle, basicFlex, leftRightFlex, buttonMixin, colorfulBar,
@@ -183,9 +182,9 @@ export class PeriodWidget extends decorateClassWithState(LitElement) {
     }
 
     async stateChanged(state: IState) {
-        if(typeof(state.repository) === "object") {
+        if (typeof (state.repository) === "object") {
             this.period = state.period;
-            if(this.period > 0) {
+            if (this.period > 0) {
                 await state.repository.addToTimeCacheIfNeccessary(this.period);
                 this.ts_from = state.repository.period_time_cache[this.period].start;
                 this.ts_until = state.repository.period_time_cache[this.period].end;
@@ -202,7 +201,7 @@ export class PeriodWidget extends decorateClassWithState(LitElement) {
         let day = d.getDate();
         let hour = d.getHours();
         let minute = d.getMinutes();
-        
+
         const make2digits = (n: number) => n > 9 ? n.toString() : `0${n.toString()}`;
         let [syear, smonth, sday, shour, sminute] = [year, month, day, hour, minute].map(make2digits);
         return `${sday}.${smonth}.${syear} ${shour}:${sminute}`
@@ -278,8 +277,7 @@ export class IDPWidget extends decorateClassWithState(LitElement) {
     }
 
     render() {
-        if (this.getState().connector.blockchaintype === BLOCKTECH_TYPES.mit_zk) {
-            return this.stage < 1 ? html`Keine Identität festgelegt` : html`
+        return this.stage < 1 ? html`Keine Identität festgelegt` : html`
             <div class="grid">
                 <div class="logo">
                     ${icon(faAddressCard).node}
@@ -289,7 +287,7 @@ export class IDPWidget extends decorateClassWithState(LitElement) {
                 </div>
                 <div class="symb">
                     <div class="isymb">
-                        ${this.working ? html`<loading-spinner border="0.1em"></loading-spinner>` : html``}
+                        ${this.working ? html`<loading-spinner .border=1em></loading-spinner>` : html``}
                         ${this.failed ? html`<div>${icon(faCircleXmark).node}</div>` : html``}
                    </div>
                 </div>
@@ -298,15 +296,12 @@ export class IDPWidget extends decorateClassWithState(LitElement) {
                 </div>
             </div>
         `;
-        }
-        return "";
     }
 
     stateText() {
-        console.log("Calc state", this);
-        if(this.failed) return html`<button @click=${this.obtainProofClick}>Erneut versuchen</button>`
-        if(this.working) {
-            switch(this.stage) {
+        if (this.failed) return html`<button @click=${this.obtainProofClick}>Erneut versuchen</button>`
+        if (this.working) {
+            switch (this.stage) {
                 case 1:
                     return html`<span>1/3 Token</span>`;
                 case 2:
@@ -315,7 +310,7 @@ export class IDPWidget extends decorateClassWithState(LitElement) {
                     return html`<span>3/3 Abschluss</span>`;
             }
         }
-        switch(this.stage) {
+        switch (this.stage) {
             case 1:
                 return html`<button @click=${this.obtainProofClick}>Identitätsnachweis beantragen</button>`;
             case 2:
@@ -329,18 +324,23 @@ export class IDPWidget extends decorateClassWithState(LitElement) {
     async stateChanged(state: IState): Promise<void> {
         this.idpmanager = state.idp;
         this.stage = 0;
-        if(typeof(this.idpmanager) === "object") {
+        if (typeof (this.idpmanager) === "object") {
             this.stage += 1;
-            this.working = this.idpmanager.getRegistrationData(state.period).working;
-            this.failed = this.idpmanager.getRegistrationData(state.period).failed;
-            if(typeof(this.idpmanager.getRegistrationData(state.period).token) === "string") this.stage += 1;
-            if(typeof(this.idpmanager.getRegistrationData(state.period).credentials) === "object") this.stage += 1;
+            const regdata = this.idpmanager.registration_data(state.period);
+            this.working = regdata.working;
+            this.failed = regdata.failed;
+            if (typeof (regdata.token) === "string") this.stage += 1;
+            if (typeof (regdata.response) === "object") this.stage += 1;
         }
     }
 
     async obtainProofClick() {
         const period = this.getState().period;
         console.log(`Obtain credentials for period ${period}`);
-        await this.idpmanager.credentialsForPeriod(period);
+        try {
+            await this.getState().keymanager.get_proof(period, true);
+        } catch (e) {
+            this.stateError(`Unable to obtain proof of identity`, e);
+        }
     }
 }

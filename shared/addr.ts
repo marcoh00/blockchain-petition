@@ -106,15 +106,3 @@ export const NETWORKS: INetworkList = {
     }
 }
 export const DEFAULT_NETWORK = NETWORKS.localhost
-
-/*
-BLOCKTECH_TYPE = 0 fuer mit zk
-BLOCKTECH_TYPE = 1 ohne zk
-*/
-export enum BLOCKTECH_TYPES {
-    mit_zk = 0,
-    ohne_zk = 1
-}
-
-let BLOCKTECH_TYPE: Number = BLOCKTECH_TYPES.ohne_zk;
-export {BLOCKTECH_TYPE}

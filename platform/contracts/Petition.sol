@@ -3,19 +3,16 @@ pragma solidity ^0.8;
 
 import "./IPetition.sol";
 
-contract Petition is IPetition {
+abstract contract Petition is IPetition {
     bytes32 private pName;
     string private pDescription;
     bytes32 pId;
     uint256 pPeriod;
-    IRegistry private pRegistry;
-    uint32 private pSigners;
-    mapping(bytes32 => bool) private pHasSigned_zk;
-    mapping(address => bool) private pHasSigned;
+    IRegistry internal pRegistry;
+    uint256 internal pSigners;
     bool pHiddenByOperator;
 
-    event PetitionSigned_zk(bytes32 indexed id, bytes32 indexed identity);
-    event PetitionSigned(bytes32 indexed id, address indexed identity);
+    event PetitionSigned(bytes32 indexed id, bytes32 indexed identity);
 
     constructor(bytes32 lName, string memory lDescription, bytes32 lId, uint256 lPeriod, address lRegistry, bool lHidden) {
         pName = lName;
@@ -53,9 +50,48 @@ contract Petition is IPetition {
         return pPeriod;
     }
 
-    function sign_zk(Verifier.Proof calldata lProof, uint8 lIteration, bytes32 lIdentity) override external {
+    function signers() override external view returns (uint256) {
+        return pSigners;
+    }
+
+    function hide(bool lHidden) external {
+        require(msg.sender == address(pRegistry));
+        pHiddenByOperator = lHidden;
+    }
+
+    function hidden() external view returns (bool) {
+        return pHiddenByOperator;
+    }
+}
+
+contract NaivePetition is Petition, INaivePetition {
+    mapping(address => bool) private pHasSigned;
+
+    constructor(bytes32 lName, string memory lDescription, bytes32 lId, uint256 lPeriod, address lRegistry, bool lHidden) Petition(lName, lDescription, lId, lPeriod, lRegistry, lHidden) {}
+
+    function sign() override external {
+        require(!pHasSigned[msg.sender]);
+        require(this.period() == INaiveIDP(this.registry().idp()).period());
+        require(INaiveIDP(this.registry().idp()).validateAuthorized(msg.sender, pPeriod));
+
+        pHasSigned[msg.sender] = true;
+        pSigners += 1;
+        emit PetitionSigned(pId, bytes32(uint256(uint160(msg.sender))));
+    }
+
+    function hasSigned(address toCheck) override external view returns (uint32) {
+        return pHasSigned[toCheck] ? uint32(1) : uint32(0);
+    }
+}
+
+contract ZKPetition is Petition, IZKPetition {
+    mapping(bytes32 => bool) private pHasSigned_zk;
+
+    constructor(bytes32 lName, string memory lDescription, bytes32 lId, uint256 lPeriod, address lRegistry, bool lHidden) Petition(lName, lDescription, lId, lPeriod, lRegistry, lHidden) {}
+    
+    function sign(Verifier.Proof calldata lProof, uint8 lIteration, bytes32 lIdentity) override external {
         require(pHasSigned_zk[lIdentity] == false);
-        (bytes32 rt, uint256 rtProofPeriod) = this.registry().idp().getHash(lIteration);
+        (bytes32 rt, uint256 rtProofPeriod) = IZKIDP(this.registry().idp()).getHash(lIteration);
         require(rtProofPeriod == this.period());
 
         //Überführe die öffentlichen Eingabewerte des Stimmrechtsbeweises in die erwartete Form: Eingabewerte, portioniert auf 32Bit, zusammen in einem uint[24] Array
@@ -75,47 +111,13 @@ contract Petition is IPetition {
             inputPosition --;
         }
 
-
-
-        require(this.registry().verifier().verifyTx(lProof, input));
+        require(Verifier(pRegistry.verifier()).verifyTx(lProof, input));
         pHasSigned_zk[lIdentity] = true;
         pSigners += 1;
-        emit PetitionSigned_zk(pId, lIdentity);
+        emit PetitionSigned(pId, lIdentity);
     }
 
-    function sign() override external {
-        require(!pHasSigned[msg.sender]);
-        require(this.period() == this.registry().idp().period());
-        require(this.registry().idp().validateAuthorized(msg.sender));
-
-        pHasSigned[msg.sender] = true;
-        pSigners += 1;
-        emit PetitionSigned(pId, msg.sender);
-    }
-
-    function hasSigned_zk(uint8 lIteration, bytes32 lIdentity) override external view returns (bool) {
-        bool has_signed = pHasSigned_zk[lIdentity] ? true : false;
-        if (!has_signed) {
-            return false;
-        }
-        (bytes32 rt, uint256 rtProofPeriod) = this.registry().idp().getHash(lIteration);
-        return (rtProofPeriod == this.period()) ? true : false;
-    }
-
-    function signers() override external view returns (uint32) {
-        return pSigners;
-    }
-
-    function hasSigned(address toCheck) override external view returns (uint32) {
-        return pHasSigned[toCheck] ? uint32(1) : uint32(0);
-    }
-
-    function hide(bool lHidden) external {
-        require(msg.sender == address(pRegistry));
-        pHiddenByOperator = lHidden;
-    }
-
-    function hidden() external view returns (bool) {
-        return pHiddenByOperator;
+    function hasSigned(bytes32 lIdentity) override external view returns (bool) {
+        return pHasSigned_zk[lIdentity];
     }
 }
