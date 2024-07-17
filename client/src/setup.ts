@@ -1,7 +1,7 @@
 import { icon } from '@fortawesome/fontawesome-svg-core';
 import { faEthereum } from '@fortawesome/free-brands-svg-icons';
 import { faAddressCard, faCheck, faArrowDown } from '@fortawesome/free-solid-svg-icons';
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, PropertyValues } from 'lit';
 import { property } from 'lit/decorators.js';
 import { NETWORKS } from '../../shared/addr';
 import { decorateClassWithState, IState } from './state';
@@ -60,7 +60,6 @@ export class ConnectionPage extends decorateClassWithState(LitElement) {
     registryClick(e: CustomEvent) {
         this.contract = e.detail.contract;
         this.chainid = e.detail.chainid;
-        this.blockchaintype = e.detail.blockchaintype;
         console.log("registryClick", e);
     }
 
@@ -139,18 +138,6 @@ export class RegistryChooser extends LitElement {
     @property({ type: Array })
     registries: any[] = [
         {
-            addr: NETWORKS.tdf.registry_contract,
-            descr: "Testcontract im Sepolia-Netzwerk",
-            ident: "Texteingabe",
-            chainid: NETWORKS.tdf.chainid
-        },
-        {
-            addr: NETWORKS.tdf.registry_contract_zk,
-            descr: "Testcontract im Sepolia-Netzwerk (ZK)",
-            ident: "Texteingabe",
-            chainid: NETWORKS.tdf.chainid
-        },
-        {
             addr: NETWORKS.localhost.registry_contract,
             descr: "Testcontract auf lokaler Blockchain",
             ident: "Texteingabe",
@@ -161,19 +148,8 @@ export class RegistryChooser extends LitElement {
             descr: "Testcontract auf lokaler Blockchain mit ZK",
             ident: "Texteingabe",
             chainid: NETWORKS.localhost_zk.chainid
-        },
-        {
-            addr: NETWORKS.sepolia.registry_contract,
-            descr: "Testcontract auf Sepolia-Blockchain",
-            ident: "Texteingabe",
-            chainid: NETWORKS.sepolia.chainid
-        },
-        {
-            addr: NETWORKS.goerli.registry_contract,
-            descr: "Testcontract auf Goerli-Blockchain",
-            ident: "Texteingabe",
-            chainid: NETWORKS.goerli.chainid
-        }];
+        }
+    ];
 
     @property({ type: Boolean })
     inputCustom = false
@@ -227,14 +203,9 @@ export class RegistryChooser extends LitElement {
                     <div class="adescr">
                         <input type="text" id="customcontract" class="${this.customValid || !this.customTouched ? "" : "invalid"}" @input=${this.customAddrChange}>
                     </div>
-                    <div class="asdesc"> Blockchain-Adresse einer eigenen, kompatiblen Registrierungsstelle </div>
+                    <div class="asdesc">Blockchain-Adresse einer eigenen, kompatiblen Registrierungsstelle </div>
                 </td>
-                <td>
-                    Selbst Wählbar
-                </td>
-                <td>
-                    Unbekannt
-                </td>
+                <td></td>
             </tr>`;
         }
         return html`
@@ -245,7 +216,7 @@ export class RegistryChooser extends LitElement {
                 </div>
             </td>
             <td>
-                <div class="adescr" @click=${() => this.select(idx, true)}>${registry.descr}, </div>
+                <div class="adescr" @click=${() => this.select(idx, true)}>${registry.descr}</div>
                 <div class="asdesc" @click=${() => this.select(idx, true)}>${registry.addr}</div>
             </td>
             <td>
@@ -262,7 +233,6 @@ export class RegistryChooser extends LitElement {
                 <th> </th>
                 <th>Blockchain</th>
                 <th>${icon(faAddressCard).node} Identifizierungsmethode</th>
-                <th>BlockChain Typ</th>
             </tr>
             </thead>
             <tbody>
@@ -275,10 +245,10 @@ export class RegistryChooser extends LitElement {
             </tbody>
         </table>
         ${!this.seeAdvanced ?
-                html`<button class="smallbtn" @click=${() => this.seeAdvanced = !this.seeAdvanced}>${icon(faArrowDown).node} Weitere Blockchains </button>`
+                html`<button class="smallbtn" @click=${() => this.seeAdvanced = !this.seeAdvanced}>${icon(faArrowDown).node} More</button>`
                 // Blockchain selber eintragen (Else Fall)
                 : !this.inputCustom ?
-                    html`<button @click=${() => this.inputCustom = !this.inputCustom}>${icon(faArrowDown).node} Selbst Erstellte Blockchain Eintragen </button>`
+                    html`<button @click=${() => this.inputCustom = !this.inputCustom}>${icon(faArrowDown).node} Custom Registry Address</button>`
                     : ""}`;
     }
 
@@ -305,7 +275,6 @@ export class RegistryChooser extends LitElement {
     selectionChange(e: Event) {
         const target = e.target as HTMLInputElement;
         this.select(Number.parseInt(target.value));
-        console.log("selectionChange", target.value);
     }
 
     customAddrChange(e: Event) {
@@ -318,7 +287,6 @@ export class RegistryChooser extends LitElement {
         if (this.lastSelected === -1 && !this.customValid) {
             this.select(0, true);
         }
-        console.log("customAddrChange", target.value, this.customValid);
     }
 }
 
@@ -352,6 +320,11 @@ export class IdentityPage extends decorateClassWithState(LitElement) {
         `;
     }
 
+    firstUpdated(changedProperties: PropertyValues): void {
+        super.firstUpdated(changedProperties);
+        (this.shadowRoot.querySelector("#identity") as HTMLInputElement).focus();
+    }
+
     idInput(e: Event) {
         this.name = (e.target as HTMLInputElement).value;
         this.invalidName = this.name === "";
@@ -364,7 +337,6 @@ export class IdentityPage extends decorateClassWithState(LitElement) {
     }
 
     async verifyClick() {
-        console.log("Set Identity")
         this.idInput(
             ({
                 target: this.shadowRoot.querySelector("#identity")

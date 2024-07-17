@@ -52,9 +52,12 @@ export async function localWeb3Connect() {
                     decoratedClass.onWeb3Connect(backend);
                     decoratedClass.onAccountsChange(backend, accounts);
                 }
+                if (window.ethereum.isConnected()) {
+                    resolve();
+                }
             })
             .catch((e: string) => {
-                console.log("web3 init: failed to update accounts");
+                console.log("web3 init: failed to update accounts", e);
                 reject();
             })
     });
@@ -65,7 +68,6 @@ export function decorateClassWithWeb3<T extends ClassType>(decorated: T) {
     return class extends decorated implements IWeb3Connected {
         constructor(...args: any[]) {
             super(...args);
-            console.log("construct web3 decorator", ...args);
             decoratedClasses.push(this);
         }
         async onWeb3Connect(provider: any) { }
@@ -93,10 +95,9 @@ export class WalletConnector extends decorateClassWithWeb3(decorateClassWithStat
     }
 
     async init() {
-        console.log("webeth.web3connect");
-        console.trace()
+        console.trace("[WalletConnector] start init");
         await this.web3Connect();
-        console.log("webeth.connector.init");
+        console.log("[WalletConnector] web3connect successful");
         this.connector = await getWeb3Connector(this.provider, this.registryaddr);
         this.connected = true;
         await this.updateState();
@@ -104,18 +105,18 @@ export class WalletConnector extends decorateClassWithWeb3(decorateClassWithStat
 
     async onAccountsChange(provider: any, accounts: string[]) {
         this.accounts = accounts;
-        console.log("onAccountsChange, this.contract", this.registryaddr);
         // We consider ourselves connected when we've been given access to at least one account
         // and as soon as our EthereumConenctor is initialized.
         // This check is important: During the initialization phase (`this.web3Connect()`)
         // this callback is called with the selected accounts.
         // However, at this point in time, the web3connector wasn't set which will cause updateState to fail.
         this.connected = (this.accounts.length > 0 && typeof this.connector === "object");
+        console.log("[WalletConnector] onAccountsChange", this, this.connected);
         await this.updateState();
     }
 
     async onWeb3Connect(provider: any): Promise<void> {
-        console.log("onWeb3connect");
+        console.log("[WalletConnector] onWeb3connect");
     }
 
     async onError(error: string): Promise<void> {

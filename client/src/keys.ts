@@ -28,7 +28,6 @@ export abstract class KeyManager<K, P> {
             this.save();
             return this.repo[period.toString()].keys;
         }
-        console.trace("No entry error (key)");
         throw NoEntryError;
     }
 
@@ -42,7 +41,6 @@ export abstract class KeyManager<K, P> {
             this.save();
             return this.repo[period.toString()].proof;
         }
-        console.trace(`No entry error (proof). Requested: ${period}. hasProperty? ${this.repo.hasOwnProperty(period.toString())}`)
         throw NoEntryError;
     }
 
@@ -87,7 +85,6 @@ export class ZKKeyManager extends KeyManager<IZKKey, IZKProofResponse> {
         crypto.getRandomValues(privkey_src);
         const privkey = await SHA256Hash.hashRaw(privkey_src);
         const pubkey = await SHA256Hash.hashRaw(privkey.rawValue());
-        console.log(`priv: ${privkey.toHex()}`, `pub: ${pubkey.toHex()}, period: ${period}`, privkey, pubkey);
 
         const keys: IZKKey = {
             privkey,
@@ -107,6 +104,8 @@ export class ZKKeyManager extends KeyManager<IZKKey, IZKProofResponse> {
             && checkValidType(["directionSelector", "path"], response.proof);
     }
 
+    get storage_id() { return `cred.${this.idp.id}`; }
+
     save() {
         const localData = JSON.stringify(this.repo, (key, value) => {
             if (
@@ -114,17 +113,16 @@ export class ZKKeyManager extends KeyManager<IZKKey, IZKProofResponse> {
                 value.hasOwnProperty("hash") &&
                 typeof value.hash !== "string"
             ) {
-                console.log("hashy value", value);
                 return (value as SHA256Hash).toHex();
             }
             return value;
         });
-        localStorage.setItem(`cred.${this.idp.id}`, localData);
-        console.log("Credentials saved to localStorage");
+        localStorage.setItem(this.storage_id, localData);
+        console.log("KM, Credentials saved to localStorage", this.storage_id);
     }
 
     load() {
-        const item = localStorage.getItem(`cred.${this.idp.id}`);
+        const item = localStorage.getItem(this.storage_id);
         if (typeof item !== "string") return;
         this.repo = JSON.parse(item, (key, value) =>
             typeof value === "string" &&

@@ -7,6 +7,7 @@ import { ZokratesHelper } from "./zokrates";
 import { KeyManager } from "./keys";
 import { IClientProvider } from "./provider";
 import { IdentityProof } from "../../shared/idp";
+import { html } from "lit";
 
 export interface ICredentials {
     hash: string,
@@ -31,7 +32,7 @@ export interface IState {
     idp?: IDPManager,
     keymanager?: KeyManager<any, any>,
     provider?: IClientProvider,
-    error?: string,
+    error?: Array<string>,
     locktext?: string,
     lockspinner: boolean
 }
@@ -48,7 +49,6 @@ let state: IState = undefined;
 function localGetState(): IState {
     if (state === undefined) {
         console.log("Initialize new state");
-        console.trace();
         localSetState({
             registry: REGISTRY_CONTRACT,
             period: -1,
@@ -62,8 +62,7 @@ function localGetState(): IState {
 const decoratedClasses: Array<any> = [];
 
 function localSetState(lstate: IState) {
-    console.log("Set State", lstate);
-    console.trace();
+    console.trace("Set State", lstate);
     state = lstate;
     for (let decoratedClass of decoratedClasses) {
         decoratedClass.stateChanged(lstate);
@@ -80,14 +79,20 @@ export function decorateClassWithState<T extends ClassType>(decorated: T) {
         }
         getState: () => IState = localGetState;
         setState: (state: IState) => void = localSetState;
-        async stateChanged(state: IState) {
-            console.log("State Change", this, state);
-        }
-        stateError(message: string, timeout: number = 10000) {
-            console.log("[ERROR] " + message);
+        async stateChanged(state: IState) { }
+        stateError(message: string, e?: Error, timeout: number = 10000) {
+            if (!e) e = ({} as unknown as Error);
+            console.trace("[ERROR] " + message, e);
+            let messages = [message];
+            if (e.hasOwnProperty("message")) {
+                messages.push(e.message);
+            }
+            if (e.hasOwnProperty("stack")) {
+                messages.push(e.stack);
+            }
             this.setState({
                 ...this.getState(),
-                error: message
+                error: messages
             });
             setTimeout(() => this.setState({
                 ...this.getState(),

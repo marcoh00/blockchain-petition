@@ -299,7 +299,6 @@ export class IDPWidget extends decorateClassWithState(LitElement) {
     }
 
     stateText() {
-        console.log("Calc state", this);
         if (this.failed) return html`<button @click=${this.obtainProofClick}>Erneut versuchen</button>`
         if (this.working) {
             switch (this.stage) {
@@ -341,8 +340,7 @@ export class IDPWidget extends decorateClassWithState(LitElement) {
         try {
             await this.getState().keymanager.get_proof(period, true);
         } catch (e) {
-            console.trace(e);
-            this.stateError(`Unable to obtain proof of identity: ${e}`);
+            this.stateError(`Unable to obtain proof of identity`, e);
         }
     }
 }

@@ -39,12 +39,12 @@ export class ZKClientProvider extends decorateClassWithState(ClientProviderBase)
     }
     async signed(petition: IPetition): Promise<boolean> {
         try {
-            const proof = await this.keymanager.get_proof(petition.period);
             const hpers = await this._hpers(petition);
-            return await this.zkconnector.hasSigned_zk(petition.address, hpers, proof.iteration);
+            return await this.zkconnector.hasSigned_zk(petition.address, hpers);
         } catch (e) {
             // No proof available, so we can't have signed this
             if (e == NoEntryError) return false;
+            throw e;
         }
     }
 
@@ -89,7 +89,6 @@ export class NaiveClientProvider extends decorateClassWithState(ClientProviderBa
             return false;
         }
         const signed = await this.nconnector.hasSigned(petition.address);
-        console.log("Have I signed this?", signed, petition.address, this.nconnector.account);
         return signed;
     }
 

@@ -6,6 +6,7 @@ import { IPetition } from '../../shared/web3';
 import { decorateClassWithState, IState } from './state';
 import { basicFlex, buttonMixin, faStyle, topDownFlex } from './styles';
 import { NoEntryError } from './keys';
+import { checkValidType } from '../../shared/idp';
 
 enum PageStage {
     Landing,
@@ -34,7 +35,6 @@ export class PetitionApp extends decorateClassWithState(LitElement) {
         return html`
             ${this.getNavigationBar()}
             ${this.getMainPage()}
-            <error-view></error-view>
         `;
     }
 
@@ -49,9 +49,6 @@ export class PetitionApp extends decorateClassWithState(LitElement) {
         const need_provider = identityknown && (typeof state.provider !== "object" || typeof state.keymanager !== "object");
 
         if (web3connected && !identityknown) {
-            try {
-                console.log("Identity unknown. Expected: ID, object, ID, IDhash", state.identity, typeof state.idp, state.idp.identity, state.idp.id);
-            } catch (e) { }
             this.stage = PageStage.Identity;
         }
 
@@ -119,16 +116,16 @@ export class PetitionApp extends decorateClassWithState(LitElement) {
 }
 
 export class ErrorView extends decorateClassWithState(LitElement) {
-    @property({ type: String })
-    error?: string = null;
+    @property({ type: Object })
+    error?: Array<string> = null;
 
     static styles = [faStyle, css`
         .container {
             position: fixed;
-            width: 90%;
+            width: 85%;
             height: 10%;
             min-height: 3rem;
-            left: 5%;
+            margin: 0 5%;
             bottom: 2rem;
             border-radius: 0.4em;
             background-color: #f8961e;
@@ -143,7 +140,17 @@ export class ErrorView extends decorateClassWithState(LitElement) {
 
         .message {
             flex-grow: 9;
+            height: 100%;
             overflow: scroll;
+        }
+
+        .note {
+            margin-top: 0;
+            font-size: 0.5em;
+        }
+
+        .main {
+            margin-bottom: 0.5rem;
         }
 
         .btn {
@@ -154,10 +161,18 @@ export class ErrorView extends decorateClassWithState(LitElement) {
     `];
 
     render() {
-        return typeof (this.error) === "string" ? html`
+        return this.error !== null && typeof (this.error) === "object" ? html`
             <div class="container">
                 <div class="message">
-                    ${this.error}
+                    ${this.error.map(
+            (value, index) => {
+                if (index === 0) {
+                    return html`<p class="main">${value}</p>`;
+                } else {
+                    return html`<p class="note">${value}</p>`;
+                }
+            }
+        )}
                 </div>
                 <div class="btn" @click=${this.closeClick}>
                     ${icon(faClose).node}
@@ -203,7 +218,6 @@ export class MainPage extends decorateClassWithState(LitElement) {
 
     connectedCallback() {
         super.connectedCallback();
-        console.log("Main Page connected");
         const state = this.getState();
         const statePetitions = state.repository.petitions_by_period[state.period];
         this.petitions = Array.isArray(statePetitions) ? statePetitions : [];
@@ -231,7 +245,7 @@ export class MainPage extends decorateClassWithState(LitElement) {
     isSignable(petition: IPetition): boolean {
         const state = this.getState();
         const signable = state.repository.period_time_cache[petition.period].isNow();
-        console.log(`petition w/ period ${petition.period} is signable? ${signable}. Already signed? ${petition.signable}`);
+        console.log(`petition w/ period ${petition.period} is time signable? ${signable}. Provider signable? ${petition.signable}`, petition);
         return signable;
     }
 
@@ -252,7 +266,7 @@ export class MainPage extends decorateClassWithState(LitElement) {
             if (e == NoEntryError) {
                 this.stateError("Please register with the identity provider first");
             } else {
-                this.stateError(`Could not sign petition: ${e}`);
+                this.stateError(`Could not sign petition`, e, 99999999999999);
             }
         }
         await this.getState().repository.init();

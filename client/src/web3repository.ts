@@ -7,7 +7,6 @@ function idToNumber(id: number[] | Uint8Array): number {
         if (byte > 0xff) throw new Error(`Invalid byte: ${byte}`)
         result = (result << 8) | byte;
     }
-    console.log("idToNumber", id, result);
     return result;
 }
 
@@ -100,7 +99,6 @@ export class Web3Repository extends decorateClassWithState(Web3RepositoryBase) {
             // Updating both provider_signable and time_signable here would need to occur on every new period
             // which puts a high load on the web3 api endpoint
             const provider_signable = await this.getState().provider.signable(petition);
-            console.log("Provider told us that the petition is signable?", provider_signable, petition.period, petition.name);
             petition.signable = provider_signable
 
             if (!byPeriod.hasOwnProperty(petition.period.toString())) byPeriod[petition.period.toString()] = [];
@@ -108,7 +106,6 @@ export class Web3Repository extends decorateClassWithState(Web3RepositoryBase) {
             this.petitions_by_id[idToNumber(petition.id).toString()] = petition;
         }
         this.petitions_by_period = byPeriod;
-        console.log("Refresh", this.petitions_by_id, this.petitions_by_period)
         if (reload) {
             this.setState({
                 ...this.getState(),
@@ -161,11 +158,6 @@ export class Web3Repository extends decorateClassWithState(Web3RepositoryBase) {
         console.log("Set period from/to", pre_period, this.period);
         this.addToTimeCacheIfNeccessary(this.period);
         if (pre_period !== this.period && !this.getState().customPeriod) this.notifyNewPeriod();
-    }
-
-    async stateChanged(state: IState): Promise<void> {
-        console.trace();
-        console.log("period/state period/truth", state.period, this.period);
     }
 
     notifyNewPeriod() {

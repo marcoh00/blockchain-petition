@@ -19,7 +19,7 @@ export interface IPetition {
 }
 
 export async function getWeb3Connector(provider: any, registryaddr: string, account?: string, privkey?: string, chainid?: number): Promise<EthereumConnector> {
-    if(Array.isArray(provider) && provider.length === 6) {
+    if (Array.isArray(provider) && provider.length === 6) {
         // Alle übergebenen Argumente von der decorateClassWithWeb3 Klasse sind
         // nur in provider paramenter und müssen entpackt werden
         // Grund: Kein Constructor overloading in typescript!
@@ -30,7 +30,7 @@ export async function getWeb3Connector(provider: any, registryaddr: string, acco
     const regtype = Number.parseInt(await registry.methods.petitiontype().call()) as PetitionType;
 
     let ethereum_connector = null;
-    switch(regtype) {
+    switch (regtype) {
         case PetitionType.Naive: {
             ethereum_connector = new NaiveEthereumConnector(web3, registry, account, privkey, chainid);
             break;
@@ -64,15 +64,15 @@ export abstract class EthereumConnector {
 
     async init() {
         const wallet_chain_id = await this.api.eth.getChainId()
-        if(this.chainid && wallet_chain_id !== this.chainid) throw new Error(`Falsche Blockchain ausgewählt (ist ${wallet_chain_id}, soll ${this.chainid})`);
+        if (this.chainid && wallet_chain_id !== this.chainid) throw new Error(`Falsche Blockchain ausgewählt (ist ${wallet_chain_id}, soll ${this.chainid})`);
         const idpaddr = await this.registrycontract.methods.idp().call();
         console.log("🌐 Obtained IDP contract address", idpaddr);
         this.idpcontract = this.idp(idpaddr);
 
-        if(typeof(this.account) === "undefined") {
+        if (typeof (this.account) === "undefined") {
             const accounts = await this.api.eth.getAccounts();
             console.log("web3: no account specified, try to get accounts via api", accounts);
-            if(accounts.length > 0) {
+            if (accounts.length > 0) {
                 this.account = accounts[0];
             }
         }
@@ -83,14 +83,14 @@ export abstract class EthereumConnector {
     }
 
     async startPeriod(period?: number): Promise<number> {
-        if(period === undefined) {
+        if (period === undefined) {
             period = await this.period();
         }
         return Number.parseInt(await this.idpcontract.methods.start_period(period).call());
     }
 
     async nextPeriod(period?: number): Promise<number> {
-        if(period === undefined) {
+        if (period === undefined) {
             period = await this.period();
         }
         return await this.startPeriod(period + 1);
@@ -115,13 +115,13 @@ export abstract class EthereumConnector {
     async petitions(): Promise<IPetition[]> {
         const petitions: IPetition[] = [];
         const addr_list: string[] = await this.registrycontract.methods.petitions().call();
-        for(const addr of addr_list) {
+        for (const addr of addr_list) {
             const contract = this.petition(addr);
             const name = await contract.methods.name().call();
             let name_decoded = "";
             try {
                 name_decoded = hexToUtf8(name);
-            } catch(e) {
+            } catch (e) {
                 name_decoded = EthereumConnector.hexToUtf8Fallback(name);
             }
             const info: IPetition = {
@@ -145,14 +145,14 @@ export abstract class EthereumConnector {
         return tx;
     }
 
-    static ASCII_TABLE: ITable = {"20": " ", "21": "!", "22": "\"", "23": "#", "24": "$", "25": "%", "26": "&", "27": "'", "28": "(", "29": ")", "2a": "*", "2b": "+", "2c": ",", "2d": "-", "2e": ".", "2f": "/", "30": "0", "31": "1", "32": "2", "33": "3", "34": "4", "35": "5", "36": "6", "37": "7", "38": "8", "39": "9", "3a": ":", "3b": ";", "3c": "<", "3d": "=", "3e": ">", "3f": "?", "40": "@", "41": "A", "42": "B", "43": "C", "44": "D", "45": "E", "46": "F", "47": "G", "48": "H", "49": "I", "4a": "J", "4b": "K", "4c": "L", "4d": "M", "4e": "N", "4f": "O", "50": "P", "51": "Q", "52": "R", "53": "S", "54": "T", "55": "U", "56": "V", "57": "W", "58": "X", "59": "Y", "5a": "Z", "5b": "[", "5c": "\\", "5d": "]", "5e": "^", "5f": "_", "60": "`", "61": "a", "62": "b", "63": "c", "64": "d", "65": "e", "66": "f", "67": "g", "68": "h", "69": "i", "6a": "j", "6b": "k", "6c": "l", "6d": "m", "6e": "n", "6f": "o", "70": "p", "71": "q", "72": "r", "73": "s", "74": "t", "75": "u", "76": "v", "77": "w", "78": "x", "79": "y", "7a": "z", "7b": "{", "7c": "|", "7d": "}", "7e": "~"};
+    static ASCII_TABLE: ITable = { "20": " ", "21": "!", "22": "\"", "23": "#", "24": "$", "25": "%", "26": "&", "27": "'", "28": "(", "29": ")", "2a": "*", "2b": "+", "2c": ",", "2d": "-", "2e": ".", "2f": "/", "30": "0", "31": "1", "32": "2", "33": "3", "34": "4", "35": "5", "36": "6", "37": "7", "38": "8", "39": "9", "3a": ":", "3b": ";", "3c": "<", "3d": "=", "3e": ">", "3f": "?", "40": "@", "41": "A", "42": "B", "43": "C", "44": "D", "45": "E", "46": "F", "47": "G", "48": "H", "49": "I", "4a": "J", "4b": "K", "4c": "L", "4d": "M", "4e": "N", "4f": "O", "50": "P", "51": "Q", "52": "R", "53": "S", "54": "T", "55": "U", "56": "V", "57": "W", "58": "X", "59": "Y", "5a": "Z", "5b": "[", "5c": "\\", "5d": "]", "5e": "^", "5f": "_", "60": "`", "61": "a", "62": "b", "63": "c", "64": "d", "65": "e", "66": "f", "67": "g", "68": "h", "69": "i", "6a": "j", "6b": "k", "6c": "l", "6d": "m", "6e": "n", "6f": "o", "70": "p", "71": "q", "72": "r", "73": "s", "74": "t", "75": "u", "76": "v", "77": "w", "78": "x", "79": "y", "7a": "z", "7b": "{", "7c": "|", "7d": "}", "7e": "~" };
     static hexToUtf8Fallback(hexstring: string) {
-        if(hexstring.length % 2 !== 0) throw Error("Benötige ganze Bytes");
+        if (hexstring.length % 2 !== 0) throw Error("Benötige ganze Bytes");
         let output = "";
-        for(let i = 0; i < hexstring.length; i += 2) {
+        for (let i = 0; i < hexstring.length; i += 2) {
             const byte = `${hexstring.charAt(i).toLowerCase()}${hexstring.charAt(i + 1).toLowerCase()}`;
-            if(byte === "0x" || byte === "00") continue;
-            if(EthereumConnector.ASCII_TABLE.hasOwnProperty(byte)) output = `${output}${EthereumConnector.ASCII_TABLE[byte]}`
+            if (byte === "0x" || byte === "00") continue;
+            if (EthereumConnector.ASCII_TABLE.hasOwnProperty(byte)) output = `${output}${EthereumConnector.ASCII_TABLE[byte]}`
             else { console.log("Invalid character", byte) }
         }
         return output;
@@ -176,13 +176,13 @@ export class ZKEthereumConnector extends EthereumConnector {
         const contract = this.petition(petitionaddr);
         console.log(`web3: sign as ${hpers.toHex()} with account ${this.account}`);
         console.log(proof);
-        const tx = await contract.methods.sign_zk(Object.values(proof.proof), iteration, `0x${hpers.toHex()}`).send({ from: this.account });
+        const tx = await contract.methods.sign(Object.values(proof.proof), iteration, `0x${hpers.toHex()}`).send({ from: this.account });
         return tx;
     }
 
-    async hasSigned_zk(petitionaddr: string, hpers: SHA256Hash, iteration: number): Promise<boolean> {
+    async hasSigned_zk(petitionaddr: string, hpers: SHA256Hash): Promise<boolean> {
         const contract = this.petition(petitionaddr);
-        return await contract.methods.hasSigned_zk(iteration, `0x${hpers.toHex()}`).call();
+        return await contract.methods.hasSigned(`0x${hpers.toHex()}`).call();
     }
 
     async depth(): Promise<number> {
@@ -206,10 +206,10 @@ export class ZKEthereumConnector extends EthereumConnector {
         console.log("Transaction", raw_tx);
         const signed = await this.api.eth.accounts.signTransaction(raw_tx, this.privkey!);
         const web3result = await this.api.eth.sendSignedTransaction(signed.rawTransaction!);
-        
+
         // Man holt sich den "iteration" Wert von der Block chain. Dieser Wert steht im Event der 
         // von der vorherigen Tansaktion emitiert wurde (Event vom submitHash smart contract)
-        const event = await this.idpcontract.getPastEvents("HashAdded", {filter: { transactionHash: web3result.transactionHash } });
+        const event = await this.idpcontract.getPastEvents("HashAdded", { filter: { transactionHash: web3result.transactionHash } });
         if (event.length > 1) {
             console.error(event);
         }

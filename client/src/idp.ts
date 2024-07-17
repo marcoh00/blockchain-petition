@@ -153,7 +153,7 @@ export class IDPManager extends decorateClassWithState(
                     if (max_tries === 0 || current_try < max_tries) {
                         // Not critical. We can try again later.
                         console.log(
-                            "Proof doesn't seem to be ready yet, try again in 10s",
+                            `Proof doesn't seem to be ready yet, try again in 10s (${current_try}/${max_tries})`,
                             period,
                             this.endpoint,
                             token,
@@ -203,14 +203,16 @@ export class IDPManager extends decorateClassWithState(
         }
     }
 
+    get storage_id() { return `idp.${this.id}` }
+
     save() {
         const localData = JSON.stringify(this.credentials);
-        localStorage.setItem(`idp.${this.id}`, localData);
-        console.log("Credentials saved to localStorage");
+        localStorage.setItem(this.storage_id, localData);
+        console.log("Credentials saved to localStorage", this.storage_id);
     }
 
     load() {
-        const item = localStorage.getItem(`idp.${this.id}`);
+        const item = localStorage.getItem(this.storage_id);
         if (typeof item !== "string") return;
         this.credentials = JSON.parse(item);
         console.log("IDP, credentials after load", this.credentials);
