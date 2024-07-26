@@ -3,10 +3,11 @@
 set -e -x
 
 NETWORK=${1:-localhost}
-DEPLOY=${2:-NO}
+DEPLOY=${2:-YES}
 ADDPETITIONS=${3:-YES}
 STARTCLIENT=${4:-YES}
-STARTIDP=${5-""}
+STARTIDPNAIVE=${5-YES}
+STARTIDPZK=${5-YES}
 PIDS=""
 
 sed -i 's/export const DEFAULT_NETWORK = NETWORKS.*/export const DEFAULT_NETWORK = NETWORKS.'"${NETWORK}"'/g' ${BASH_SOURCE%/*}/shared/addr.ts
@@ -35,7 +36,6 @@ fi
 if [ ${DEPLOY} = "YES" ]
 then
 	echo "Replace URL: ${IDPURL}"
-	sed -i 's#.*return.*// replace#return "'"${IDPURL}"'"; // replace#g' contracts/IDP.sol
 	echo "Deploying contracts..."
 	npx hardhat run --verbose --network ${NETWORK} scripts/deploy.ts
 	echo "Contracts deployed"
@@ -52,14 +52,25 @@ fi
 
 popd
 
-if [ ${STARTIDP} = "YES" ]
-then
-	echo "Starting IDP..."
+function start_idp () {
 	pushd ${BASH_SOURCE%/*}/idp
-	npm run start -- $TYPE &
+	npm run start -- --registry "$1" --database "${2:-$1.db}" &
 	PIDS="${PIDS} $!"
-	echo "IDP started"
 	popd
+}
+
+if [ ${STARTIDPNAIVE} = "YES" ]
+then
+	echo "Start Native IDP"
+	start_idp "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9" "naive.db"
+	echo "Native IDP started"
+fi
+
+if [ ${STARTIDPZK} = "YES" ]
+then
+	echo "Start ZK IDP"
+	start_idp "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9" "zk.db"
+	echo "ZK IDP started"
 fi
 
 if [ ${STARTCLIENT} = "YES" ]
