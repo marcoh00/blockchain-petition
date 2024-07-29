@@ -125,3 +125,13 @@ contract NaiveIDP is INaiveIDP, IDP {
         return PetitionType.Naive;
     }
 }
+
+contract PSSIDP is IDP {
+    constructor(
+        string memory lidpUrl
+    ) IDP(315360000, lidpUrl) {}
+
+    function petitiontype() external pure override returns (PetitionType) {
+        return PetitionType.Secp256k1PSS;
+    }
+}
