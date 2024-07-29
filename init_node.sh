@@ -8,6 +8,7 @@ ADDPETITIONS=${3:-YES}
 STARTCLIENT=${4:-YES}
 STARTIDPNAIVE=${5-YES}
 STARTIDPZK=${5-YES}
+STARTIDPPSSSECP256K1=${6-YES}
 PIDS=""
 
 sed -i 's/export const DEFAULT_NETWORK = NETWORKS.*/export const DEFAULT_NETWORK = NETWORKS.'"${NETWORK}"'/g' ${BASH_SOURCE%/*}/shared/addr.ts
@@ -19,6 +20,19 @@ if [ ! -f verification.key ] || [ ! -f proving.key ]; then
 	zokrates setup
 	zokrates export-verifier
 	mv verifier.sol ../platform/contracts/StimmrechtsbeweisVerifier.sol
+fi
+
+popd
+
+pushd ${BASH_SOURCE%/*}/pss
+
+if [ ! -f secp256k1key.json ]; then
+	pss-keygen -s 1 secp256k1key.json
+fi
+
+if [ ! -f ../platform/contracts/PssSecp256k1.sol ]; then
+	cp -v ../pss-rs/pss-sol/src/PssSecp256k1.sol ../platform/contracts/PssSecp256k1.sol
+	cp -rv ../pss-rs/pss-sol/lib/elliptic-curve-solidity ../platform/contracts
 fi
 
 popd
