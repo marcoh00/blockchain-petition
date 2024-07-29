@@ -1,0 +1,3 @@
+[submodule "pss-rs"]
+	path = pss-rs
+	url = https://git.inf.h-brs.de/mhuens2m/pss-rs.git
