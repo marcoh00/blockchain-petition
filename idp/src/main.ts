@@ -3,10 +3,11 @@ import cors, { CorsOptions } from "cors";
 import { randomBytes } from "crypto";
 import { IRegistration, checkValidType, IProofRequest } from "../../shared/idp";
 import { Database } from "./database";
-import { NaiveEthereumConnector, ZKEthereumConnector, getWeb3Connector, EthereumConnector, PetitionType } from "../../shared/web3";
+import { NaiveEthereumConnector, ZKEthereumConnector, getWeb3Connector, EthereumConnector, PetitionType, PssEthereumConnector } from "../../shared/web3";
 import { DEFAULT_NETWORK, DBFILE, PROVINGKEY, REGISTRY_CONTRACT_HARDHAT_ZK, REGISTRY_CONTRACT_HARDHAT } from '../../shared/addr';
 import yargs from 'yargs';
-import { IProofHandler, NaiveProofHandler, ZKProofHandler } from "./proof";
+import { IGroupManagerKey, IProofHandler, NaiveProofHandler, PssProofHandler, ZKProofHandler } from "./proof";
+import { readFileSync } from "fs";
 
 const app = express();
 app.use(express.json());
@@ -19,6 +20,7 @@ const argv = yargs
     .option('account', { string: true })
     .option('privkey', { string: true })
     .option('provingkey', { string: true })
+    .option('psskey', { string: true })
     .argv;
 
 const PORT: number = argv.port === undefined ? 65535 : parseInt(argv.port);
@@ -29,6 +31,7 @@ const API = argv.api === undefined ? DEFAULT_NETWORK.wsapi : argv.api;
 const ACCOUNT = argv.account === undefined ? DEFAULT_NETWORK.account : argv.api;
 const PRIVKEY = argv.privkey === undefined ? DEFAULT_NETWORK.privkey : argv.privkey;
 const PROVINGKEY_FILE = argv.provingkey === undefined ? PROVINGKEY : argv.provingkey;
+const PSSKEY_FILE = argv.psskey === undefined ? "psskey.json" : argv.psskey;
 
 let ethereum: EthereumConnector = null;
 let proof_handler: IProofHandler = null;
@@ -158,6 +161,11 @@ setTimeout(async () => {
         }
         case PetitionType.ZK: {
             proof_handler = new ZKProofHandler(ethereum as ZKEthereumConnector, DATABASE);
+            break;
+        }
+        case PetitionType.PSSSecp256k1: {
+            const key = JSON.parse(readFileSync(PSSKEY_FILE).toString()) as IGroupManagerKey;
+            proof_handler = new PssProofHandler(ethereum as PssEthereumConnector, DATABASE, key);
             break;
         }
         default: throw Error("Cannot serve unknown petition type");

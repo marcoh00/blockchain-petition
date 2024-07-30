@@ -4,8 +4,10 @@ import { Contract, EventData } from 'web3-eth-contract';
 import RegistryContract from "../platform/artifacts/contracts/Registry.sol/Registry.json";
 import NaiveIDPContract from "../platform/artifacts/contracts/IDP.sol/NaiveIDP.json";
 import ZKIDPContract from "../platform/artifacts/contracts/IDP.sol/ZKIDP.json";
+import PssIDPContract from "../platform/artifacts/contracts/IDP.sol/PSSIDP.json";
 import NaivePetitionContract from "../platform/artifacts/contracts/Petition.sol/NaivePetition.json";
 import ZKPetitionContract from "../platform/artifacts/contracts/Petition.sol/ZKPetition.json";
+import PssPetitionContract from "../platform/artifacts/contracts/Petition.sol/PSSPetition.json";
 import { SHA256Hash } from './merkle';
 
 export interface IPetition {
@@ -37,6 +39,10 @@ export async function getWeb3Connector(provider: any, registryaddr: string, acco
         }
         case PetitionType.ZK: {
             ethereum_connector = new ZKEthereumConnector(web3, registry, account, privkey, chainid);
+            break;
+        }
+        case PetitionType.PSSSecp256k1: {
+            ethereum_connector = new PssEthereumConnector(web3, registry, account, privkey, chainid);
             break;
         }
         default: throw Error("Unknown petition type");
@@ -276,7 +282,28 @@ export class NaiveEthereumConnector extends EthereumConnector {
     }
 }
 
+export class PssEthereumConnector extends EthereumConnector {
+    constructor(provider: Web3, registry: Contract, account?: string, privkey?: string, chainid?: number) {
+        super(provider, registry, account, privkey, chainid);
+    }
+
+    async interval(): Promise<number> {
+        return 864000;
+    }
+
+    petitiontype(): PetitionType {
+        return PetitionType.PSSSecp256k1;
+    }
+    idp(addr: string): Contract {
+        return new this.api.eth.Contract((PssIDPContract.abi as any), addr);
+    }
+    petition(addr: string): Contract {
+        return new this.api.eth.Contract((PssPetitionContract.abi as any), addr);
+    }
+}
+
 export enum PetitionType {
     Naive = 0,
-    ZK = 1
+    ZK = 1,
+    PSSSecp256k1 = 2
 }

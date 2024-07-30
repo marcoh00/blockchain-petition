@@ -12,17 +12,16 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.17",
-    "fs": "^0.0.1-security",
     "sqlite3": "^5",
     "web3": "^1.7.0",
-    "yargs": "^17.7.2"
+    "yargs": "^17.7.2",
+    "pss-rs-wasm": "file:../pss-rs/pss-rs-wasm/pkg-node"
   },
   "devDependencies": {
     "@types/cors": "^2.8.12",
     "@types/express": "^4",
     "@types/node": ">= 16",
     "@types/sqlite3": "^3.1.8",
-    "fs": "^0.0.1-security",
-    "typescript": "^4.5"
+    "typescript": "^5.5"
   }
 }
