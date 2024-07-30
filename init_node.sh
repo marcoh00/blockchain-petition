@@ -32,7 +32,6 @@ fi
 
 if [ ! -f ../platform/contracts/PssSecp256k1.sol ]; then
 	cp -v ../pss-rs/pss-sol/src/PssSecp256k1.sol ../platform/contracts/PssSecp256k1.sol
-	cp -rv ../pss-rs/pss-sol/lib/elliptic-curve-solidity ../platform/contracts
 fi
 
 popd
@@ -85,6 +84,13 @@ then
 	echo "Start ZK IDP"
 	start_idp "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9" "zk.db"
 	echo "ZK IDP started"
+fi
+
+if [ ${STARTIDPPSSSECP256K1} = "YES" ]
+then
+	echo "Start PSS IDP"
+	start_idp "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9" "pss.db"
+	echo "PSS IDP started"
 fi
 
 if [ ${STARTCLIENT} = "YES" ]
