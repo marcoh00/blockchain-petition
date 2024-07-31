@@ -1,16 +1,16 @@
 import { SHA256Hash } from "../../shared/merkle";
-import { IPetition, NaiveEthereumConnector, ZKEthereumConnector } from "../../shared/web3";
+import { IPetition, NaiveEthereumConnector, PetitionType, PssEthereumConnector, ZKEthereumConnector } from "../../shared/web3";
 import { IDPManager } from "./idp";
-import { IZKKey, IZKProofResponse, KeyManager, NaiveKeyManager, NoEntryError, ZKKeyManager } from "./keys";
+import { KeyManager, NaiveKeyManager, NoEntryError, PssKeyManager, ZKKeyManager } from "./keys";
 import { decorateClassWithState } from "./state";
 import { ZokratesHelper } from "./zokrates";
-
+import init, { Algorithm, JsGroupManagerPublicKey, JsIccSecretKey, JsPublicKey, init_panic_hook } from "pss-rs-wasm";
 
 export interface IClientProvider {
     sign(petition: IPetition): Promise<void>;
     signable(petition: IPetition): Promise<boolean>
     signed(petition: IPetition): Promise<boolean>
-    key_manager(idp: IDPManager): KeyManager<any, any>
+    key_manager(idp: IDPManager): Promise<KeyManager<any, any>>
 }
 
 class ClientProviderBase { }
@@ -48,7 +48,7 @@ export class ZKClientProvider extends decorateClassWithState(ClientProviderBase)
         }
     }
 
-    key_manager(idp: IDPManager): KeyManager<any, any> {
+    async key_manager(idp: IDPManager): Promise<KeyManager<any, any>> {
         return new ZKKeyManager(idp);
     }
 
@@ -92,7 +92,7 @@ export class NaiveClientProvider extends decorateClassWithState(ClientProviderBa
         return signed;
     }
 
-    key_manager(idp: IDPManager): KeyManager<any, any> {
+    async key_manager(idp: IDPManager): Promise<KeyManager<any, any>> {
         return new NaiveKeyManager(idp);
     }
 
@@ -100,5 +100,98 @@ export class NaiveClientProvider extends decorateClassWithState(ClientProviderBa
         // We just want the exception here if we haven't got any proof that we're allowed to sign:
         const hash_added = await this.keymanager.get_proof(period);
         if (hash_added.period != period) throw Error("Should never happen");
+    }
+}
+
+export interface IPetitionSignature {
+    c: Uint8Array
+    s1: Uint8Array
+    s2: Uint8Array
+    i_sector_icc_1: Uint8Array
+}
+
+export class PssClientProvider extends decorateClassWithState(ClientProviderBase) implements IClientProvider {
+    get pssconnector() { return this.getState().connector.connector as PssEthereumConnector }
+    get keymanager() { return this.getState().keymanager as PssKeyManager }
+
+    initialized: boolean
+
+    constructor() {
+        super();
+        this.initialized = false;
+        console.log("Greeting from PSS Client provider!");
+    }
+
+    async sign(petition: IPetition): Promise<void> {
+        await this._init();
+        const signature = await this._get_signature(petition);
+        const tx = await this.pssconnector.signPetition(petition.address, signature.c, signature.s1, signature.s2, signature.i_sector_icc_1);
+    }
+
+    async signable(petition: IPetition): Promise<boolean> {
+        await this._init();
+        return !await this.signed(petition);
+    }
+
+    async signed(petition: IPetition): Promise<boolean> {
+        await this._init();
+        try {
+            const signature = await this._get_signature(petition);
+            return await this.pssconnector.hasSigned(petition.address, signature.i_sector_icc_1);
+        } catch (e) {
+            if (e == NoEntryError) {
+                return false;
+            }
+            throw e;
+        }
+    }
+
+    async key_manager(idp: IDPManager): Promise<KeyManager<any, any>> {
+        return new PssKeyManager(idp);
+    }
+
+    async _init(): Promise<void> {
+        if (this.initialized) {
+            return;
+        }
+        await init();
+        init_panic_hook();
+
+        this.initialized = true;
+    }
+
+    async _get_signature(petition: IPetition): Promise<IPetitionSignature> {
+        await this._init();
+        const key = await this.keymanager.get_proof(1);
+        const sk_icc_1_u = new Uint8Array(key.proof.sk_icc_1_u);
+        const sk_icc_2_u = new Uint8Array(key.proof.sk_icc_2_u);
+        const icc = new JsIccSecretKey(sk_icc_1_u, sk_icc_2_u);
+        const pk_m = this.pssconnector.pk_m;
+        const pk_icc = this.pssconnector.pk_icc;
+        const pk_sector = this.pssconnector.pk_sector;
+        const pubkey = new JsGroupManagerPublicKey(pk_m, pk_icc);
+        const alg = await this.pss_rs_algorithm(key.proof.algorithm);
+        console.log("Trying to sign with sk_icc_1_u", sk_icc_1_u, "sk_icc_2_u", sk_icc_2_u, "alg", alg, "pk_m", pk_m, "pk_icc", pk_icc, "pk_sector", pk_sector);
+        const signature = icc.sign(alg, pubkey, new JsPublicKey(pk_sector), true, false, petition.id);
+        return {
+            c: signature.c,
+            s1: signature.s1,
+            s2: signature.s2,
+            i_sector_icc_1: signature.pseudonym1
+        };
+    }
+
+    async pss_rs_algorithm(alg: string): Promise<Algorithm> {
+        switch (alg) {
+            case "secp256k1": {
+                if (this.getState().connector.connector.petitiontype() != PetitionType.PSSSecp256k1) {
+                    throw new Error("Smart Contract PSS algorithm does not match given key");
+                }
+                return Algorithm.Secp256k1;
+            }
+            default: {
+                throw new Error("Unknown PSS algorithm");
+            }
+        }
     }
 }

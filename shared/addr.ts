@@ -64,6 +64,14 @@ export const NETWORKS: INetworkList = {
         privkey: PRIVKEY_HARDHAT,
         registry_contract: REGISTRY_CONTRACT_HARDHAT_ZK
     },
+    localhost_pss: {
+        api: API_HARDHAT,
+        wsapi: API_HARDHAT,
+        chainid: 31337,
+        account: ACCOUNT_HARDHAT,
+        privkey: PRIVKEY_HARDHAT,
+        registry_contract: REGISTRY_CONTRACT_HARDHAT_PSS
+    },
     sepolia: {
         api: API_SEPOLIA_LAB,
         wsapi: API_SEPOLIA_WS_LAB,

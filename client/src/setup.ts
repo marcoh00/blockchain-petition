@@ -148,6 +148,12 @@ export class RegistryChooser extends LitElement {
             descr: "Testcontract auf lokaler Blockchain mit ZK",
             ident: "Texteingabe",
             chainid: NETWORKS.localhost_zk.chainid
+        },
+        {
+            addr: NETWORKS.localhost_pss.registry_contract,
+            descr: "Testcontract auf lokaler Blockchain mit PSS",
+            ident: "Texteingabe",
+            chainid: NETWORKS.localhost_pss.chainid
         }
     ];
 
