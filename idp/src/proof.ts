@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 import { DataHash, MerkleTree, serializeMerkleProof, SHA256Hash } from "../../shared/merkle";
 import { NaiveEthereumConnector, PetitionType, PssEthereumConnector, ZKEthereumConnector } from "../../shared/web3";
-import { IRegistration, checkValidType } from "../../shared/idp";
+import { IPssProof, IRegistration, checkValidType } from "../../shared/idp";
 import { Database } from "./database";
 import { Algorithm, JsGroupManagerPrivateKey } from "pss-rs-wasm";
 
@@ -276,36 +276,36 @@ export interface IGroupManagerKey {
     algorithm: "secp256k1"
 }
 
-export interface IPssProof {
-    sk_icc_1_u: Array<number>
-    sk_icc_2_u: Array<number>
-}
-
 export class PssProofHandler implements IProofHandler {
     connector: PssEthereumConnector
     database: Database
     interval_lock: boolean
     group_manager: JsGroupManagerPrivateKey
-    algorithm: Algorithm
+    algorithm: string
+
+    _pss_rs_algorithm?: Algorithm
+
+    get pss_rs_algorithm() {
+        switch (this.algorithm) {
+            case "secp256k1": {
+                if (this.connector.petitiontype() != PetitionType.PSSSecp256k1) {
+                    throw new Error("Smart Contract PSS algorithm does not match given key");
+                }
+                return Algorithm.Secp256k1;
+            }
+            default: {
+                throw new Error("Unknown PSS algorithm");
+            }
+        }
+    }
 
     constructor(connector: PssEthereumConnector, database: Database, group_manager_key: IGroupManagerKey) {
         this.connector = connector;
         this.database = database;
         this.interval_lock = false;
 
+        this.algorithm = group_manager_key.algorithm;
         this.group_manager = new JsGroupManagerPrivateKey(group_manager_key.sk_m, group_manager_key.sk_icc);
-        switch (group_manager_key.algorithm) {
-            case "secp256k1": {
-                this.algorithm = Algorithm.Secp256k1
-                if (this.connector.petitiontype() != PetitionType.PSSSecp256k1) {
-                    throw new Error("Smart Contract PSS algorithm does not match given key");
-                }
-                break;
-            }
-            default: {
-                throw new Error("Unknown PSS algorithm");
-            }
-        }
     }
 
     check_registration_info(registration: IRegistration, minperiod: number, maxperiod: number): Promise<WebResult> {
@@ -316,7 +316,7 @@ export class PssProofHandler implements IProofHandler {
     }
 
     update_web3_info(web3info: any): Promise<void> {
-        const pubkey = this.group_manager.public_key(this.algorithm);
+        const pubkey = this.group_manager.public_key(this.pss_rs_algorithm);
         web3info.pss_algorithm = this.algorithm;
         web3info.gpk = {
             pk_m: Array.from(pubkey.pk_m),
@@ -349,10 +349,11 @@ export class PssProofHandler implements IProofHandler {
     }
 
     generate_pss_key(): IPssProof {
-        const icc = this.group_manager.new_icc(this.algorithm);
+        const icc = this.group_manager.new_icc(this.pss_rs_algorithm);
         return {
             sk_icc_1_u: Array.from(icc.sk_icc_1_u),
-            sk_icc_2_u: Array.from(icc.sk_icc_2_u)
+            sk_icc_2_u: Array.from(icc.sk_icc_2_u),
+            algorithm: this.algorithm
         }
     }
 
