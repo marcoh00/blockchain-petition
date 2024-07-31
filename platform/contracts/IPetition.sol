@@ -64,4 +64,5 @@ interface IZKPetition is IPetition {
 
 interface IPSSPetition is IPetition {
     function sign(uint256, uint256, uint256, uint8, uint256) external;
+    function hasSigned(uint8, uint256) external view returns (bool);
 }

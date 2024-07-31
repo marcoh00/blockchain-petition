@@ -149,6 +149,12 @@ contract PSSPetition is Petition, IPSSPetition {
             )
         );
         pHasSigned[identity] = true;
+        pSigners += 1;
         emit PetitionSigned(pId, identity);
+    }
+
+    function hasSigned(uint8 i_sector_icc_1_parity, uint256 i_sector_icc_1_x) override external view returns (bool) {
+        bytes32 identity = keccak256(abi.encodePacked(i_sector_icc_1_parity, i_sector_icc_1_x));
+        return pHasSigned[identity];
     }
 }

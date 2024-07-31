@@ -48,6 +48,7 @@ async function main() {
     }
     const pk_sector_x = `0x${pss_key.sectors[0].pk_sector_x}`;
     const pk_sector_y = `0x${pss_key.sectors[0].pk_sector_y}`;
+    console.log("Verifier keys:", "gpmk", gmpk_struct, "pk_sector_x", pk_sector_x, "pk_sector_y", pk_sector_y, "pk_sector_x_test", BigInt(pk_sector_x));
     const verifier_pss = await PSSVerifier.deploy(gmpk_struct, pk_sector_x, pk_sector_y);
     //await verifier_pss.deployed();
     console.log(`PSS Verifier deployed to ${await verifier_pss.getAddress()}`);
