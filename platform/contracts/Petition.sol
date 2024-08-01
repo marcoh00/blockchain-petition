@@ -79,8 +79,8 @@ contract NaivePetition is Petition, INaivePetition {
         emit PetitionSigned(pId, bytes32(uint256(uint160(msg.sender))));
     }
 
-    function hasSigned(address toCheck) override external view returns (uint32) {
-        return pHasSigned[toCheck] ? uint32(1) : uint32(0);
+    function hasSigned(address toCheck) override external view returns (bool) {
+        return pHasSigned[toCheck];
     }
 }
 
@@ -119,5 +119,42 @@ contract ZKPetition is Petition, IZKPetition {
 
     function hasSigned(bytes32 lIdentity) override external view returns (bool) {
         return pHasSigned_zk[lIdentity];
+    }
+}
+
+contract PSSPetition is Petition, IPSSPetition {
+    mapping(bytes32 => bool) private pHasSigned;
+
+    constructor(
+        bytes32 lName,
+        string memory lDescription,
+        bytes32 lId,
+        uint256 lPeriod,
+        address lRegistry,
+        bool lHidden
+    ) Petition(lName, lDescription, lId, lPeriod, lRegistry, lHidden) {}
+
+    function sign(uint256 c, uint256 s1, uint256 s2, uint8 i_sector_icc_1_parity, uint256 i_sector_icc_1_x) external override {
+        bytes32 identity = keccak256(abi.encodePacked(i_sector_icc_1_parity, i_sector_icc_1_x));
+        require(!pHasSigned[identity]);
+        require(
+            IPssVerifier(this.registry().verifier())
+            .validate_signature_p1(
+                bytes.concat(pId),
+                c,
+                s1,
+                s2,
+                i_sector_icc_1_parity,
+                i_sector_icc_1_x
+            )
+        );
+        pHasSigned[identity] = true;
+        pSigners += 1;
+        emit PetitionSigned(pId, identity);
+    }
+
+    function hasSigned(uint8 i_sector_icc_1_parity, uint256 i_sector_icc_1_x) override external view returns (bool) {
+        bytes32 identity = keccak256(abi.encodePacked(i_sector_icc_1_parity, i_sector_icc_1_x));
+        return pHasSigned[identity];
     }
 }

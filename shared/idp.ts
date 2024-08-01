@@ -22,3 +22,9 @@ export interface IProofResponse {
     proof?: any
     hash?: string
 }
+
+export interface IPssProof {
+    sk_icc_1_u: Array<number>
+    sk_icc_2_u: Array<number>
+    algorithm: string
+}

@@ -55,7 +55,7 @@ export class PetitionApp extends decorateClassWithState(LitElement) {
         if (web3connected && identityknown) {
             if (need_provider) {
                 const provider = await state.connector.client_provider();
-                const keymanager = provider.key_manager(state.idp);
+                const keymanager = await provider.key_manager(state.idp);
                 keymanager.load()
                 const state_with_provider = {
                     ...state,

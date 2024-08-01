@@ -30,9 +30,9 @@ contract Registry is IRegistry {
         pIDP = lIdp;
         pHideByDefault = false;
         pPetitionType = lPetitionType;
-        
-        if(lPetitionType == PetitionType.ZK) {
-            require(IIDP(lIdp).petitiontype() == PetitionType.ZK);
+        require(IIDP(lIdp).petitiontype() == lPetitionType);
+
+        if(lPetitionType == PetitionType.ZK || lPetitionType == PetitionType.Secp256k1PSS) {
             pVerifier = lVerifier;
         }
     }
@@ -64,7 +64,7 @@ contract Registry is IRegistry {
         }
         petitionId += 1;
         bytes32 lInternalPetitionId = keccak256(
-            abi.encodePacked(petitionId, lName)
+            abi.encodePacked(address(this), petitionId, lName)
         );
 
         if (pPetitionType == PetitionType.Naive) {
@@ -81,6 +81,17 @@ contract Registry is IRegistry {
         } else if (pPetitionType == PetitionType.ZK) {
             pPetitions.push(
                 new ZKPetition(
+                    lName,
+                    description,
+                    lInternalPetitionId,
+                    period,
+                    address(this),
+                    pHideByDefault
+                )
+            );
+        } else if (pPetitionType == PetitionType.Secp256k1PSS) {
+            pPetitions.push(
+                new PSSPetition(
                     lName,
                     description,
                     lInternalPetitionId,

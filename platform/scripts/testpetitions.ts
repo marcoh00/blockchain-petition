@@ -1,16 +1,22 @@
+import { readFileSync } from "fs";
 import { ethers } from "hardhat";
-import { DEFAULT_NETWORK } from "../../shared/addr";
 
 async function main() {
+  const contracts = JSON.parse(readFileSync("scaddr.json").toString());
+
   const RegistryFactory = await ethers.getContractFactory("Registry");
-  const Registry = await RegistryFactory.attach(DEFAULT_NETWORK.registry_contract as string);
-  const Registry_zk = await RegistryFactory.attach(DEFAULT_NETWORK.registry_contract_zk as string);
+  const Registry = await RegistryFactory.attach(contracts.naive.registry as string);
+  const Registry_zk = await RegistryFactory.attach(contracts.zk.registry as string);
+  const Registry_pss = await RegistryFactory.attach(contracts.pss.registry as string);
 
   const IDPFactory = await ethers.getContractFactory("NaiveIDP");
-  const IDP = await IDPFactory.attach(await Registry.idp());
+  const IDP = await IDPFactory.attach(contracts.naive.idp);
 
   const IDPFactory_zk = await ethers.getContractFactory("ZKIDP");
-  const IDP_zk = await IDPFactory_zk.attach(await Registry_zk.idp());
+  const IDP_zk = await IDPFactory_zk.attach(contracts.zk.idp);
+
+  const IDPFactory_pss = await ethers.getContractFactory("PSSIDP");
+  const IDP_pss = await IDPFactory_zk.attach(contracts.pss.idp);
 
   const names = [
     "Luftbrücke für die Ukraine",
@@ -33,7 +39,7 @@ async function main() {
     "0x0000000000000000000000000000000000000000000000000000000000000003",
     "0x10000000000000000000000000000000000000000000000000000000000000F0"
   ];
-  const baseperiod = (await IDP.period()).toNumber();
+  const baseperiod = Number(await IDP.period());
   const periods = [
     baseperiod,
     baseperiod,
@@ -42,7 +48,7 @@ async function main() {
     baseperiod + 3
   ];
 
-  const baseperiod_zk = (await IDP_zk.period()).toNumber();
+  const baseperiod_zk = Number(await IDP_zk.period());
   const periods_zk = [
     baseperiod_zk,
     baseperiod_zk,
@@ -51,16 +57,23 @@ async function main() {
     baseperiod_zk + 3
   ];
 
+  const baseperiod_pss = Number(await IDP_pss.period());
+
   const submittable_names = names
-    .map((name) => ethers.utils.zeroPad(ethers.utils.toUtf8Bytes(name), 32));
+    .map((name) => ethers.zeroPadBytes(ethers.toUtf8Bytes(name), 32));
   for (let i = 0; i < names.length; i++) {
     await Registry.createPetition(submittable_names[i], descriptions[i], periods[i]);
-    console.log(`Petition ${names[i]} added`)
+    console.log(`[NAIVE] Petition ${names[i]} added`)
   }
 
   for (let i = 0; i < names.length; i++) {
     await Registry_zk.createPetition(submittable_names[i], descriptions[i], periods_zk[i]);
-    console.log(`Petition ${names[i]} added`)
+    console.log(`[ZK]    Petition ${names[i]} added`)
+  }
+
+  for (let i = 0; i < names.length; i++) {
+    await Registry_pss.createPetition(submittable_names[i], descriptions[i], baseperiod_pss);
+    console.log(`[PSS]   Petition ${names[i]} added`)
   }
 }
 

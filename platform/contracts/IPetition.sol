@@ -2,10 +2,12 @@
 pragma solidity ^0.8;
 
 import "./StimmrechtsbeweisVerifier.sol";
+import "./IPssVerifier.sol";
 
 enum PetitionType {
     Naive,
-    ZK
+    ZK,
+    Secp256k1PSS
 }
 
 interface IIDP {
@@ -37,7 +39,6 @@ interface IRegistry {
     function name() external view returns (bytes32);
     function idp() external view returns (address);
     function petitions() external view returns (IPetition[] memory);
-    // Needed for zk
     function verifier() external view returns (address);
     function petitiontype() external view returns (PetitionType);
 }
@@ -53,10 +54,15 @@ interface IPetition {
 
 interface INaivePetition is IPetition {
     function sign() external;
-    function hasSigned(address) external view returns (uint32);
+    function hasSigned(address) external view returns (bool);
 }
 
 interface IZKPetition is IPetition {
     function sign(Verifier.Proof calldata, uint8, bytes32) external;
     function hasSigned(bytes32) external view returns (bool);
+}
+
+interface IPSSPetition is IPetition {
+    function sign(uint256, uint256, uint256, uint8, uint256) external;
+    function hasSigned(uint8, uint256) external view returns (bool);
 }

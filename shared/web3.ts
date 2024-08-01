@@ -4,8 +4,11 @@ import { Contract, EventData } from 'web3-eth-contract';
 import RegistryContract from "../platform/artifacts/contracts/Registry.sol/Registry.json";
 import NaiveIDPContract from "../platform/artifacts/contracts/IDP.sol/NaiveIDP.json";
 import ZKIDPContract from "../platform/artifacts/contracts/IDP.sol/ZKIDP.json";
+import PssIDPContract from "../platform/artifacts/contracts/IDP.sol/PSSIDP.json";
 import NaivePetitionContract from "../platform/artifacts/contracts/Petition.sol/NaivePetition.json";
 import ZKPetitionContract from "../platform/artifacts/contracts/Petition.sol/ZKPetition.json";
+import PssPetitionContract from "../platform/artifacts/contracts/Petition.sol/PSSPetition.json";
+import IPssVerifier from "../platform/artifacts/contracts/IPssVerifier.sol/IPssVerifier.json"
 import { SHA256Hash } from './merkle';
 
 export interface IPetition {
@@ -37,6 +40,10 @@ export async function getWeb3Connector(provider: any, registryaddr: string, acco
         }
         case PetitionType.ZK: {
             ethereum_connector = new ZKEthereumConnector(web3, registry, account, privkey, chainid);
+            break;
+        }
+        case PetitionType.PSSSecp256k1: {
+            ethereum_connector = new PssEthereumConnector(web3, registry, account, privkey, chainid);
             break;
         }
         default: throw Error("Unknown petition type");
@@ -240,7 +247,7 @@ export class NaiveEthereumConnector extends EthereumConnector {
 
     async hasSigned(petitionaddr: string): Promise<boolean> {
         const contract = this.petition(petitionaddr);
-        return !!Number.parseInt(await contract.methods.hasSigned(`${this.account}`).call());
+        return await contract.methods.hasSigned(`${this.account}`).call();
     }
 
     async submitHash(client_identity: string, period: number) {
@@ -276,7 +283,119 @@ export class NaiveEthereumConnector extends EthereumConnector {
     }
 }
 
+export class PssEthereumConnector extends EthereumConnector {
+    pk_m_x: Array<number>
+    pk_m_y: Array<number>
+    pk_icc_x: Array<number>
+    pk_icc_y: Array<number>
+    pk_sector_x: Array<number>
+    pk_sector_y: Array<number>
+
+    constructor(provider: Web3, registry: Contract, account?: string, privkey?: string, chainid?: number) {
+        super(provider, registry, account, privkey, chainid);
+    }
+
+    async interval(): Promise<number> {
+        return 864000;
+    }
+
+    get pk_m(): Uint8Array {
+        return new Uint8Array([4].concat(this.pk_m_x).concat(this.pk_m_y));
+    }
+
+    get pk_icc(): Uint8Array {
+        return new Uint8Array([4].concat(this.pk_icc_x).concat(this.pk_icc_y));
+    }
+
+    get pk_sector(): Uint8Array {
+        return new Uint8Array([4].concat(this.pk_sector_x).concat(this.pk_sector_y))
+    }
+
+    async init(): Promise<void> {
+        await super.init();
+        const verifier = new this.api.eth.Contract((IPssVerifier.abi as any), await this.registrycontract.methods.verifier().call());
+        const gpk = await verifier.methods.get_gpk().call();
+        this.pk_m_x = bn2uint8(BigInt(gpk[0]));
+        this.pk_m_y = bn2uint8(BigInt(gpk[1]));
+        this.pk_icc_x = bn2uint8(BigInt(gpk[2]));
+        this.pk_icc_y = bn2uint8(BigInt(gpk[3]));
+        const sector = await verifier.methods.get_sector().call();
+        this.pk_sector_x = bn2uint8(BigInt(sector[0]));
+        this.pk_sector_y = bn2uint8(BigInt(sector[1]));
+
+        console.log("Keys", "pk_m_x", this.pk_m_x, "pk_m_y", this.pk_m_y, "pk_icc_x", this.pk_icc_x, "pk_sector_x", this.pk_sector_x, "pk_sector_y", this.pk_sector_y, "gpk", gpk, "sector", sector);
+    }
+
+    async signPetition(petitionaddr: string, c: Uint8Array, s1: Uint8Array, s2: Uint8Array, i_sector_icc_1: Uint8Array) {
+        const c_str = `0x${uint8tohex(c)}`;
+        const s1_str = `0x${uint8tohex(s1)}`;
+        const s2_str = `0x${uint8tohex(s2)}`;
+
+        const i_sector_icc_1_compressed = ecc_uncompressed_to_compressed(i_sector_icc_1);
+        const i_sector_icc_1_x_str = `0x${uint8tohex(i_sector_icc_1_compressed.x)}`;
+        console.log("PSS Sign", petitionaddr, "c", c, "c_str", c_str, "s1", s1, "s1_str", s1_str, "s2", s2, "s2_str", s2_str, "i_sector_icc_1", i_sector_icc_1, "compressed", i_sector_icc_1_compressed, "i_sector_icc_1_x_str", i_sector_icc_1_x_str);
+        const contract = this.petition(petitionaddr);
+        const tx = await contract.methods.sign(
+            c_str,
+            s1_str,
+            s2_str,
+            i_sector_icc_1_compressed.parity,
+            i_sector_icc_1_x_str
+        ).send({ from: this.account });
+        return tx;
+    }
+
+    async hasSigned(petitionaddr: string, i_sector_icc_1: Uint8Array): Promise<boolean> {
+        const i_sector_icc_1_compressed = ecc_uncompressed_to_compressed(i_sector_icc_1);
+        const i_sector_icc_1_x_str = `0x${uint8tohex(i_sector_icc_1_compressed.x)}`;
+        const contract = this.petition(petitionaddr);
+        const web3result = await contract.methods.hasSigned(i_sector_icc_1_compressed.parity, i_sector_icc_1_x_str).call();
+        console.log("PSS Has Signed?", petitionaddr, i_sector_icc_1, i_sector_icc_1_compressed, i_sector_icc_1_x_str, web3result);
+        return web3result;
+    }
+
+    petitiontype(): PetitionType {
+        return PetitionType.PSSSecp256k1;
+    }
+    idp(addr: string): Contract {
+        return new this.api.eth.Contract((PssIDPContract.abi as any), addr);
+    }
+    petition(addr: string): Contract {
+        return new this.api.eth.Contract((PssPetitionContract.abi as any), addr);
+    }
+
+
+}
+
 export enum PetitionType {
     Naive = 0,
-    ZK = 1
+    ZK = 1,
+    PSSSecp256k1 = 2
+}
+
+function bn2uint8(x: bigint): Array<number> {
+    const ary = [];
+    while (x > 0) {
+        ary.push(Number(x & 0xFFn));
+        x = x >> 8n;
+    }
+    return ary.reverse();
+}
+
+function uint8tohex(x: Uint8Array): string {
+    return Array.from(x).map(byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function ecc_uncompressed_to_compressed(uncompressed: Uint8Array): { parity: number, x: Uint8Array } {
+    if (uncompressed.length % 2 === 0 || uncompressed[0] !== 0x04) {
+        throw new Error("Expected an uncompressed point");
+    }
+    // Parity
+    // From BSI TR03111: More precisely, the bit y'P is defined to be the rightmost bit of yP , i.e. y'P = 0 if and only if yP is even
+    // If y'P = 0, set C = 0x02
+    // If y'P = 1, set C = 0x03
+    const parity = (uncompressed[uncompressed.length - 1] & 1) + 2;
+    const uncompressed_x_len = (uncompressed.length - 1) / 2;
+    const uncompressed_x = uncompressed.slice(1, uncompressed_x_len + 1);
+    return { parity, x: uncompressed_x };
 }

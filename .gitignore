@@ -6,5 +6,16 @@
 # Mac
 .DS_Store
 
-#Prototyp - Persistenz
-idp/database.db
+idp/*.db
+
+pss/*.json
+
+# Is taken from git submodule and injected either by init_node.sh or docker/podman build
+platform/contracts/elliptic-curve-solidity
+platform/contracts/Pss*.sol
+
+# Is generated either by init_node-sh or docker/podman build
+platform/contracts/StimmrechtsbeweisVerifier.sol
+
+# SC addresses are exported as JSON after deployment
+platform/scaddr.json

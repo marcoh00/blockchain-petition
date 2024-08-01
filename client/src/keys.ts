@@ -1,4 +1,4 @@
-import { checkValidType } from "../../shared/idp"
+import { checkValidType, IPssProof } from "../../shared/idp"
 import { MerkleProof, SHA256Hash } from "../../shared/merkle"
 import { IDPManager } from "./idp"
 import { getStateAccessors } from "./state"
@@ -159,6 +159,61 @@ export class NaiveKeyManager extends KeyManager<INaiveKey, INaiveProofResponse> 
     check_proof(response: any): boolean {
         return super.check_proof(response)
             && checkValidType(["hash", "iteration", "period", "proof"], response);
+    }
+
+    save() {
+        const localData = JSON.stringify(this.repo);
+        localStorage.setItem(`cred.${this.idp.id}`, localData);
+        console.log("Credentials saved to localStorage");
+    }
+
+    load() {
+        const item = localStorage.getItem(`cred.${this.idp.id}`);
+        if (typeof item !== "string") return;
+        this.repo = JSON.parse(item);
+        console.log("KM, credentials after load", this.repo);
+    }
+
+}
+
+export interface IPssKey { }
+
+export interface IPssProofResponse {
+    proof: IPssProof
+}
+
+export class PssKeyManager extends KeyManager<IPssKey, IPssProofResponse> {
+    constructor(idp: IDPManager, repo?: ICredentialRepository<IPssKey, IPssProofResponse>) {
+        super(idp, repo);
+        this.idp.indefinitely_valid = true;
+    }
+
+    async generate_key(period: number): Promise<IPssKey> {
+        return {};
+    }
+
+    async client_identity(period: number): Promise<any> {
+        const access_state = getStateAccessors();
+        const state = access_state.getState();
+        if (typeof (state.identity) !== "undefined" && state.identity !== null) {
+            return state.identity;
+        } else {
+            throw new Error("Not connected or no account selected");
+        }
+    }
+
+    async get_key(period: number, generate?: boolean): Promise<IPssKey> {
+        return await super.get_key(1, generate);
+    }
+
+    async get_proof(period: number, obtain?: boolean): Promise<IPssProofResponse> {
+        return await super.get_proof(1, obtain);
+    }
+
+    check_proof(response: any): boolean {
+        return super.check_proof(response)
+            && checkValidType(["proof"], response)
+            && checkValidType(["sk_icc_1_u", "sk_icc_2_u", "algorithm"], response.proof);
     }
 
     save() {
