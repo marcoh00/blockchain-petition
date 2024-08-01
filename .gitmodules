@@ -1,3 +1,6 @@
 [submodule "pss-rs"]
 	path = pss-rs
 	url = https://git.inf.h-brs.de/mhuens2m/pss-rs.git
+[submodule "ZoKrates"]
+	path = ZoKrates
+	url = https://github.com/Zokrates/ZoKrates.git

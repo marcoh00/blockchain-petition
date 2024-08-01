@@ -32,7 +32,7 @@
     "os-browserify": "^0.3.0",
     "stream-browserify": "^3.0.0",
     "web3": "^1.7.0",
-    "zokrates-js": "file:../../ZoKrates/zokrates_js",
+    "zokrates-js": "file:../ZoKrates/zokrates_js",
     "pss-rs-wasm": "file:../pss-rs/pss-rs-wasm/pkg"
   }
 }
