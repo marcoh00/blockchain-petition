@@ -247,7 +247,7 @@ export class NaiveEthereumConnector extends EthereumConnector {
 
     async hasSigned(petitionaddr: string): Promise<boolean> {
         const contract = this.petition(petitionaddr);
-        return !!Number.parseInt(await contract.methods.hasSigned(`${this.account}`).call());
+        return await contract.methods.hasSigned(`${this.account}`).call();
     }
 
     async submitHash(client_identity: string, period: number) {
@@ -333,8 +333,7 @@ export class PssEthereumConnector extends EthereumConnector {
 
         const i_sector_icc_1_compressed = ecc_uncompressed_to_compressed(i_sector_icc_1);
         const i_sector_icc_1_x_str = `0x${uint8tohex(i_sector_icc_1_compressed.x)}`;
-
-        console.log("c", c, "c_str", c_str, "s1", s1, "s1_str", s1_str, "s2", s2, "s2_str", s2_str, "i_sector_icc_1", i_sector_icc_1, "compressed", i_sector_icc_1_compressed, "i_sector_icc_1_x_str", i_sector_icc_1_x_str);
+        console.log("PSS Sign", petitionaddr, "c", c, "c_str", c_str, "s1", s1, "s1_str", s1_str, "s2", s2, "s2_str", s2_str, "i_sector_icc_1", i_sector_icc_1, "compressed", i_sector_icc_1_compressed, "i_sector_icc_1_x_str", i_sector_icc_1_x_str);
         const contract = this.petition(petitionaddr);
         const tx = await contract.methods.sign(
             c_str,
@@ -349,11 +348,10 @@ export class PssEthereumConnector extends EthereumConnector {
     async hasSigned(petitionaddr: string, i_sector_icc_1: Uint8Array): Promise<boolean> {
         const i_sector_icc_1_compressed = ecc_uncompressed_to_compressed(i_sector_icc_1);
         const i_sector_icc_1_x_str = `0x${uint8tohex(i_sector_icc_1_compressed.x)}`;
-
-        console.log("PSS Has Signed?", i_sector_icc_1, i_sector_icc_1_compressed, i_sector_icc_1_x_str);
-
         const contract = this.petition(petitionaddr);
-        return !!Number.parseInt(await contract.methods.hasSigned(i_sector_icc_1_compressed.parity, i_sector_icc_1_x_str).call());
+        const web3result = await contract.methods.hasSigned(i_sector_icc_1_compressed.parity, i_sector_icc_1_x_str).call();
+        console.log("PSS Has Signed?", petitionaddr, i_sector_icc_1, i_sector_icc_1_compressed, i_sector_icc_1_x_str, web3result);
+        return web3result;
     }
 
     petitiontype(): PetitionType {

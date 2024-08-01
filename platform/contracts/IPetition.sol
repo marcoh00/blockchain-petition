@@ -54,7 +54,7 @@ interface IPetition {
 
 interface INaivePetition is IPetition {
     function sign() external;
-    function hasSigned(address) external view returns (uint32);
+    function hasSigned(address) external view returns (bool);
 }
 
 interface IZKPetition is IPetition {

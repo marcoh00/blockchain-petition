@@ -25,11 +25,13 @@ export class IDPManager extends decorateClassWithState(
     identity?: string;
     credentials: ICredentialStateRepository;
     endpoint: string;
+    indefinitely_valid: boolean
 
-    constructor(endpoint: string) {
+    constructor(endpoint: string, indefinitely_valid: boolean = false) {
         super();
         this.endpoint = endpoint;
         this.credentials = {};
+        this.indefinitely_valid = indefinitely_valid;
     }
 
     async stateChanged(state: IState): Promise<void> {
@@ -54,6 +56,9 @@ export class IDPManager extends decorateClassWithState(
     }
 
     registration_data(period: number) {
+        if (this.indefinitely_valid) {
+            period = 1;
+        }
         if (!this.credentials.hasOwnProperty(period))
             this.credentials[period] = {
                 working: false,
@@ -66,6 +71,9 @@ export class IDPManager extends decorateClassWithState(
         period: number,
         client_identity: any,
     ): Promise<string> {
+        if (this.indefinitely_valid) {
+            period = 1;
+        }
         const progress = this.registration_data(period);
         if (progress.working) {
             throw CredentialAlreadyRequestedError;
@@ -126,6 +134,9 @@ export class IDPManager extends decorateClassWithState(
         current_try: number = 0,
         max_tries: number = 120,
     ): Promise<any> {
+        if (this.indefinitely_valid) {
+            period = 1;
+        }
         const progress = this.registration_data(period);
         progress.working = true;
         this.setState(this.getState());
@@ -206,7 +217,7 @@ export class IDPManager extends decorateClassWithState(
     get storage_id() { return `idp.${this.id}` }
 
     save() {
-        const localData = JSON.stringify(this.credentials);
+        const localData = JSON.stringify({ indefinitely_valid: this.indefinitely_valid, credentials: this.credentials });
         localStorage.setItem(this.storage_id, localData);
         console.log("Credentials saved to localStorage", this.storage_id);
     }
@@ -214,7 +225,9 @@ export class IDPManager extends decorateClassWithState(
     load() {
         const item = localStorage.getItem(this.storage_id);
         if (typeof item !== "string") return;
-        this.credentials = JSON.parse(item);
-        console.log("IDP, credentials after load", this.credentials);
+        const saved_state = JSON.parse(item);
+        this.indefinitely_valid = saved_state.indefinitely_valid;
+        this.credentials = saved_state.credentials;
+        console.log("IDP, credentials after load", this.credentials, "indefinitely valid?", this.indefinitely_valid);
     }
 }

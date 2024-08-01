@@ -79,8 +79,8 @@ contract NaivePetition is Petition, INaivePetition {
         emit PetitionSigned(pId, bytes32(uint256(uint160(msg.sender))));
     }
 
-    function hasSigned(address toCheck) override external view returns (uint32) {
-        return pHasSigned[toCheck] ? uint32(1) : uint32(0);
+    function hasSigned(address toCheck) override external view returns (bool) {
+        return pHasSigned[toCheck];
     }
 }
 

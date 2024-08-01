@@ -119,7 +119,6 @@ export class PssClientProvider extends decorateClassWithState(ClientProviderBase
     constructor() {
         super();
         this.initialized = false;
-        console.log("Greeting from PSS Client provider!");
     }
 
     async sign(petition: IPetition): Promise<void> {
@@ -137,7 +136,7 @@ export class PssClientProvider extends decorateClassWithState(ClientProviderBase
         await this._init();
         try {
             const signature = await this._get_signature(petition);
-            return await this.pssconnector.hasSigned(petition.address, signature.i_sector_icc_1);
+            return await this.pssconnector.hasSigned(petition.address, signature.i_sector_icc_1);;
         } catch (e) {
             if (e == NoEntryError) {
                 return false;

@@ -183,6 +183,11 @@ export interface IPssProofResponse {
 }
 
 export class PssKeyManager extends KeyManager<IPssKey, IPssProofResponse> {
+    constructor(idp: IDPManager, repo?: ICredentialRepository<IPssKey, IPssProofResponse>) {
+        super(idp, repo);
+        this.idp.indefinitely_valid = true;
+    }
+
     async generate_key(period: number): Promise<IPssKey> {
         return {};
     }
