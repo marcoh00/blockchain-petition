@@ -83,8 +83,6 @@ RUN chown -R idp:idp /home/idp && chmod u+x /home/idp/idp/entrypoint.sh
 
 WORKDIR /home/idp/idp
 
-EXPOSE [65535, 65530, 65525]
-
 ENTRYPOINT [ "/home/idp/idp/entrypoint.sh" ]
 
 FROM docker.io/node:lts AS hardhat
