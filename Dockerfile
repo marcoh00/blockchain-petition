@@ -1,6 +1,6 @@
 FROM rust:1.76 AS rustbuilder
 
-RUN cargo install wasm-pack
+RUN apt-get update && apt-get install -y binaryen && cargo install wasm-pack
 
 WORKDIR /usr/src/myapp
 
