@@ -1,20 +1,21 @@
 build_image:
-  image: docker:20
+  image: docker:27-cli
   variables:
     DOCKER_TLS_CERTDIR: ""
     http_proxy: "http://www-cache.inf.h-brs.de:8080/"
     https_proxy: "http://www-cache.inf.h-brs.de:8080/"
     no_proxy: "localhost,127.0.0.1,docker"
   services:
-    - name: docker:20-dind
-      entrypoint: ["dockerd-entrypoint.sh", "--tls=false"]
+    - name: docker:27-dind
   script:
     - env
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
     - echo "Build container ${DOCKER_ENV_CI_REGISTRY_IMAGE}-idp:${CI_COMMIT_REF_NAME}-latest"
-    - docker build -t ${DOCKER_ENV_CI_REGISTRY_IMAGE}-idp:${CI_COMMIT_REF_NAME}-latest -f Dockerfile.ci --build-arg http_proxy --build-arg https_proxy --build-arg HTTP_PROXY=$http_proxy --build-arg HTTPS_PROXY=$https_proxy --target idp .
+    - docker build -t ${DOCKER_ENV_CI_REGISTRY_IMAGE}-idp:${CI_COMMIT_REF_NAME}-latest -f Dockerfile --build-arg http_proxy --build-arg https_proxy --build-arg HTTP_PROXY=$http_proxy --build-arg HTTPS_PROXY=$https_proxy --target idp .
+    - echo "Build container ${DOCKER_ENV_CI_REGISTRY_IMAGE}-hardhat:${CI_COMMIT_REF_NAME}-latest"
+    - docker build -t ${DOCKER_ENV_CI_REGISTRY_IMAGE}-hardhat:${CI_COMMIT_REF_NAME}-latest -f Dockerfile --build-arg http_proxy --build-arg https_proxy --build-arg HTTP_PROXY=$http_proxy --build-arg HTTPS_PROXY=$https_proxy --target hardhat .
     - echo "Build container ${DOCKER_ENV_CI_REGISTRY_IMAGE}-web:${CI_COMMIT_REF_NAME}-latest"
-    - docker build -t ${DOCKER_ENV_CI_REGISTRY_IMAGE}-web:${CI_COMMIT_REF_NAME}-latest -f Dockerfile.ci --build-arg http_proxy --build-arg https_proxy --build-arg HTTP_PROXY=$http_proxy --build-arg HTTPS_PROXY=$https_proxy --target webapp .
+    - docker build -t ${DOCKER_ENV_CI_REGISTRY_IMAGE}-web:${CI_COMMIT_REF_NAME}-latest -f Dockerfile --build-arg http_proxy --build-arg https_proxy --build-arg HTTP_PROXY=$http_proxy --build-arg HTTPS_PROXY=$https_proxy --target webapp .
     - docker push ${DOCKER_ENV_CI_REGISTRY_IMAGE}-idp:${CI_COMMIT_REF_NAME}-latest
     - docker push ${DOCKER_ENV_CI_REGISTRY_IMAGE}-web:${CI_COMMIT_REF_NAME}-latest
 
