@@ -23,8 +23,10 @@ FROM docker.io/node:lts AS nodebuilder
 
 ARG http_proxy
 
-COPY . /build
+RUN apt-get update && apt-get install -y binaryen
 
+COPY . /build
+COPY --from=rustbuilder /usr/local/cargo/bin/wasm-pack /usr/bin/wasm-pack
 COPY --from=rustbuilder /usr/src/myapp/ZoKrates/zokrates_stdlib/stdlib /root/.zokrates/stdlib
 COPY --from=rustbuilder /usr/src/myapp/ZoKrates/target/release/zokrates /usr/bin/zokrates
 COPY --from=rustbuilder /usr/src/myapp/ZoKrates/zokrates_js /build/ZoKrates/zokrates_js
