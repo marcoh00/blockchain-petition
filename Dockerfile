@@ -54,11 +54,8 @@ RUN echo "--- generate default pss keys ---" && \
 
 RUN echo "--- yarn install zokrates ---" && \
     cd /build/ZoKrates/zokrates_js && \
-    # zokrates-js wasm-pack dependency will use binary-install to make sure a wasm-pack binary exists, however it will only check at node_modules/.bin for its existence and it will not ever use a proxy when trying to download wasm-pack...
-    # https://github.com/EverlastingBugstopper/binary-install/blob/v1.1.0/packages/binary-install/index.js#L46
-    mkdir -p node_modules/.bin && \
-    ln -s /usr/bin/wasm-pack node_modules/.bin/wasm-pack && \
-    yarn install && \
+    # wasm-pack dependency will always want to download wasm-pack binary w/o proxy and fail
+    yarn install --ignore-scripts && \
     echo "--- zokrates: npm patch ---" && \
     # Recent versions of wasm-pack specify 'main' instead of 'module' in their package.json which causes the patch to fail
     sed -i 's/packageObject.module/packageObject.main/' patch.js && \
