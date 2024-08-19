@@ -92,6 +92,7 @@ FROM docker.io/node:lts AS hardhat
 
 RUN useradd -u 1001 -m -s /usr/sbin/nologin hardhat
 COPY --from=nodebuilder /build/platform /home/hardhat/platform
+COPY --from=nodebuilder /build/shared /home/hardhat/shared
 COPY --from=nodebuilder /build/pss /home/hardhat/pss
 COPY --from=nodebuilder /build/zk /home/hardhat/zk
 RUN chown -R hardhat:hardhat /home/hardhat
