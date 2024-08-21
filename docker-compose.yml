@@ -1,65 +1,54 @@
 services:
   node:
-    build:
-      context: .
-      target: hardhat
+    image: container.docker.inf.h-brs.de/mhuens2m/btdv-petition:hardhat-main
     command: node
     ports:
       - 8545:8545
-    networks:
-      - localnet
-  deployer:
-    build:
-      context: .
-      target: hardhat
+    network_mode: host
+  registrydeployer:
+    image: container.docker.inf.h-brs.de/mhuens2m/btdv-petition:hardhat-main
     command: run --verbose --network localhost scripts/deploy.ts
-    networks:
-      - localnet
+    restart: no
+    network_mode: host
     depends_on:
       node:
         condition: service_healthy
+  petitiondeployer:
+    image: container.docker.inf.h-brs.de/mhuens2m/btdv-petition:hardhat-main
+    command: run --verbose --network localhost scripts/testpetitions.ts
+    restart: no
+    network_mode: host
+    depends_on:
+      registrydeployer:
+        condition: service_completed_successfully
   naiveidp:
-    build:
-      context: .
-      target: idp
+    image: container.docker.inf.h-brs.de/mhuens2m/btdv-petition:idp-main
     command: --registry 0x0165878A594ca255338adfa4d48449f69242Eb8F --database naive.db
     ports:
       - 65535:65535
-    networks:
-      - localnet
+    network_mode: host
     depends_on:
-      deployer:
+      registrydeployer:
         condition: service_completed_successfully
   zkidp:
-    build:
-      context: .
-      target: idp
+    image: container.docker.inf.h-brs.de/mhuens2m/btdv-petition:idp-main
     command: --registry 0xa513E6E4b8f2a923D98304ec87F64353C4D5C853 --database zk.db
     ports:
       - 65530:65530
-    networks:
-      - localnet
+    network_mode: host
     depends_on:
-      deployer:
+      registrydeployer:
         condition: service_completed_successfully
   pssidp:
-    build:
-      context: .
-      target: idp
+    image: container.docker.inf.h-brs.de/mhuens2m/btdv-petition:idp-main
     command: --registry 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707 --database pss.db --psskey ../pss/secp256k1key.json
     ports:
       - 65525:65525
-    networks:
-      - localnet
+    network_mode: host
     depends_on:
-      deployer:
+      registrydeployer:
         condition: service_completed_successfully
   web:
-    build:
-      context: .
-      target: webapp
+    image: container.docker.inf.h-brs.de/mhuens2m/btdv-petition:web-main
     ports:
       - 8080:80
-networks:
-  localnet:
-    driver: host
