@@ -4868,7 +4868,7 @@ yallist@^4.0.0:
   resolved "https://registry.npmjs.org/yallist/-/yallist-4.0.0.tgz"
   integrity sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A==
 
-"zokrates-js@file:../../ZoKrates/zokrates_js":
+"zokrates-js@file:../ZoKrates/zokrates_js":
   version "1.1.8"
   dependencies:
     pako "^2.1.0"
