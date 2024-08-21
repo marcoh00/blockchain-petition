@@ -147,7 +147,7 @@ export abstract class EthereumConnector {
 
     async createPetition(name: string, description: string, period: number) {
         const name_b32 = padLeft(asciiToHex(name), 64);
-        console.log("Create petition", name, name_b32, description, period);
+        console.log("Create petition", name, name_b32, description, period, this.account);
         const tx = await this.registrycontract.methods.createPetition(name_b32, description, period).send({ from: this.account });
         return tx;
     }
