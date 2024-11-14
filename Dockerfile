@@ -1,12 +1,19 @@
-FROM rust:1.76 AS rustbuilder
+FROM rust:1.76 AS zokratesbuilder
 
 RUN apt-get update && apt-get install -y binaryen && cargo install wasm-pack
-
 WORKDIR /usr/src/myapp
-
 COPY ./ZoKrates ZoKrates
-COPY ./pss-rs pss-rs
+RUN cd ZoKrates && \
+    cargo build --release && \
+    cd zokrates_js && \
+    wasm-pack build --out-name index --target web --release
 
+
+FROM rust:1.82 AS pssbuilder
+
+RUN apt-get update && apt-get install -y binaryen && cargo install wasm-pack
+WORKDIR /usr/src/myapp
+COPY ./pss-rs pss-rs
 RUN cd pss-rs && \
     cargo build --release && \
     cd pss-rs-wasm && \
@@ -14,10 +21,6 @@ RUN cd pss-rs && \
     wasm-pack build -t nodejs -d pkg-node && \
     cd ../..
 
-RUN cd ZoKrates && \
-    cargo build --release && \
-    cd zokrates_js && \
-    wasm-pack build --out-name index --target web --release
 
 FROM docker.io/node:lts AS nodebuilder
 
@@ -26,13 +29,13 @@ ARG http_proxy
 RUN apt-get update && apt-get install -y binaryen
 
 COPY . /build
-COPY --from=rustbuilder /usr/local/cargo/bin/wasm-pack /usr/bin/wasm-pack
-COPY --from=rustbuilder /usr/src/myapp/ZoKrates/zokrates_stdlib/stdlib /root/.zokrates/stdlib
-COPY --from=rustbuilder /usr/src/myapp/ZoKrates/target/release/zokrates /usr/bin/zokrates
-COPY --from=rustbuilder /usr/src/myapp/ZoKrates/zokrates_js /build/ZoKrates/zokrates_js
-COPY --from=rustbuilder /usr/src/myapp/pss-rs/pss-rs-wasm/pkg /build/pss-rs/pss-rs-wasm/pkg
-COPY --from=rustbuilder /usr/src/myapp/pss-rs/pss-rs-wasm/pkg-node /build/pss-rs/pss-rs-wasm/pkg-node
-COPY --from=rustbuilder /usr/src/myapp/pss-rs/target/release/pss-keygen /usr/bin/pss-keygen
+COPY --from=zokratesbuilder /usr/local/cargo/bin/wasm-pack /usr/bin/wasm-pack
+COPY --from=zokratesbuilder /usr/src/myapp/ZoKrates/zokrates_stdlib/stdlib /root/.zokrates/stdlib
+COPY --from=zokratesbuilder /usr/src/myapp/ZoKrates/target/release/zokrates /usr/bin/zokrates
+COPY --from=zokratesbuilder /usr/src/myapp/ZoKrates/zokrates_js /build/ZoKrates/zokrates_js
+COPY --from=pssbuilder /usr/src/myapp/pss-rs/pss-rs-wasm/pkg /build/pss-rs/pss-rs-wasm/pkg
+COPY --from=pssbuilder /usr/src/myapp/pss-rs/pss-rs-wasm/pkg-node /build/pss-rs/pss-rs-wasm/pkg-node
+COPY --from=pssbuilder /usr/src/myapp/pss-rs/target/release/pss-keygen /usr/bin/pss-keygen
 
 RUN if [[ ! -z $http_proxy ]]; then echo "http_proxy={${http_proxy}}, https_proxy={${https_proxy}}" && \
     yarn config set proxy ${http_proxy} && \
