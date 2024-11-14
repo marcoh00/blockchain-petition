@@ -1,6 +1,7 @@
-export const REGISTRY_CONTRACT_HARDHAT = "0x0165878A594ca255338adfa4d48449f69242Eb8F";
-export const REGISTRY_CONTRACT_HARDHAT_ZK = "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853";
-export const REGISTRY_CONTRACT_HARDHAT_PSS = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707";
+export const REGISTRY_CONTRACT_HARDHAT = "0x610178dA211FEF7D417bC0e6FeD39F05609AD788";
+export const REGISTRY_CONTRACT_HARDHAT_ZK = "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e";
+export const REGISTRY_CONTRACT_HARDHAT_PSS_SECP256K1 = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707";
+export const REGISTRY_CONTRACT_HARDHAT_PSS_ALTBN128 = "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318";
 
 export const REGISTRY_CONTRACT_GOERLI = "0x99DC5A12d18afDdfF802980353A5be36Fd7247A3";
 export const REGISTRY_CONTRACT_GOERLI_PUBLIC = "0xE74d9d7e37aC285634a69BC5196C0e5Fd8a025d8";
@@ -64,13 +65,21 @@ export const NETWORKS: INetworkList = {
         privkey: PRIVKEY_HARDHAT,
         registry_contract: REGISTRY_CONTRACT_HARDHAT_ZK
     },
-    localhost_pss: {
+    localhost_psssecp256k1: {
         api: API_HARDHAT,
         wsapi: API_HARDHAT,
         chainid: 31337,
         account: ACCOUNT_HARDHAT,
         privkey: PRIVKEY_HARDHAT,
-        registry_contract: REGISTRY_CONTRACT_HARDHAT_PSS
+        registry_contract: REGISTRY_CONTRACT_HARDHAT_PSS_SECP256K1
+    },
+    localhost_pssaltbn128: {
+        api: API_HARDHAT,
+        wsapi: API_HARDHAT,
+        chainid: 31337,
+        account: ACCOUNT_HARDHAT,
+        privkey: PRIVKEY_HARDHAT,
+        registry_contract: REGISTRY_CONTRACT_HARDHAT_PSS_ALTBN128
     },
     sepolia: {
         api: API_SEPOLIA_LAB,

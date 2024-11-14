@@ -32,7 +32,7 @@ export async function getWeb3Connector(provider: any, registryaddr: string, acco
     const registry = new web3.eth.Contract((RegistryContract.abi as any), registryaddr);
     const regtype = Number.parseInt(await registry.methods.petitiontype().call()) as PetitionType;
 
-    let ethereum_connector = null;
+    let ethereum_connector: EthereumConnector | null = null;
     switch (regtype) {
         case PetitionType.Naive: {
             ethereum_connector = new NaiveEthereumConnector(web3, registry, account, privkey, chainid);
@@ -46,7 +46,11 @@ export async function getWeb3Connector(provider: any, registryaddr: string, acco
             ethereum_connector = new PssEthereumConnector(web3, registry, account, privkey, chainid);
             break;
         }
-        default: throw Error("Unknown petition type");
+        case PetitionType.PSSAltBn128: {
+            ethereum_connector = new PssEthereumConnector(web3, registry, account, privkey, chainid);
+            break;
+        }
+        default: throw Error(`Unknown petition type ${regtype}`);
 
     }
     await ethereum_connector.init();
@@ -290,6 +294,7 @@ export class PssEthereumConnector extends EthereumConnector {
     pk_icc_y: Array<number>
     pk_sector_x: Array<number>
     pk_sector_y: Array<number>
+    _petitiontype: PetitionType
 
     constructor(provider: Web3, registry: Contract, account?: string, privkey?: string, chainid?: number) {
         super(provider, registry, account, privkey, chainid);
@@ -313,7 +318,9 @@ export class PssEthereumConnector extends EthereumConnector {
 
     async init(): Promise<void> {
         await super.init();
-        const verifier = new this.api.eth.Contract((IPssVerifier.abi as any), await this.registrycontract.methods.verifier().call());
+        const verifier_address = await this.registrycontract.methods.verifier().call();
+        console.log(`Verifier is at ${verifier_address}`);
+        const verifier = new this.api.eth.Contract((IPssVerifier.abi as any), verifier_address);
         const gpk = await verifier.methods.get_gpk().call();
         this.pk_m_x = bn2uint8(BigInt(gpk[0]));
         this.pk_m_y = bn2uint8(BigInt(gpk[1]));
@@ -323,6 +330,8 @@ export class PssEthereumConnector extends EthereumConnector {
         this.pk_sector_x = bn2uint8(BigInt(sector[0]));
         this.pk_sector_y = bn2uint8(BigInt(sector[1]));
 
+        this._petitiontype = parseInt(await this.idpcontract.methods.petitiontype().call());
+
         console.log("Keys", "pk_m_x", this.pk_m_x, "pk_m_y", this.pk_m_y, "pk_icc_x", this.pk_icc_x, "pk_sector_x", this.pk_sector_x, "pk_sector_y", this.pk_sector_y, "gpk", gpk, "sector", sector);
     }
 
@@ -331,31 +340,28 @@ export class PssEthereumConnector extends EthereumConnector {
         const s1_str = `0x${uint8tohex(s1)}`;
         const s2_str = `0x${uint8tohex(s2)}`;
 
-        const i_sector_icc_1_compressed = ecc_uncompressed_to_compressed(i_sector_icc_1);
-        const i_sector_icc_1_x_str = `0x${uint8tohex(i_sector_icc_1_compressed.x)}`;
-        console.log("PSS Sign", petitionaddr, "c", c, "c_str", c_str, "s1", s1, "s1_str", s1_str, "s2", s2, "s2_str", s2_str, "i_sector_icc_1", i_sector_icc_1, "compressed", i_sector_icc_1_compressed, "i_sector_icc_1_x_str", i_sector_icc_1_x_str);
+        const i_sector_icc_1_parts = ecc_point_to_sol_struct(ecc_uncompressed_parts(i_sector_icc_1));
+        console.log("PSS Sign", petitionaddr, "c", c, "c_str", c_str, "s1", s1, "s1_str", s1_str, "s2", s2, "s2_str", s2_str, "i_sector_icc_1", i_sector_icc_1, "i_sector_icc_1_parts", i_sector_icc_1_parts);
         const contract = this.petition(petitionaddr);
         const tx = await contract.methods.sign(
             c_str,
             s1_str,
             s2_str,
-            i_sector_icc_1_compressed.parity,
-            i_sector_icc_1_x_str
+            i_sector_icc_1_parts
         ).send({ from: this.account });
         return tx;
     }
 
     async hasSigned(petitionaddr: string, i_sector_icc_1: Uint8Array): Promise<boolean> {
-        const i_sector_icc_1_compressed = ecc_uncompressed_to_compressed(i_sector_icc_1);
-        const i_sector_icc_1_x_str = `0x${uint8tohex(i_sector_icc_1_compressed.x)}`;
+        const i_sector_icc_1_parts = ecc_point_to_sol_struct(ecc_uncompressed_parts(i_sector_icc_1));
         const contract = this.petition(petitionaddr);
-        const web3result = await contract.methods.hasSigned(i_sector_icc_1_compressed.parity, i_sector_icc_1_x_str).call();
-        console.log("PSS Has Signed?", petitionaddr, i_sector_icc_1, i_sector_icc_1_compressed, i_sector_icc_1_x_str, web3result);
+        const web3result = await contract.methods.hasSigned(i_sector_icc_1_parts).call();
+        console.log("PSS Has Signed?", petitionaddr, i_sector_icc_1, i_sector_icc_1_parts, web3result);
         return web3result;
     }
 
     petitiontype(): PetitionType {
-        return PetitionType.PSSSecp256k1;
+        return this._petitiontype;
     }
     idp(addr: string): Contract {
         return new this.api.eth.Contract((PssIDPContract.abi as any), addr);
@@ -370,11 +376,12 @@ export class PssEthereumConnector extends EthereumConnector {
 export enum PetitionType {
     Naive = 0,
     ZK = 1,
-    PSSSecp256k1 = 2
+    PSSSecp256k1 = 2,
+    PSSAltBn128 = 3
 }
 
 function bn2uint8(x: bigint): Array<number> {
-    const ary = [];
+    const ary: number[] = [];
     while (x > 0) {
         ary.push(Number(x & 0xFFn));
         x = x >> 8n;
@@ -398,4 +405,26 @@ function ecc_uncompressed_to_compressed(uncompressed: Uint8Array): { parity: num
     const uncompressed_x_len = (uncompressed.length - 1) / 2;
     const uncompressed_x = uncompressed.slice(1, uncompressed_x_len + 1);
     return { parity, x: uncompressed_x };
+}
+
+function ecc_uncompressed_parts(uncompressed: Uint8Array): { X: Uint8Array, Y: Uint8Array } {
+    if (uncompressed.length % 2 === 0 || uncompressed[0] !== 0x04) {
+        throw new Error("Expected an uncompressed point");
+    }
+    const uncompressed_part_len = (uncompressed.length - 1) / 2;
+    const uncompressed_x = uncompressed.slice(1, uncompressed_part_len + 1);
+    const uncompressed_y = uncompressed.slice(uncompressed_part_len + 1, uncompressed.length);
+
+    if (uncompressed_x.length != 32 || uncompressed_y.length != 32) {
+        throw new Error("Unexpected point format");
+    }
+
+    return { X: uncompressed_x, Y: uncompressed_y };
+}
+
+function ecc_point_to_sol_struct(point: { X: Uint8Array, Y: Uint8Array }): { X: string, Y: string } {
+    return {
+        X: `0x${uint8tohex(point.X)}`,
+        Y: `0x${uint8tohex(point.Y)}`
+    };
 }

@@ -154,7 +154,8 @@ async function repeat() {
 
 setTimeout(async () => {
     ethereum = await getWeb3Connector(API, REGISTRY_CONTRACT, ACCOUNT, PRIVKEY);
-    switch (ethereum.petitiontype()) {
+    const petitiontype = ethereum.petitiontype();
+    switch (petitiontype) {
         case PetitionType.Naive: {
             proof_handler = new NaiveProofHandler(ethereum as NaiveEthereumConnector, DATABASE);
             break;
@@ -165,6 +166,13 @@ setTimeout(async () => {
         }
         case PetitionType.PSSSecp256k1: {
             const key = JSON.parse(readFileSync(PSSKEY_FILE).toString()) as IGroupManagerKey;
+            console.log("ℹ️  Key Algorithm ", key.algorithm);
+            proof_handler = new PssProofHandler(ethereum as PssEthereumConnector, DATABASE, key);
+            break;
+        }
+        case PetitionType.PSSAltBn128: {
+            const key = JSON.parse(readFileSync(PSSKEY_FILE).toString()) as IGroupManagerKey;
+            console.log("ℹ️  Key Algorithm ", key.algorithm);
             proof_handler = new PssProofHandler(ethereum as PssEthereumConnector, DATABASE, key);
             break;
         }

@@ -273,7 +273,7 @@ export class NaiveProofHandler implements IProofHandler {
 export interface IGroupManagerKey {
     sk_m: Uint8Array
     sk_icc: Uint8Array
-    algorithm: "secp256k1"
+    algorithm: "secp256k1" | "altbn128"
 }
 
 export class PssProofHandler implements IProofHandler {
@@ -292,6 +292,12 @@ export class PssProofHandler implements IProofHandler {
                     throw new Error("Smart Contract PSS algorithm does not match given key");
                 }
                 return Algorithm.Secp256k1;
+            }
+            case "alt-bn128": {
+                if (this.connector.petitiontype() != PetitionType.PSSAltBn128) {
+                    throw new Error("Smart Contract PSS algorithm does not match given key");
+                }
+                return Algorithm.AltBn128;
             }
             default: {
                 throw new Error("Unknown PSS algorithm");
