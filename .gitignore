@@ -14,6 +14,9 @@ pss/*.json
 platform/contracts/elliptic-curve-solidity
 platform/contracts/Pss*.sol
 
+# Altbn Library, copied from pss-rs
+platform/contracts/Altbn128.sol
+
 # Is generated either by init_node-sh or docker/podman build
 platform/contracts/StimmrechtsbeweisVerifier.sol
 

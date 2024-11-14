@@ -6,8 +6,16 @@ async function main() {
 
   const RegistryFactory = await ethers.getContractFactory("Registry");
   const Registry = await RegistryFactory.attach(contracts.naive.registry as string);
+  console.log(`Attached naive to registry with verifier ${await Registry.verifier()}`);
+
   const Registry_zk = await RegistryFactory.attach(contracts.zk.registry as string);
-  const Registry_pss = await RegistryFactory.attach(contracts.pss.registry as string);
+  console.log(`Attached to ZK registry with verifier ${await Registry_zk.verifier()}`);
+
+  const Registry_psssecp256k1 = await RegistryFactory.attach(contracts.psssecp256k1.registry as string);
+  console.log(`Attached to PSS Secp256k1 registry with verifier ${await Registry_psssecp256k1.verifier()}`);
+
+  const Registry_pssaltbn128 = await RegistryFactory.attach(contracts.pssaltbn128.registry as string);
+  console.log(`Attached to PSS Altbn128 registry with verifier ${await Registry_pssaltbn128.verifier()}`);
 
   const IDPFactory = await ethers.getContractFactory("NaiveIDP");
   const IDP = await IDPFactory.attach(contracts.naive.idp);
@@ -15,8 +23,8 @@ async function main() {
   const IDPFactory_zk = await ethers.getContractFactory("ZKIDP");
   const IDP_zk = await IDPFactory_zk.attach(contracts.zk.idp);
 
-  const IDPFactory_pss = await ethers.getContractFactory("PSSIDP");
-  const IDP_pss = await IDPFactory_zk.attach(contracts.pss.idp);
+  const IDPFactory_psssecp256k1 = await ethers.getContractFactory("PSSIDP");
+  const IDP_psssecp256k1 = await IDPFactory_psssecp256k1.attach(contracts.psssecp256k1.idp);
 
   const names = [
     "Luftbrücke für die Ukraine",
@@ -57,7 +65,7 @@ async function main() {
     baseperiod_zk + 3
   ];
 
-  const baseperiod_pss = Number(await IDP_pss.period());
+  const baseperiod_pss = Number(await IDP_psssecp256k1.period());
 
   const submittable_names = names
     .map((name) => ethers.zeroPadBytes(ethers.toUtf8Bytes(name), 32));
@@ -72,9 +80,16 @@ async function main() {
   }
 
   for (let i = 0; i < names.length; i++) {
-    await Registry_pss.createPetition(submittable_names[i], descriptions[i], baseperiod_pss);
-    console.log(`[PSS]   Petition ${names[i]} added`)
+    await Registry_psssecp256k1.createPetition(submittable_names[i], descriptions[i], baseperiod_pss);
+    console.log(`[PSS psssecp256k1]   Petition ${names[i]} added`)
   }
+
+  for (let i = 0; i < names.length; i++) {
+    await Registry_pssaltbn128.createPetition(submittable_names[i], descriptions[i], baseperiod_pss);
+    console.log(`[PSS pssaltbn128]   Petition ${names[i]} added`)
+  }
+
+
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -134,8 +134,8 @@ contract PSSPetition is Petition, IPSSPetition {
         bool lHidden
     ) Petition(lName, lDescription, lId, lPeriod, lRegistry, lHidden) {}
 
-    function sign(uint256 c, uint256 s1, uint256 s2, uint8 i_sector_icc_1_parity, uint256 i_sector_icc_1_x) external override {
-        bytes32 identity = keccak256(abi.encodePacked(i_sector_icc_1_parity, i_sector_icc_1_x));
+    function sign(uint256 c, uint256 s1, uint256 s2, ECC.Point memory i_sector_icc_1) external override {
+        bytes32 identity = keccak256(abi.encodePacked(i_sector_icc_1.X, i_sector_icc_1.Y));
         require(!pHasSigned[identity]);
         require(
             IPssVerifier(this.registry().verifier())
@@ -144,8 +144,7 @@ contract PSSPetition is Petition, IPSSPetition {
                 c,
                 s1,
                 s2,
-                i_sector_icc_1_parity,
-                i_sector_icc_1_x
+                i_sector_icc_1
             )
         );
         pHasSigned[identity] = true;
@@ -153,8 +152,8 @@ contract PSSPetition is Petition, IPSSPetition {
         emit PetitionSigned(pId, identity);
     }
 
-    function hasSigned(uint8 i_sector_icc_1_parity, uint256 i_sector_icc_1_x) override external view returns (bool) {
-        bytes32 identity = keccak256(abi.encodePacked(i_sector_icc_1_parity, i_sector_icc_1_x));
+    function hasSigned(ECC.Point memory i_sector_icc_1) override external view returns (bool) {
+        bytes32 identity = keccak256(abi.encodePacked(i_sector_icc_1.X, i_sector_icc_1.Y));
         return pHasSigned[identity];
     }
 }

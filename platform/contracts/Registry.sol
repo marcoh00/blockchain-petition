@@ -31,10 +31,7 @@ contract Registry is IRegistry {
         pHideByDefault = false;
         pPetitionType = lPetitionType;
         require(IIDP(lIdp).petitiontype() == lPetitionType);
-
-        if(lPetitionType == PetitionType.ZK || lPetitionType == PetitionType.Secp256k1PSS) {
-            pVerifier = lVerifier;
-        }
+        pVerifier = lVerifier;
     }
 
     function name() external view override returns (bytes32) {
@@ -89,7 +86,7 @@ contract Registry is IRegistry {
                     pHideByDefault
                 )
             );
-        } else if (pPetitionType == PetitionType.Secp256k1PSS) {
+        } else if (pPetitionType == PetitionType.Secp256k1PSS || pPetitionType == PetitionType.AltBn128PSS) {
             pPetitions.push(
                 new PSSPetition(
                     lName,

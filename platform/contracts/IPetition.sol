@@ -7,7 +7,8 @@ import "./IPssVerifier.sol";
 enum PetitionType {
     Naive,
     ZK,
-    Secp256k1PSS
+    Secp256k1PSS,
+    AltBn128PSS
 }
 
 interface IIDP {
@@ -63,6 +64,6 @@ interface IZKPetition is IPetition {
 }
 
 interface IPSSPetition is IPetition {
-    function sign(uint256, uint256, uint256, uint8, uint256) external;
-    function hasSigned(uint8, uint256) external view returns (bool);
+    function sign(uint256, uint256, uint256, ECC.Point memory) external;
+    function hasSigned(ECC.Point memory) external view returns (bool);
 }
