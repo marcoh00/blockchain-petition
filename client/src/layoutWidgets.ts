@@ -50,6 +50,9 @@ export class PetitionApp extends decorateClassWithState(LitElement) {
 
     if (web3connected && !identityknown) {
       this.stage = PageStage.Identity;
+      // TODO REMOVE THIS
+      console.log("Identity finish? ", identityknown);
+      console.log("state.identity", state.identity, "idp.identity", typeof (state.idp) === "object" && state.idp.identity, "idp.id", typeof (state.idp) === "object" && state.idp.id);
     }
 
     if (web3connected && identityknown) {

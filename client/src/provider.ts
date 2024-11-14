@@ -186,7 +186,15 @@ export class PssClientProvider extends decorateClassWithState(ClientProviderBase
                 if (this.getState().connector.connector.petitiontype() != PetitionType.PSSSecp256k1) {
                     throw new Error("Smart Contract PSS algorithm does not match given key");
                 }
+                console.log("secp256k1");
                 return Algorithm.Secp256k1;
+            }
+            case "alt-bn128": {
+                if (this.getState().connector.connector.petitiontype() != PetitionType.PSSAltBn128) {
+                    throw new Error("Smart Contract PSS algorithm does not match given key");
+                }
+                console.log("altbn128");
+                return Algorithm.AltBn128;
             }
             default: {
                 throw new Error("Unknown PSS algorithm");

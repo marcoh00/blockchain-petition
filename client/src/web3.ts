@@ -132,8 +132,10 @@ export class WalletConnector extends decorateClassWithWeb3(decorateClassWithStat
                 return new ZKClientProvider();
             case PetitionType.PSSSecp256k1:
                 return new PssClientProvider();
+            case PetitionType.PSSAltBn128:
+                return new PssClientProvider();
             default:
-                throw new Error("Unknown petition type");
+                throw new Error(`Unknown petition type ${t}`);
         }
     }
 
