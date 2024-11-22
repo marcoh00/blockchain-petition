@@ -62,7 +62,7 @@ function localGetState(): IState {
 const decoratedClasses: Array<any> = [];
 
 function localSetState(lstate: IState) {
-    console.trace("Set State", lstate);
+    // console.trace("Set State", lstate);
     state = lstate;
     for (let decoratedClass of decoratedClasses) {
         decoratedClass.stateChanged(lstate);

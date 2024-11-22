@@ -171,7 +171,9 @@ export class PssClientProvider extends decorateClassWithState(ClientProviderBase
         const pubkey = new JsGroupManagerPublicKey(pk_m, pk_icc);
         const alg = await this.pss_rs_algorithm(key.proof.algorithm);
         console.log("Trying to sign with sk_icc_1_u", sk_icc_1_u, "sk_icc_2_u", sk_icc_2_u, "alg", alg, "pk_m", pk_m, "pk_icc", pk_icc, "pk_sector", pk_sector);
+        console.time("PssSig");
         const signature = icc.sign(alg, pubkey, new JsPublicKey(pk_sector), true, false, petition.id);
+        console.timeEnd("PssSig");
         return {
             c: signature.c,
             s1: signature.s1,

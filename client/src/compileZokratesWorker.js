@@ -45,10 +45,13 @@ function compileSource() {
     return initialize()
         .then(provider => {
             console.log("[Worker] compileSource > initialized");
-            return doCompile(provider)
+            console.time("compileSource")
+            const compileArtifact = doCompile(provider);
+            console.timeEnd("compileSource")
+            return compileArtifact;
         })
         .then(compileArtifact => {
-            console.log("[Worker] compileSource > finished", compileArtifact);
+            console.log("[Worker] compileSource > finished. Size: ", compileArtifact.program.length);
             postMessage(["compileSource", compileArtifact]);
         })
         .catch(e => {
@@ -62,7 +65,10 @@ function computeWitness(artifacts, args) {
     return initialize()
         .then(provider => {
             console.log("[Worker] computeWitness > initialized");
-            return provider.computeWitness(artifacts, args);
+            console.time("computeWitness");
+            const result = provider.computeWitness(artifacts, args);
+            console.timeEnd("computeWitness");
+            return result;
         })
         .then(result => {
             console.log("[Worker] computeWitness > finished", result);
@@ -79,7 +85,10 @@ function jsProof(program, witness, provingKey) {
     return initialize()
         .then(provider => {
             console.log("[Worker] jsProof > initialized");
-            return provider.generateProof(program, witness, provingKey);
+            console.time("jsProof")
+            const result = provider.generateProof(program, witness, provingKey);
+            console.timeEnd("jsProof")
+            return result;
         })
         .then(result => {
             console.log("[Worker] jsProof > finished", result);
