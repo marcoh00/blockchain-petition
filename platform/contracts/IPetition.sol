@@ -3,12 +3,14 @@ pragma solidity ^0.8;
 
 import "./StimmrechtsbeweisVerifier.sol";
 import "./IPssVerifier.sol";
+import "@semaphore-protocol/contracts/interfaces/ISemaphore.sol";
 
 enum PetitionType {
     Naive,
     ZK,
     Secp256k1PSS,
-    AltBn128PSS
+    AltBn128PSS,
+    Semaphore
 }
 
 interface IIDP {
@@ -28,6 +30,11 @@ interface IZKIDP is IIDP {
     function getHash(uint8) external view returns (bytes32, uint256);
     function lastIteration() external view returns (uint8);
     function depth() external view returns (uint8);
+}
+
+interface ISemaphoreIDP is IIDP {
+    function addMember(uint256) external;
+    function validateProof(uint256, uint256, uint256, uint256, uint256, uint256[8] calldata) external;
 }
 
 interface IZKVerifier {
@@ -66,4 +73,8 @@ interface IZKPetition is IPetition {
 interface IPSSPetition is IPetition {
     function sign(uint256, uint256, uint256, ECC.Point memory) external;
     function hasSigned(ECC.Point memory) external view returns (bool);
+}
+
+interface ISemaphorePetition is IPetition {
+    function sign(uint256, uint256, uint256, uint256[8] calldata) external;
 }

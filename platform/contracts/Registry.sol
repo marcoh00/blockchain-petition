@@ -97,6 +97,17 @@ contract Registry is IRegistry {
                     pHideByDefault
                 )
             );
+        } else if (pPetitionType == PetitionType.Semaphore) {
+            pPetitions.push(
+                new SemaphorePetition(
+                    lName,
+                    description,
+                    lInternalPetitionId,
+                    period,
+                    address(this),
+                    pHideByDefault
+                )
+            );
         } else {
             revert();
         }
