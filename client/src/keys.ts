@@ -258,7 +258,8 @@ export class SemaphoreKeyManager extends KeyManager<ISemaphoreKey, ISemaphorePro
     }
 
     async get_proof(period: number, obtain?: boolean): Promise<ISemaphoreProofInfo> {
-        return await super.get_proof(1, obtain);
+        const idp_response = await super.get_proof(1, obtain);
+        return deserialize_semaphore_proof_info((idp_response as any).proof);
     }
 
     save() {
@@ -283,7 +284,7 @@ export class SemaphoreKeyManager extends KeyManager<ISemaphoreKey, ISemaphorePro
         this.repo = JSON.parse(item, (key: string, value: any) => {
             switch (key) {
                 case "keys":
-                    console.log("Export Identity as String", value);
+                    console.log("Import Identity from String", value);
                     return Identity.import(value);
                 case "proof":
                     return deserialize_semaphore_proof_info(value)

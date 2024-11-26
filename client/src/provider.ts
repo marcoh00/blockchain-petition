@@ -212,8 +212,15 @@ export class SemaphoreClientProvider extends decorateClassWithState(ClientProvid
         const key = await this.keymanager.get_key(1);
         const proof_data = await this.keymanager.get_proof(1);
         const group = new Group(proof_data.members);
-        const proof = await generateProof(key.identity, group, "sign", petition.id);
+        console.log("Proof input", key, group, proof_data, petition.id);
+        this.loading("Generating proof");
+        console.time("Semaphore Proof");
+        const proof = await generateProof(key.identity, group, 1936287598, petition.id);
+        console.timeEnd("Semaphore Proof");
         console.log("Generated proof", proof);
+        this.loading("Sign petition");
+        await this.connector.signPetition(petition.address, proof.merkleTreeDepth, proof.merkleTreeRoot, proof.nullifier, proof.points);
+        this.loading("", false);
     }
     async signable(petition: IPetition): Promise<boolean> {
         return ! await this.signed(petition);
@@ -223,5 +230,13 @@ export class SemaphoreClientProvider extends decorateClassWithState(ClientProvid
     }
     async key_manager(idp: IDPManager): Promise<KeyManager<any, any>> {
         return new SemaphoreKeyManager(idp);
+    }
+
+    loading(message: string, enable: boolean = true) {
+        this.setState({
+            ...this.getState(),
+            lockspinner: true,
+            locktext: message
+        });
     }
 }

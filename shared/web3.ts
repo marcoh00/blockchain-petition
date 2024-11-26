@@ -399,12 +399,12 @@ export class SemaphoreEthereumConnector extends EthereumConnector {
         this._petitiontype = parseInt(await this.idpcontract.methods.petitiontype().call());
     }
 
-    async signPetition(petitionaddr: string, merkleTreeDepth: bigint, merkleTreeRoot: bigint, nullifier: bigint, points: Array<bigint>) {
+    async signPetition(petitionaddr: string, merkleTreeDepth: number, merkleTreeRoot: string, nullifier: string, points: Array<string>) {
         if (points.length != 8) {
             throw new Error("Invalid proof size, must be 8 points");
         }
         const contract = this.petition(petitionaddr);
-        return contract.methods.sign(merkleTreeDepth, merkleTreeRoot, nullifier, points).call();
+        return contract.methods.sign(merkleTreeDepth, merkleTreeRoot, nullifier, points).send({ from: this.account });
     }
 
     async hasSigned(petitionaddr: string): Promise<boolean> {
@@ -416,9 +416,22 @@ export class SemaphoreEthereumConnector extends EthereumConnector {
         this.idpcontract.methods.addMember(identity).call();
     }
 
-    async addMembers(identities: Array<bigint>) {
-        console.log("Call addMembers with", identities);
-        this.idpcontract.methods.addMembers(identities).call();
+    async addMembers(identities: Array<bigint>): Promise<void> {
+        const param = identities.map((i) => i.toString());
+        console.log("Call addMembers with", param);
+
+        const method = await this.idpcontract.methods.addMembers(param)
+        const data = method.encodeABI();
+        const gas = await method.estimateGas();
+        const raw_tx = {
+            from: this.account,
+            to: await this.registrycontract.methods.idp().call(),
+            data,
+            gas
+        };
+        console.log("Transaction", raw_tx);
+        const signed = await this.api.eth.accounts.signTransaction(raw_tx, this.privkey!);
+        await this.api.eth.sendSignedTransaction(signed.rawTransaction!);
     }
 
     async merkleInfo(): Promise<ISemaphoreMerkleInfo> {

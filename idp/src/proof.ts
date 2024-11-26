@@ -217,10 +217,12 @@ export class SemaphoreProofHandler implements IProofHandler {
     }
 
     async proof_info(): Promise<ISemaphoreProofInfo> {
-        return {
+        const info = {
             merkle: await this.connector.merkleInfo(),
             members: (await this.database.treesIncludedOnBlockchain(1)).map((e) => BigInt(e))
         };
+        console.log("Generate information used for proofs", info);
+        return info;
     }
 
     async return_proof(db_result: string): Promise<string> {
@@ -275,16 +277,19 @@ export class SemaphoreProofHandler implements IProofHandler {
             console.log("❌ Will not try to create any trees because the previous task has not finished.");
             return;
         }
+
         this.interval_lock = true;
         const period = 1;
 
         try {
             // TODO, see "register": pubkey = tree = client_identity = identity commitment
             const commitments_in_db = await this.database.treesToIncludeOnBlockchain(period);
-            const commitments_to_include = commitments_in_db.map((commitment) => BigInt(commitment));
-            await this.connector.addMembers(commitments_to_include);
-            for (const commitment_str of commitments_in_db) {
-                await this.database.updateTreeWithIteration(commitment_str, 1);
+            if (commitments_in_db.length > 0) {
+                const commitments_to_include = commitments_in_db.map((commitment) => BigInt(commitment));
+                await this.connector.addMembers(commitments_to_include);
+                for (const commitment_str of commitments_in_db) {
+                    await this.database.updateTreeWithIteration(commitment_str, 1);
+                }
             }
         } catch (e) {
             throw e;
