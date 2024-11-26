@@ -2,6 +2,10 @@
 pragma solidity ^0.8;
 
 import "./IPetition.sol";
+import "@semaphore-protocol/contracts/base/SemaphoreVerifier.sol";
+import "@semaphore-protocol/contracts/interfaces/ISemaphore.sol";
+import "@semaphore-protocol/contracts/Semaphore.sol";
+
 
 abstract contract IDP is IIDP {
 
@@ -139,5 +143,81 @@ contract PSSIDP is IDP {
 
     function petitiontype() external view override returns (PetitionType) {
         return psstype;
+    }
+}
+
+contract SemaphoreIDP is IDP, ISemaphoreIDP {
+    Semaphore private _semaphore;
+    uint256 private _groupId;
+
+    constructor(string memory lidpUrl) IDP(315360000, lidpUrl) {
+        SemaphoreVerifier verifier = new SemaphoreVerifier();
+        _semaphore = new Semaphore(ISemaphoreVerifier(address(verifier)));
+        _groupId = _semaphore.createGroup(address(this), 315360000 / 12);
+    }
+
+    function addMember(uint256 identity_commitment) external {
+        _semaphore.addMember(_groupId, identity_commitment);
+    }
+
+    function addMembers(uint256[] calldata identity_commitments) external override {
+        _semaphore.addMembers(_groupId, identity_commitments);
+    }
+
+    function validateProof(
+        uint256 merkleTreeDepth,
+        uint256 merkleTreeRoot,
+        uint256 nullifier,
+        uint256 message,
+        uint256 scope,
+        uint256[8] calldata points
+    ) external {
+        ISemaphore.SemaphoreProof memory proof = ISemaphore.SemaphoreProof(
+            merkleTreeDepth,
+            merkleTreeRoot,
+            nullifier,
+            message,
+            scope,
+            points
+        );
+        _semaphore.validateProof(_groupId, proof);
+    }
+
+    function getSemaphore() external view returns (address) {
+        return address(_semaphore);
+    }
+
+    function getMerkleTreeRoot()
+        public
+        view
+        virtual
+        override
+        returns (uint256)
+    {
+        return _semaphore.getMerkleTreeRoot(_groupId);
+    }
+
+    function getMerkleTreeDepth()
+        public
+        view
+        virtual
+        override
+        returns (uint256)
+    {
+        return _semaphore.getMerkleTreeDepth(_groupId);
+    }
+
+    function getMerkleTreeSize()
+        public
+        view
+        virtual
+        override
+        returns (uint256)
+    {
+        return _semaphore.getMerkleTreeSize(_groupId);
+    }
+
+    function petitiontype() external pure override returns (PetitionType) {
+        return PetitionType.Semaphore;
     }
 }

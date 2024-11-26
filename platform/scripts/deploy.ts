@@ -2,8 +2,8 @@ import { readFileSync, writeFileSync } from "fs";
 import { ethers } from "hardhat";
 
 interface IContractAddresses {
-  idp: string | null,
-  registry: string | null,
+  idp: string,
+  registry: string,
   verifier: string | null
 }
 
@@ -11,7 +11,8 @@ enum KeyType {
   Naive,
   ZK,
   Secp256k1PSS,
-  AltBn128PSS
+  AltBn128PSS,
+  Semaphore
 }
 
 async function deployPss(keyfile: string, keytype: KeyType, idpcontract: string, verifiercontract: string, port: number, registrybuilder: any): Promise<IContractAddresses> {
@@ -19,7 +20,6 @@ async function deployPss(keyfile: string, keytype: KeyType, idpcontract: string,
   const idp_pss = await PSSIDP.deploy(`http://localhost:${port}`, keytype);
   console.log(`IDP PSS for ${verifiercontract} deployed to ${await idp_pss.getAddress()}`);
 
-  let pss_addr: IContractAddresses = { idp: await idp_pss.getAddress(), registry: null, verifier: null };
   const pss_key = JSON.parse(readFileSync(keyfile).toString());
   let link_opts = {};
   if (keytype == KeyType.AltBn128PSS) {
@@ -55,10 +55,7 @@ async function deployPss(keyfile: string, keytype: KeyType, idpcontract: string,
   );
   //await reg_pss.deployed();
   console.log(`Registry PSS for ${verifiercontract} deployed to ${await reg_pss.getAddress()}. Verifier address is ${await reg_pss.verifier()}`);
-
-  pss_addr.verifier = verifier_pss_addr;
-  pss_addr.registry = await reg_pss.getAddress();
-  return pss_addr
+  return { idp: await idp_pss.getAddress(), registry: await reg_pss.getAddress(), verifier: verifier_pss_addr };
 }
 
 async function main() {
@@ -112,7 +109,27 @@ async function main() {
   );
   //await reg_zk.deployed();
   console.log(`Registry ZK deployed to ${await reg_zk.getAddress()}`);
+
+  let link_opts = {
+    libraries: {
+      PoseidonT3: await (await (await ethers.getContractFactory("poseidon-solidity/PoseidonT3.sol:PoseidonT3")).deploy()).getAddress()
+    }
+  };
+
+  const SemaphoreIDP = await ethers.getContractFactory("SemaphoreIDP", link_opts);
+  const idp_semaphore = await SemaphoreIDP.deploy("http://localhost:65515");
+  console.log(`IDP Semaphore deployed to ${await idp_semaphore.getAddress()}`);
+
+  const reg_semaphore = await Registry.deploy(
+    ethers.zeroPadBytes(ethers.toUtf8Bytes("Semaphore Registry"), 32),
+    await idp_semaphore.getAddress(),
+    "0x0000000000000000000000000000000000000000",
+    4
+  );
+  console.log(`Registry Semaphore deployed to ${await reg_semaphore.getAddress()}`);
+
   console.log("psscontracts", psscontracts);
+
   const addresses = {
     naive: {
       idp: await idp_naive.getAddress(),
@@ -123,6 +140,12 @@ async function main() {
       idp: await idp_zk.getAddress(),
       registry: await reg_zk.getAddress(),
       verifier: await verifier_zk.getAddress()
+    },
+    semaphore: {
+      idp: await idp_semaphore.getAddress(),
+      registry: await reg_semaphore.getAddress(),
+      semaphore: await idp_semaphore.getSemaphore(),
+      verifier: null
     },
     ...psscontracts
   };

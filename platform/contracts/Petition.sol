@@ -2,6 +2,8 @@
 pragma solidity ^0.8;
 
 import "./IPetition.sol";
+import "./IDP.sol";
+import "@semaphore-protocol/contracts/Semaphore.sol";
 
 abstract contract Petition is IPetition {
     bytes32 private pName;
@@ -94,22 +96,34 @@ contract ZKPetition is Petition, IZKPetition {
         (bytes32 rt, uint256 rtProofPeriod) = IZKIDP(this.registry().idp()).getHash(lIteration);
         require(rtProofPeriod == this.period());
 
-        //Überführe die öffentlichen Eingabewerte des Stimmrechtsbeweises in die erwartete Form: Eingabewerte, portioniert auf 32Bit, zusammen in einem uint[24] Array
-        uint[24] memory input;
-        int inputPosition = 23;
+        // Construct the expected public inputs to the proof on-chain, as far as possible
+        // An alternative would be to let the client construct & submit everything and check that it matches the state of the blockchain
+        // However, this would probably be more expensive in terms of gas, as computation is generally cheaper than storage and we already have the data!
 
-        for(uint i=0; i<8; i++){
-            input[uint256(inputPosition)] = uint(pId >> (32 * i)) & 0xFFFFFFFF;
-            inputPosition --;
-        }
-        for(uint i=0; i<8; i++){
-            input[uint256(inputPosition)] = uint(lIdentity >> (32 * i)) & 0xFFFFFFFF;
-            inputPosition --;
-        }
-        for(uint i=0; i<8; i++){
-            input[uint256(inputPosition)] = uint(rt >> (32 * i)) & 0xFFFFFFFF;
-            inputPosition --;
-        }
+        // Zokrates expects an array w/ 4 bytes/32 bit of data per uint256
+        // input[24] is made up like this:
+        // input[0..8]   = rt (merkle root hash)    [on-chain]
+        // input[8..16]  = lIdentity                [user-provided, as private data is used to construct this]
+        // input[16..24] = pId (Petition ID)        [on-chain]
+        uint[24] memory input;
+        _bytes32Into32BitChunkedArray(rt, input, 0);
+        _bytes32Into32BitChunkedArray(lIdentity, input, 8);
+        _bytes32Into32BitChunkedArray(pId, input, 16);
+
+        // int inputPosition = 23;
+
+        // for(uint i=0; i<8; i++){
+        //     input[uint256(inputPosition)] = uint(pId >> (32 * i)) & 0xFFFFFFFF;
+        //     inputPosition --;
+        // }
+        // for(uint i=0; i<8; i++){
+        //     input[uint256(inputPosition)] = uint(lIdentity >> (32 * i)) & 0xFFFFFFFF;
+        //     inputPosition --;
+        // }
+        // for(uint i=0; i<8; i++){
+        //     input[uint256(inputPosition)] = uint(rt >> (32 * i)) & 0xFFFFFFFF;
+        //     inputPosition --;
+        // }
 
         require(Verifier(pRegistry.verifier()).verifyTx(lProof, input));
         pHasSigned_zk[lIdentity] = true;
@@ -119,6 +133,12 @@ contract ZKPetition is Petition, IZKPetition {
 
     function hasSigned(bytes32 lIdentity) override external view returns (bool) {
         return pHasSigned_zk[lIdentity];
+    }
+
+    function _bytes32Into32BitChunkedArray(bytes32 input, uint256[24] memory array, uint256 start_index) private pure {
+        for(uint256 i = 0; i < 8; i++) {
+            array[start_index + i] = uint256(input >> 32 * (7 - i)) & 0xFFFFFFFF;
+        }
     }
 }
 
@@ -155,5 +175,37 @@ contract PSSPetition is Petition, IPSSPetition {
     function hasSigned(ECC.Point memory i_sector_icc_1) override external view returns (bool) {
         bytes32 identity = keccak256(abi.encodePacked(i_sector_icc_1.X, i_sector_icc_1.Y));
         return pHasSigned[identity];
+    }
+}
+
+contract SemaphorePetition is Petition, ISemaphorePetition {
+    mapping(bytes32 => bool) private pHasSigned;
+
+    constructor(
+        bytes32 lName,
+        string memory lDescription,
+        bytes32 lId,
+        uint256 lPeriod,
+        address lRegistry,
+        bool lHidden
+    ) Petition(lName, lDescription, lId, lPeriod, lRegistry, lHidden) {}
+
+    function sign(
+        uint256 merkleTreeDepth,
+        uint256 merkleTreeRoot,
+        uint256 nullifier,
+        uint256[8] calldata points
+    ) external override {
+        SemaphoreIDP(pRegistry.idp()).validateProof(
+            merkleTreeDepth,
+            merkleTreeRoot,
+            nullifier,
+            1936287598,         // message = "sign" => (1936287598).to_bytes(4) = b'sign'
+            uint256(pId),       // topic is the petition id
+            points
+        );
+
+        pSigners += 1;
+        emit PetitionSigned(pId, bytes32(nullifier));
     }
 }

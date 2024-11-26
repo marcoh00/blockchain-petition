@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 import { DataHash, MerkleTree, serializeMerkleProof, SHA256Hash } from "../../shared/merkle";
-import { NaiveEthereumConnector, PetitionType, PssEthereumConnector, ZKEthereumConnector } from "../../shared/web3";
-import { IPssProof, IRegistration, checkValidType } from "../../shared/idp";
+import { ISemaphoreMerkleInfo, NaiveEthereumConnector, PetitionType, PssEthereumConnector, SemaphoreEthereumConnector, ZKEthereumConnector } from "../../shared/web3";
+import { IPssProof, IRegistration, ISemaphoreProofInfo, checkValidType, serialize_semaphore_proof_info } from "../../shared/idp";
 import { Database } from "./database";
 import { Algorithm, JsGroupManagerPrivateKey } from "pss-rs-wasm";
 
@@ -38,6 +38,8 @@ export interface IProofHandler {
     update_web3_info(web3info: any): Promise<void>
     register(registration: IRegistration, token: string): Promise<WebResult>
     interval_task()
+    interval(): Promise<number>
+    return_proof(db_result: string): Promise<string>
 }
 
 interface EventInformation {
@@ -62,6 +64,14 @@ export class ZKProofHandler implements IProofHandler {
         this.connector = connector;
         this.database = database;
         this.interval_lock = false;
+    }
+
+    async interval(): Promise<number> {
+        return Math.ceil(await this.connector.interval());
+    }
+
+    async return_proof(db_result: string): Promise<string> {
+        return JSON.stringify(db_result);
     }
 
     check_registration_info(registration: IRegistration, minperiod: number, maxperiod: number): Promise<WebResult> {
@@ -108,7 +118,7 @@ export class ZKProofHandler implements IProofHandler {
             const depth = await this.connector.depth();
             const target_keys = Math.pow(2, depth);
 
-            const key_hashes = await this.pubkeyHashes(period);
+            const key_hashes = await this.pubkeyHashes(period, target_keys);
             const original_key_hashes_count = key_hashes.length;
             if (original_key_hashes_count === 0) {
                 console.log("❌ Will not try to create any trees because there were no inclusion requests");
@@ -137,8 +147,8 @@ export class ZKProofHandler implements IProofHandler {
         }
     }
 
-    async pubkeyHashes(period: number): Promise<Array<SHA256Hash>> {
-        const pubkeys_to_include = await this.database.pubkeys_to_include(period);
+    async pubkeyHashes(period: number, maxkeys: number = 8): Promise<Array<SHA256Hash>> {
+        const pubkeys_to_include = await this.database.pubkeys_to_include(period, maxkeys);
         const hashes = new Array<SHA256Hash>();
         for (let hash of pubkeys_to_include) {
             hashes.push(SHA256Hash.fromHex(hash));
@@ -191,6 +201,104 @@ export class ZKProofHandler implements IProofHandler {
 
 }
 
+export class SemaphoreProofHandler implements IProofHandler {
+    connector: SemaphoreEthereumConnector
+    database: Database
+    interval_lock: boolean
+
+    constructor(connector: SemaphoreEthereumConnector, database: Database) {
+        this.connector = connector;
+        this.database = database;
+        this.interval_lock = false;
+    }
+
+    async interval(): Promise<number> {
+        return 30;
+    }
+
+    async proof_info(): Promise<ISemaphoreProofInfo> {
+        const info = {
+            merkle: await this.connector.merkleInfo(),
+            members: (await this.database.treesIncludedOnBlockchain(1)).map((e) => BigInt(e))
+        };
+        console.log("Generate information used for proofs", info);
+        return info;
+    }
+
+    async return_proof(db_result: string): Promise<string> {
+        return serialize_semaphore_proof_info(await this.proof_info());
+    }
+
+    check_registration_info(registration: IRegistration, minperiod: number, maxperiod: number): Promise<WebResult> {
+        if (!checkValidType(["identity", "client_identity"], registration)) {
+            return Promise.resolve(new WebResult(false, 400, "Malformed Request"));
+        }
+        try {
+            BigInt(registration.client_identity);
+        } catch (e) {
+            console.log("Invalid registration info", e);
+            return Promise.resolve(new WebResult(false, 400, "Malformed Request"));
+        }
+        return Promise.resolve(new WebResult(true));
+    }
+
+    async update_web3_info(web3info: any): Promise<void> {
+        web3info.semaphore = await this.proof_info();
+        web3info.semaphore.members = web3info.semaphore.members.map((member) => member.toString());
+        web3info.semaphore.merkle.root = web3info.semaphore.merkle.root.toString();
+        web3info.semaphore.merkle.size = web3info.semaphore.merkle.size.toString();
+        web3info.semaphore.merkle.depth = web3info.semaphore.merkle.depth.toString();
+        console.log(web3info.semaphore);
+    }
+
+
+    async register(registration: IRegistration, token: string): Promise<WebResult> {
+        registration.period = 1;
+        if (await this.database.isRegistered(registration)) {
+            return new WebResult(false, 405, "Public Key is already registered for given period");
+        }
+        try {
+            const result1 = await this.database.register(registration, token);
+            // TODO Rework database design such that other schemes do not have to fit into the "pubkey in tree" model
+            // We work around this by considering pubkey = tree = client_identity = identity commitment w/ an arbitrary proof value
+            // Of course this can fail in exciting ways when not all queries are made inside the same transaction (which they are not) 
+            // and some fail while others do not.
+            const result2 = await this.database.insertTree(registration.client_identity, registration.period);
+            const result3 = await this.database.insertProof(registration.client_identity, registration.client_identity, "[]");
+            return new WebResult(true, 200, { "token": token });
+        } catch (e) {
+            console.log("Registration: Database error", e);
+            return new WebResult(false, 500, "Database error");
+        }
+    }
+
+    async interval_task() {
+        if (this.interval_lock) {
+            console.log("❌ Will not try to create any trees because the previous task has not finished.");
+            return;
+        }
+
+        this.interval_lock = true;
+        const period = 1;
+
+        try {
+            // TODO, see "register": pubkey = tree = client_identity = identity commitment
+            const commitments_in_db = await this.database.treesToIncludeOnBlockchain(period);
+            if (commitments_in_db.length > 0) {
+                const commitments_to_include = commitments_in_db.map((commitment) => BigInt(commitment));
+                await this.connector.addMembers(commitments_to_include);
+                for (const commitment_str of commitments_in_db) {
+                    await this.database.updateTreeWithIteration(commitment_str, 1);
+                }
+            }
+        } catch (e) {
+            throw e;
+        } finally {
+            this.interval_lock = false;
+        }
+    }
+}
+
 export class NaiveProofHandler implements IProofHandler {
     connector: NaiveEthereumConnector
     database: Database
@@ -200,6 +308,14 @@ export class NaiveProofHandler implements IProofHandler {
         this.connector = connector;
         this.database = database;
         this.interval_lock = false;
+    }
+
+    async interval(): Promise<number> {
+        return Math.ceil(await this.connector.interval());
+    }
+
+    async return_proof(db_result: string): Promise<string> {
+        return JSON.stringify(db_result);
     }
 
     check_registration_info(registration: IRegistration, minperiod: number, maxperiod: number): Promise<WebResult> {
@@ -312,6 +428,15 @@ export class PssProofHandler implements IProofHandler {
 
         this.algorithm = group_manager_key.algorithm;
         this.group_manager = new JsGroupManagerPrivateKey(group_manager_key.sk_m, group_manager_key.sk_icc);
+    }
+
+    async interval(): Promise<number> {
+        // Nothing to do in the interval task, so we don't need to run it as often...
+        return Number.MAX_VALUE;
+    }
+
+    async return_proof(db_result: string): Promise<string> {
+        return JSON.stringify(db_result);
     }
 
     check_registration_info(registration: IRegistration, minperiod: number, maxperiod: number): Promise<WebResult> {

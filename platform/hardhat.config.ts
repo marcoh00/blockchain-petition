@@ -7,6 +7,7 @@ import "hardhat-gas-reporter";
 import "solidity-coverage";
 
 import { DEFAULT_NETWORK, NETWORKS } from "../shared/addr";
+import { SolcUserConfig } from "hardhat/types";
 
 dotenv.config();
 
@@ -31,18 +32,52 @@ task("imining", "Switch to interval-based mining", async (taskArgs, hre) => {
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 
+const pss_verifier_settings: SolcUserConfig = {
+  version: "0.8.24",
+  settings: {
+    optimizer: {
+      enabled: true,
+      runs: 20000,
+      details: {
+        yul: true
+      }
+    },
+    viaIR: true
+  }
+};
+
+const semaphore_settings: SolcUserConfig = {
+  version: "0.8.23",
+  settings: {
+    optimizer: {
+      enabled: true,
+      runs: 200
+    }
+  }
+};
+
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.24",
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 20000,
-        details: {
-          yul: true
-        }
+    compilers: [
+      {
+        version: "0.8.24"
       },
-      viaIR: true
+      {
+        version: "0.8.23",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200
+          }
+        }
+      }
+    ],
+    "overrides": {
+      "contracts/PssAltBn128.sol": pss_verifier_settings,
+      "contracts/PssSecp256k1.sol": pss_verifier_settings,
+      "@zk-kit/lean-imt.sol/Constants.sol": semaphore_settings,
+      "@zk-kit/lean-imt.sol/InternalLeanIMT.sol": semaphore_settings,
+      "poseidon-solidity/PoseidonT3.sol": semaphore_settings
     }
   },
   networks: {

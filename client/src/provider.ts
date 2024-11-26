@@ -1,7 +1,8 @@
+import { generateProof, Group } from "@semaphore-protocol/core";
 import { SHA256Hash } from "../../shared/merkle";
-import { IPetition, NaiveEthereumConnector, PetitionType, PssEthereumConnector, ZKEthereumConnector } from "../../shared/web3";
+import { IPetition, NaiveEthereumConnector, PetitionType, PssEthereumConnector, SemaphoreEthereumConnector, ZKEthereumConnector } from "../../shared/web3";
 import { IDPManager } from "./idp";
-import { KeyManager, NaiveKeyManager, NoEntryError, PssKeyManager, ZKKeyManager } from "./keys";
+import { KeyManager, NaiveKeyManager, NoEntryError, PssKeyManager, SemaphoreKeyManager, ZKKeyManager } from "./keys";
 import { decorateClassWithState } from "./state";
 import { ZokratesHelper } from "./zokrates";
 import init, { Algorithm, JsGroupManagerPublicKey, JsIccSecretKey, JsPublicKey, init_panic_hook } from "pss-rs-wasm";
@@ -202,5 +203,42 @@ export class PssClientProvider extends decorateClassWithState(ClientProviderBase
                 throw new Error("Unknown PSS algorithm");
             }
         }
+    }
+}
+
+export class SemaphoreClientProvider extends decorateClassWithState(ClientProviderBase) implements IClientProvider {
+    get connector() { return this.getState().connector.connector as SemaphoreEthereumConnector }
+    get keymanager() { return this.getState().keymanager as SemaphoreKeyManager }
+
+    async sign(petition: IPetition): Promise<void> {
+        const key = await this.keymanager.get_key(1);
+        const proof_data = await this.keymanager.get_proof(1);
+        const group = new Group(proof_data.members);
+        console.log("Proof input", key, group, proof_data, petition.id);
+        this.loading("Generating proof");
+        console.time("Semaphore Proof");
+        const proof = await generateProof(key.identity, group, 1936287598, petition.id);
+        console.timeEnd("Semaphore Proof");
+        console.log("Generated proof", proof);
+        this.loading("Sign petition");
+        await this.connector.signPetition(petition.address, proof.merkleTreeDepth, proof.merkleTreeRoot, proof.nullifier, proof.points);
+        this.loading("", false);
+    }
+    async signable(petition: IPetition): Promise<boolean> {
+        return ! await this.signed(petition);
+    }
+    async signed(petition: IPetition): Promise<boolean> {
+        return false;
+    }
+    async key_manager(idp: IDPManager): Promise<KeyManager<any, any>> {
+        return new SemaphoreKeyManager(idp);
+    }
+
+    loading(message: string, enable: boolean = true) {
+        this.setState({
+            ...this.getState(),
+            lockspinner: true,
+            locktext: message
+        });
     }
 }

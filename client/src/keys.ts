@@ -1,7 +1,10 @@
-import { checkValidType, IPssProof } from "../../shared/idp"
+import { checkValidType, deserialize_semaphore_proof_info, IPssProof, ISemaphoreProofInfo, serialize_semaphore_proof_info } from "../../shared/idp"
 import { MerkleProof, SHA256Hash } from "../../shared/merkle"
+import { ISemaphoreMerkleInfo } from "../../shared/web3"
 import { IDPManager } from "./idp"
 import { getStateAccessors } from "./state"
+
+import { Identity } from "@semaphore-protocol/core"
 
 interface IRegistration<K, P> {
     keys: K,
@@ -229,4 +232,66 @@ export class PssKeyManager extends KeyManager<IPssKey, IPssProofResponse> {
         console.log("KM, credentials after load", this.repo);
     }
 
+}
+
+interface ISemaphoreKey {
+    identity: Identity
+}
+
+export class SemaphoreKeyManager extends KeyManager<ISemaphoreKey, ISemaphoreProofInfo> {
+    constructor(idp: IDPManager, repo?: ICredentialRepository<ISemaphoreKey, ISemaphoreProofInfo>) {
+        super(idp, repo);
+        this.idp.indefinitely_valid = true;
+    }
+
+    async generate_key(period: number): Promise<ISemaphoreKey> {
+        return { identity: new Identity() };
+    }
+
+    async client_identity(period: number): Promise<any> {
+        const key = await this.get_key(1, true);
+        return key.identity.commitment.toString();
+    }
+
+    async get_key(period: number, generate?: boolean): Promise<ISemaphoreKey> {
+        return await super.get_key(1, generate);
+    }
+
+    async get_proof(period: number, obtain?: boolean): Promise<ISemaphoreProofInfo> {
+        const idp_response = await super.get_proof(1, obtain);
+        return deserialize_semaphore_proof_info((idp_response as any).proof);
+    }
+
+    save() {
+        const localData = JSON.stringify(this.repo, (key: string, value: any) => {
+            switch (key) {
+                case "keys":
+                    console.log("Export Identity as String", value);
+                    return (value as ISemaphoreKey).identity.export();
+                case "proof":
+                    return serialize_semaphore_proof_info(value as ISemaphoreProofInfo);
+                default:
+                    return value;
+            }
+        });
+        localStorage.setItem(`cred.${this.idp.id}`, localData);
+        console.log("Credentials saved to localStorage");
+    }
+
+    load() {
+        const item = localStorage.getItem(`cred.${this.idp.id}`);
+        if (typeof item !== "string") return;
+        this.repo = JSON.parse(item, (key: string, value: any) => {
+            switch (key) {
+                case "keys":
+                    console.log("Import Identity from String", value);
+                    return Identity.import(value);
+                case "proof":
+                    return deserialize_semaphore_proof_info(value)
+                default:
+                    return value;
+            }
+        });
+        console.log("KM, credentials after load", this.repo);
+    }
 }
