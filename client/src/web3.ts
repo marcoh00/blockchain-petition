@@ -1,7 +1,7 @@
 import { EthereumConnector, getWeb3Connector, PetitionType } from "../../shared/web3";
 import { IDPManager } from "./idp";
 import { KeyManager, NaiveKeyManager, ZKKeyManager } from "./keys";
-import { IClientProvider, NaiveClientProvider, PssClientProvider, ZKClientProvider } from "./provider";
+import { IClientProvider, NaiveClientProvider, PssClientProvider, SemaphoreClientProvider, ZKClientProvider } from "./provider";
 import { decorateClassWithState } from "./state";
 import { getWeb3Repository, Web3Repository } from "./web3repository";
 
@@ -134,6 +134,8 @@ export class WalletConnector extends decorateClassWithWeb3(decorateClassWithStat
                 return new PssClientProvider();
             case PetitionType.PSSAltBn128:
                 return new PssClientProvider();
+            case PetitionType.Semaphore:
+                return new SemaphoreClientProvider();
             default:
                 throw new Error(`Unknown petition type ${t}`);
         }

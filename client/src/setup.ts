@@ -160,6 +160,12 @@ export class RegistryChooser extends LitElement {
             descr: "Testcontract auf lokaler Blockchain mit PSS/ALTBN128",
             ident: "Texteingabe",
             chainid: NETWORKS.localhost_pssaltbn128.chainid
+        },
+        {
+            addr: NETWORKS.localhost_semaphore.registry_contract,
+            descr: "Testcontract auf lokaler Blockchain mit Semaphore",
+            ident: "Texteingabe",
+            chainid: NETWORKS.localhost_semaphore.chainid
         }
     ];
 
