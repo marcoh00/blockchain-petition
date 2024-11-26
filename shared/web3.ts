@@ -5,9 +5,11 @@ import RegistryContract from "../platform/artifacts/contracts/Registry.sol/Regis
 import NaiveIDPContract from "../platform/artifacts/contracts/IDP.sol/NaiveIDP.json";
 import ZKIDPContract from "../platform/artifacts/contracts/IDP.sol/ZKIDP.json";
 import PssIDPContract from "../platform/artifacts/contracts/IDP.sol/PSSIDP.json";
+import SemaphoreIDPContract from "../platform/artifacts/contracts/IDP.sol/SemaphoreIDP.json";
 import NaivePetitionContract from "../platform/artifacts/contracts/Petition.sol/NaivePetition.json";
 import ZKPetitionContract from "../platform/artifacts/contracts/Petition.sol/ZKPetition.json";
 import PssPetitionContract from "../platform/artifacts/contracts/Petition.sol/PSSPetition.json";
+import SemaphorePetitionContract from "../platform/artifacts/contracts/Petition.sol/SemaphorePetition.json";
 import IPssVerifier from "../platform/artifacts/contracts/IPssVerifier.sol/IPssVerifier.json"
 import { SHA256Hash } from './merkle';
 
@@ -17,8 +19,14 @@ export interface IPetition {
     description: string
     id: Uint8Array
     period: number
-    signers: number,
+    signers: number
     signable?: boolean
+}
+
+export interface ISemaphoreMerkleInfo {
+    root: bigint
+    depth: bigint
+    size: bigint
 }
 
 export async function getWeb3Connector(provider: any, registryaddr: string, account?: string, privkey?: string, chainid?: number): Promise<EthereumConnector> {
@@ -48,6 +56,10 @@ export async function getWeb3Connector(provider: any, registryaddr: string, acco
         }
         case PetitionType.PSSAltBn128: {
             ethereum_connector = new PssEthereumConnector(web3, registry, account, privkey, chainid);
+            break;
+        }
+        case PetitionType.Semaphore: {
+            ethereum_connector = new SemaphoreEthereumConnector(web3, registry, account, privkey, chainid);
             break;
         }
         default: throw Error(`Unknown petition type ${regtype}`);
@@ -369,6 +381,63 @@ export class PssEthereumConnector extends EthereumConnector {
     petition(addr: string): Contract {
         return new this.api.eth.Contract((PssPetitionContract.abi as any), addr);
     }
+}
+
+export class SemaphoreEthereumConnector extends EthereumConnector {
+    _petitiontype: PetitionType
+
+    constructor(provider: Web3, registry: Contract, account?: string, privkey?: string, chainid?: number) {
+        super(provider, registry, account, privkey, chainid);
+    }
+
+    async interval(): Promise<number> {
+        return 864000;
+    }
+
+    async init(): Promise<void> {
+        await super.init();
+        this._petitiontype = parseInt(await this.idpcontract.methods.petitiontype().call());
+    }
+
+    async signPetition(petitionaddr: string, merkleTreeDepth: bigint, merkleTreeRoot: bigint, nullifier: bigint, points: Array<bigint>) {
+        if (points.length != 8) {
+            throw new Error("Invalid proof size, must be 8 points");
+        }
+        const contract = this.petition(petitionaddr);
+        return contract.methods.sign(merkleTreeDepth, merkleTreeRoot, nullifier, points).call();
+    }
+
+    async hasSigned(petitionaddr: string): Promise<boolean> {
+        // TODO this needs the nullifiers to be known, however they cannot be easily obtained from the Semaphore SC
+        return false;
+    }
+
+    async addMember(identity: bigint) {
+        this.idpcontract.methods.addMember(identity).call();
+    }
+
+    async addMembers(identities: Array<bigint>) {
+        console.log("Call addMembers with", identities);
+        this.idpcontract.methods.addMembers(identities).call();
+    }
+
+    async merkleInfo(): Promise<ISemaphoreMerkleInfo> {
+        return {
+            root: await this.idpcontract.methods.getMerkleTreeRoot().call(),
+            depth: await this.idpcontract.methods.getMerkleTreeDepth().call(),
+            size: await this.idpcontract.methods.getMerkleTreeSize().call(),
+        }
+    }
+
+    petitiontype(): PetitionType {
+        return this._petitiontype;
+    }
+    idp(addr: string): Contract {
+        return new this.api.eth.Contract((SemaphoreIDPContract.abi as any), addr);
+    }
+    petition(addr: string): Contract {
+        return new this.api.eth.Contract((SemaphorePetitionContract.abi as any), addr);
+    }
 
 
 }
@@ -377,7 +446,8 @@ export enum PetitionType {
     Naive = 0,
     ZK = 1,
     PSSSecp256k1 = 2,
-    PSSAltBn128 = 3
+    PSSAltBn128 = 3,
+    Semaphore = 4
 }
 
 function bn2uint8(x: bigint): Array<number> {

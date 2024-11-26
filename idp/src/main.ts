@@ -3,10 +3,10 @@ import cors, { CorsOptions } from "cors";
 import { randomBytes } from "crypto";
 import { IRegistration, checkValidType, IProofRequest } from "../../shared/idp";
 import { Database } from "./database";
-import { NaiveEthereumConnector, ZKEthereumConnector, getWeb3Connector, EthereumConnector, PetitionType, PssEthereumConnector } from "../../shared/web3";
+import { NaiveEthereumConnector, ZKEthereumConnector, getWeb3Connector, EthereumConnector, PetitionType, PssEthereumConnector, SemaphoreEthereumConnector } from "../../shared/web3";
 import { DEFAULT_NETWORK, DBFILE, PROVINGKEY, REGISTRY_CONTRACT_HARDHAT_ZK, REGISTRY_CONTRACT_HARDHAT } from '../../shared/addr';
 import yargs from 'yargs';
-import { IGroupManagerKey, IProofHandler, NaiveProofHandler, PssProofHandler, ZKProofHandler } from "./proof";
+import { IGroupManagerKey, IProofHandler, NaiveProofHandler, PssProofHandler, SemaphoreProofHandler, ZKProofHandler } from "./proof";
 import { readFileSync } from "fs";
 
 const app = express();
@@ -71,7 +71,7 @@ app.get('/web3', async (req, res) => {
             "endperiod": await ethereum.idpcontract.methods.end_period(await ethereum.idpcontract.methods.period().call()).call()
         }
     };
-    proof_handler.update_web3_info(web3info);
+    await proof_handler.update_web3_info(web3info);
     res.json(web3info);
 })
 
@@ -118,7 +118,7 @@ app.post('/proof', cors(corsOptions), async (req, res) => {
         hash: database_result.hash,
         iteration: database_result.iteration,
         period: database_result.period,
-        proof: JSON.parse(database_result.proof)
+        proof: await proof_handler.return_proof(database_result.proof)
     };
 
     res.statusCode = 200;
@@ -157,23 +157,30 @@ setTimeout(async () => {
     const petitiontype = ethereum.petitiontype();
     switch (petitiontype) {
         case PetitionType.Naive: {
+            console.log("ℹ️  Naive Mode");
             proof_handler = new NaiveProofHandler(ethereum as NaiveEthereumConnector, DATABASE);
             break;
         }
         case PetitionType.ZK: {
+            console.log("ℹ️  Zero-Knowledge Mode");
             proof_handler = new ZKProofHandler(ethereum as ZKEthereumConnector, DATABASE);
             break;
         }
         case PetitionType.PSSSecp256k1: {
             const key = JSON.parse(readFileSync(PSSKEY_FILE).toString()) as IGroupManagerKey;
-            console.log("ℹ️  Key Algorithm ", key.algorithm);
+            console.log("ℹ️  PSS Key Algorithm ", key.algorithm);
             proof_handler = new PssProofHandler(ethereum as PssEthereumConnector, DATABASE, key);
             break;
         }
         case PetitionType.PSSAltBn128: {
             const key = JSON.parse(readFileSync(PSSKEY_FILE).toString()) as IGroupManagerKey;
-            console.log("ℹ️  Key Algorithm ", key.algorithm);
+            console.log("ℹ️  PSS Key Algorithm ", key.algorithm);
             proof_handler = new PssProofHandler(ethereum as PssEthereumConnector, DATABASE, key);
+            break;
+        }
+        case PetitionType.Semaphore: {
+            console.log("ℹ️  Semaphore Mode");
+            proof_handler = new SemaphoreProofHandler(ethereum as SemaphoreEthereumConnector, DATABASE);
             break;
         }
         default: throw Error("Cannot serve unknown petition type");
@@ -191,7 +198,7 @@ setTimeout(async () => {
         console.log(`ℹ️  Using Account ${ACCOUNT}`);
         console.log(`ℹ️  Using Private Key 0x${PRIVKEY.charAt(2)}${PRIVKEY.charAt(3)}...`);
         console.log(`💾 Connecting to database at ${DB_FILE}`);
-        const interval = Math.ceil(await ethereum.interval());
+        const interval = await proof_handler.interval();
         console.log(`🌐 Try to create a new tree hash every ${interval}s`);
         setInterval(repeat, interval * 1000);
 
