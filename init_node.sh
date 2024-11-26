@@ -10,6 +10,7 @@ STARTIDPNAIVE=${5-YES}
 STARTIDPZK=${6-YES}
 STARTIDPPSSSECP256K1=${7-YES}
 STARTIDPPSSALTBN128=${8-YES}
+STARTIDPSEMAPHORE=${9-YES}
 PIDS=""
 
 sed -i 's/export const DEFAULT_NETWORK = NETWORKS.*/export const DEFAULT_NETWORK = NETWORKS.'"${NETWORK}"'/g' ${BASH_SOURCE%/*}/shared/addr.ts
@@ -127,6 +128,13 @@ then
 	echo "Start ZK IDP"
 	start_idp "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e" "zk.db"
 	echo "ZK IDP started"
+fi
+
+if [ ${STARTIDPSEMAPHORE} = "YES" ]
+then
+	echo "Start Semaphore IDP"
+	start_idp "0x9A676e781A523b5d0C0e43731313A708CB607508" "semaphore.db"
+	echo "Semaphore IDP started"
 fi
 
 if [ ${STARTCLIENT} = "YES" ]
