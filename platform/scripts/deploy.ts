@@ -20,7 +20,6 @@ async function deployPss(keyfile: string, keytype: KeyType, idpcontract: string,
   const idp_pss = await PSSIDP.deploy(`http://localhost:${port}`, keytype);
   console.log(`IDP PSS for ${verifiercontract} deployed to ${await idp_pss.getAddress()}`);
 
-  let pss_addr: IContractAddresses = { idp: await idp_pss.getAddress(), registry: null, verifier: null };
   const pss_key = JSON.parse(readFileSync(keyfile).toString());
   let link_opts = {};
   if (keytype == KeyType.AltBn128PSS) {
@@ -56,10 +55,7 @@ async function deployPss(keyfile: string, keytype: KeyType, idpcontract: string,
   );
   //await reg_pss.deployed();
   console.log(`Registry PSS for ${verifiercontract} deployed to ${await reg_pss.getAddress()}. Verifier address is ${await reg_pss.verifier()}`);
-
-  pss_addr.verifier = verifier_pss_addr;
-  pss_addr.registry = await reg_pss.getAddress();
-  return pss_addr
+  return { idp: await idp_pss.getAddress(), registry: await reg_pss.getAddress(), verifier: verifier_pss_addr };
 }
 
 async function main() {
@@ -121,7 +117,7 @@ async function main() {
   };
 
   const SemaphoreIDP = await ethers.getContractFactory("SemaphoreIDP", link_opts);
-  const idp_semaphore = await SemaphoreIDP.deploy("http://localhost:65535");
+  const idp_semaphore = await SemaphoreIDP.deploy("http://localhost:65515");
   console.log(`IDP Semaphore deployed to ${await idp_semaphore.getAddress()}`);
 
   const reg_semaphore = await Registry.deploy(

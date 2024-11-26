@@ -17,6 +17,9 @@ async function main() {
   const Registry_pssaltbn128 = await RegistryFactory.attach(contracts.pssaltbn128.registry as string);
   console.log(`Attached to PSS Altbn128 registry with verifier ${await Registry_pssaltbn128.verifier()}`);
 
+  const Registry_semaphore = await RegistryFactory.attach(contracts.semaphore.registry as string);
+  console.log(`Attached to Semaphore registry`);
+
   const IDPFactory = await ethers.getContractFactory("NaiveIDP");
   const IDP = await IDPFactory.attach(contracts.naive.idp);
 
@@ -87,6 +90,11 @@ async function main() {
   for (let i = 0; i < names.length; i++) {
     await Registry_pssaltbn128.createPetition(submittable_names[i], descriptions[i], baseperiod_pss);
     console.log(`[PSS pssaltbn128]   Petition ${names[i]} added`)
+  }
+
+  for (let i = 0; i < names.length; i++) {
+    await Registry_semaphore.createPetition(submittable_names[i], descriptions[i], baseperiod_pss);
+    console.log(`[Semaphore]         Petition ${names[i]} added`)
   }
 
 

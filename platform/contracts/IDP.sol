@@ -160,7 +160,18 @@ contract SemaphoreIDP is IDP, ISemaphoreIDP {
         _semaphore.addMember(_groupId, identity_commitment);
     }
 
-    function validateProof(uint256 merkleTreeDepth, uint256 merkleTreeRoot, uint256 nullifier, uint256 message, uint256 scope, uint256[8] calldata points) external {
+    function addMembers(uint256[] calldata identity_commitments) external override {
+        _semaphore.addMembers(_groupId, identity_commitments);
+    }
+
+    function validateProof(
+        uint256 merkleTreeDepth,
+        uint256 merkleTreeRoot,
+        uint256 nullifier,
+        uint256 message,
+        uint256 scope,
+        uint256[8] calldata points
+    ) external {
         ISemaphore.SemaphoreProof memory proof = ISemaphore.SemaphoreProof(
             merkleTreeDepth,
             merkleTreeRoot,
@@ -174,6 +185,36 @@ contract SemaphoreIDP is IDP, ISemaphoreIDP {
 
     function getSemaphore() external view returns (address) {
         return address(_semaphore);
+    }
+
+    function getMerkleTreeRoot()
+        public
+        view
+        virtual
+        override
+        returns (uint256)
+    {
+        return _semaphore.getMerkleTreeRoot(_groupId);
+    }
+
+    function getMerkleTreeDepth()
+        public
+        view
+        virtual
+        override
+        returns (uint256)
+    {
+        return _semaphore.getMerkleTreeDepth(_groupId);
+    }
+
+    function getMerkleTreeSize()
+        public
+        view
+        virtual
+        override
+        returns (uint256)
+    {
+        return _semaphore.getMerkleTreeSize(_groupId);
     }
 
     function petitiontype() external pure override returns (PetitionType) {

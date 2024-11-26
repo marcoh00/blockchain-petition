@@ -34,7 +34,11 @@ interface IZKIDP is IIDP {
 
 interface ISemaphoreIDP is IIDP {
     function addMember(uint256) external;
+    function addMembers(uint256[] calldata) external;
     function validateProof(uint256, uint256, uint256, uint256, uint256, uint256[8] calldata) external;
+    function getMerkleTreeRoot() external returns (uint256);
+    function getMerkleTreeDepth() external returns (uint256);
+    function getMerkleTreeSize() external returns (uint256);
 }
 
 interface IZKVerifier {
