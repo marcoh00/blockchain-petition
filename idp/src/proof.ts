@@ -1,5 +1,5 @@
 import { randomBytes } from "crypto";
-import { DataHash, MerkleTree, serializeMerkleProof, SHA256Hash } from "../../shared/merkle";
+import { DataHash, MerkleProof, MerkleTree, serializeMerkleProof, SHA256Hash } from "../../shared/merkle";
 import { ISemaphoreMerkleInfo, NaiveEthereumConnector, PetitionType, PssEthereumConnector, SemaphoreEthereumConnector, ZKEthereumConnector } from "../../shared/web3";
 import { IPssProof, IRegistration, ISemaphoreProofInfo, checkValidType, serialize_semaphore_proof_info } from "../../shared/idp";
 import { Database } from "./database";
@@ -39,7 +39,7 @@ export interface IProofHandler {
     register(registration: IRegistration, token: string): Promise<WebResult>
     interval_task()
     interval(): Promise<number>
-    return_proof(db_result: string): Promise<string>
+    return_proof(db_result: string): Promise<any>
 }
 
 interface EventInformation {
@@ -70,8 +70,8 @@ export class ZKProofHandler implements IProofHandler {
         return Math.ceil(await this.connector.interval());
     }
 
-    async return_proof(db_result: string): Promise<string> {
-        return JSON.stringify(db_result);
+    async return_proof(db_result: string): Promise<MerkleProof> {
+        return JSON.parse(db_result);
     }
 
     check_registration_info(registration: IRegistration, minperiod: number, maxperiod: number): Promise<WebResult> {
@@ -315,7 +315,7 @@ export class NaiveProofHandler implements IProofHandler {
     }
 
     async return_proof(db_result: string): Promise<string> {
-        return JSON.stringify(db_result);
+        return JSON.parse(db_result);
     }
 
     check_registration_info(registration: IRegistration, minperiod: number, maxperiod: number): Promise<WebResult> {
@@ -436,7 +436,7 @@ export class PssProofHandler implements IProofHandler {
     }
 
     async return_proof(db_result: string): Promise<string> {
-        return JSON.stringify(db_result);
+        return JSON.parse(db_result);
     }
 
     check_registration_info(registration: IRegistration, minperiod: number, maxperiod: number): Promise<WebResult> {

@@ -200,7 +200,9 @@ setTimeout(async () => {
         console.log(`💾 Connecting to database at ${DB_FILE}`);
         const interval = await proof_handler.interval();
         console.log(`🌐 Try to create a new tree hash every ${interval}s`);
-        setInterval(repeat, interval * 1000);
+        if (interval != Number.MAX_VALUE) {
+            setInterval(repeat, interval * 1000);
+        }
 
     })
 }, 1);
