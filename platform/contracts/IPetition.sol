@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8;
 
 import "./StimmrechtsbeweisVerifier.sol";
@@ -18,6 +18,7 @@ interface IIDP {
     function periodlen() external view returns (uint256);
     function period() external view returns (uint256);
     function url() external view returns (string memory);
+    function change_operator(address) external;
 }
 
 interface INaiveIDP is IIDP {

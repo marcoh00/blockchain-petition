@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8;
 
 import "./IPetition.sol";
@@ -11,10 +11,17 @@ abstract contract IDP is IIDP {
 
     uint256 PERIOD_LEN;
     string idpUrl;
+    address operator;
 
     constructor(uint256 lPeriodLen, string memory lidpUrl) {
         PERIOD_LEN = lPeriodLen;
         idpUrl = lidpUrl;
+        operator = msg.sender;
+    }
+
+    function change_operator(address new_operator) override external {
+        require(msg.sender == operator);
+        operator = new_operator;
     }
 
     function periodlen() override external view returns (uint256) {
@@ -67,6 +74,7 @@ contract ZKIDP is IZKIDP, IDP {
         bytes32 rt,
         uint256 designatedPeriod
     ) external override returns (uint256) {
+        require(msg.sender == operator);
         require(designatedPeriod == period());
         resetIterationCounterIfNeccessary();
         pLastIteration += 1;
@@ -113,6 +121,7 @@ contract NaiveIDP is INaiveIDP, IDP {
         address toAllow,
         uint256 designatedPeriod
     ) external override {
+        require(msg.sender == operator);
         require(designatedPeriod == period());
         authorized[toAllow][designatedPeriod] = true;
         emit VotingRightAdded(toAllow, designatedPeriod);
@@ -157,10 +166,12 @@ contract SemaphoreIDP is IDP, ISemaphoreIDP {
     }
 
     function addMember(uint256 identity_commitment) external {
+        require(msg.sender == operator);
         _semaphore.addMember(_groupId, identity_commitment);
     }
 
     function addMembers(uint256[] calldata identity_commitments) external override {
+        require(msg.sender == operator);
         _semaphore.addMembers(_groupId, identity_commitments);
     }
 
