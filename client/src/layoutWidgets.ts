@@ -1,12 +1,12 @@
 import { icon } from '@fortawesome/fontawesome-svg-core';
-import { faCheck, faClose, faRefresh } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faClose, faRefresh, faRocket } from '@fortawesome/free-solid-svg-icons';
 import { LitElement, html, css } from 'lit';
 import { property } from 'lit/decorators.js';
 import { IPetition } from '../../shared/web3';
 import { decorateClassWithState, IState } from './state';
 import { basicFlex, buttonMixin, faStyle, topDownFlex } from './styles';
 import { NoEntryError } from './keys';
-import { checkValidType } from '../../shared/idp';
+import { measurePerformance } from './perf';
 
 enum PageStage {
   Landing,
@@ -201,6 +201,9 @@ export class MainPage extends decorateClassWithState(LitElement) {
   @property({ type: Array })
   petitions: IPetition[] = [];
 
+  @property()
+  perf_running: boolean;
+
   static styles = [faStyle, basicFlex, topDownFlex, css`
         :host {
             align-items: stretch;
@@ -230,7 +233,7 @@ export class MainPage extends decorateClassWithState(LitElement) {
     console.log("Render Petitions", this.petitions);
     return html`
             <div class="cardlist">
-                <h1>Petitionen <span class="link" @click=${this.refreshClick}>${icon(faRefresh).node}</span></h1>
+                <h1>Petitionen <span class="link" @click=${this.refreshClick}>${icon(faRefresh).node}</span> <span class="link" @click=${this.perfClick}>${icon(faRocket).node}</span></h1>
                 ${this.petitions.map((petition, idx) => html`<petition-card .petition=${petition} .idx=${idx} .signable=${this.isSignable(petition) && petition.signable} @sign=${this.signPetition}></petition-card>`)}
             </div>
         `
@@ -252,6 +255,17 @@ export class MainPage extends decorateClassWithState(LitElement) {
     return signable;
   }
 
+  async perfClick() {
+    this.perf_running = !this.perf_running;
+    if (this.perf_running) {
+      setTimeout(async () => await measurePerformance(this.getState().provider, (run) => this.perfShouldRun(run), (runs, time) => { }), 0);
+    }
+  }
+
+  perfShouldRun(run: number) {
+    return this.perf_running && run < 1000;
+  }
+
   async signPetition(e: CustomEvent) {
     const petition = this.petitions[e.detail as number];
     if (!petition.signable) {
@@ -263,7 +277,7 @@ export class MainPage extends decorateClassWithState(LitElement) {
       return;
     }
     try {
-      await this.getState().provider.sign(petition);
+      await this.getState().provider.sign(petition, true);
     }
     catch (e) {
       if (e == NoEntryError) {

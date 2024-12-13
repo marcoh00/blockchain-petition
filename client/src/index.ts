@@ -3,6 +3,7 @@ import { CreatePage, ErrorView, MainPage, PetitionApp } from './layoutWidgets';
 import { ConnectionPage, LandingPage, RegistryChooser, IdentityPage } from './setup';
 import { IDPWidget, InformationalInfobar, NavigationBar, PeriodWidget } from './nav';
 import { Petition } from './petition';
+import { PerfMeasure } from './perf';
 
 customElements.define("petition-app", PetitionApp);
 customElements.define("landing-page", LandingPage);
@@ -19,3 +20,4 @@ customElements.define("idp-widget", IDPWidget);
 customElements.define("overlay-element", OverlayElement);
 customElements.define("loading-spinner", LoadingSpinner);
 customElements.define("create-petition", CreatePage);
+customElements.define("measure-perf", PerfMeasure);

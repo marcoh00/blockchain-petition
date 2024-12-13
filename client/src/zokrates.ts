@@ -18,9 +18,13 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
     provider?: ZoKratesProvider;
     provingKey?: Uint8Array;
     compilationArtifacts?: CompilationArtifacts;
+    worker: Worker;
+    customurl?: string;
 
-    constructor() {
+    constructor(worker?: Worker, url?: string) {
         super();
+        this.customurl = url;
+        this.worker = typeof (worker) === "object" ? worker : new Worker(new URL("./compileZokratesWorker.js", import.meta.url));
     }
 
     async init() {
@@ -34,6 +38,7 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
     }
 
     initProgress(text: string = undefined, done: boolean = false) {
+        console.log(text);
         this.setState({
             ...this.getState(),
             lockspinner: !done,
@@ -43,25 +48,22 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
 
     compile(): Promise<CompilationArtifacts> {
         return new Promise((resolve, reject) => {
-            const worker = new Worker(new URL("./compileZokratesWorker.js", import.meta.url));
-            worker.onmessage = (e) => e.data[0] !== "error" ? resolve(e.data[1] as CompilationArtifacts) : reject(e.data[1]);
-            worker.postMessage(["compileSource"]);
+            this.worker.onmessage = (e) => e.data[0] !== "error" ? resolve(e.data[1] as CompilationArtifacts) : reject(e.data[1]);
+            this.worker.postMessage(["compileSource"]);
         });
     }
 
     computeWitness(artifacts: CompilationArtifacts, args: any[]): Promise<ComputationResult> {
         return new Promise((resolve, reject) => {
-            const worker = new Worker(new URL("./compileZokratesWorker.js", import.meta.url));
-            worker.onmessage = (e) => e.data[0] !== "error" ? resolve(e.data[1] as ComputationResult) : reject(e.data[1]);
-            worker.postMessage(["computeWitness", artifacts, args]);
+            this.worker.onmessage = (e) => e.data[0] !== "error" ? resolve(e.data[1] as ComputationResult) : reject(e.data[1]);
+            this.worker.postMessage(["computeWitness", artifacts, args]);
         });
     }
 
     generateProof(program: Uint8Array, witness: Uint8Array, provingKey: Uint8Array): Promise<Proof> {
         return new Promise((resolve, reject) => {
-            const worker = new Worker(new URL("./compileZokratesWorker.js", import.meta.url));
-            worker.onmessage = (e) => e.data[0] !== "error" ? resolve(e.data[1] as Proof) : reject(e.data[1]);
-            worker.postMessage(["jsProof", program, witness, provingKey]);
+            this.worker.onmessage = (e) => e.data[0] !== "error" ? resolve(e.data[1] as Proof) : reject(e.data[1]);
+            this.worker.postMessage(["jsProof", program, witness, provingKey]);
         });
     }
 
@@ -157,7 +159,7 @@ export class ZokratesHelper extends decorateClassWithState(ZokratesBase) {
 
     async download_pk() {
         // url_zk() call
-        const url = `${await this.getState().connector.connector.url()}/proving.key`;
+        const url = typeof (this.customurl) === "string" && this.customurl !== "" ? this.customurl : `${await this.getState().connector.connector.url()}/proving.key`;
         const response = await fetch(url);
         const filesize = Number.parseInt(response.headers.get("content-length"));
 

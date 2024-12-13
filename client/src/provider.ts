@@ -8,7 +8,7 @@ import { ZokratesHelper } from "./zokrates";
 import init, { Algorithm, JsGroupManagerPublicKey, JsIccSecretKey, JsPublicKey, init_panic_hook } from "pss-rs-wasm";
 
 export interface IClientProvider {
-    sign(petition: IPetition): Promise<void>;
+    sign(petition: IPetition, send: boolean): Promise<void>;
     signable(petition: IPetition): Promise<boolean>
     signed(petition: IPetition): Promise<boolean>
     key_manager(idp: IDPManager): Promise<KeyManager<any, any>>
@@ -22,7 +22,7 @@ export class ZKClientProvider extends decorateClassWithState(ClientProviderBase)
 
     zokrates_helper?: ZokratesHelper
 
-    async sign(petition: IPetition): Promise<void> {
+    async sign(petition: IPetition, send: boolean = true): Promise<void> {
         await this._init();
         const hpers = await this._hpers(petition);
         const key = await this.keymanager.get_key(petition.period);
@@ -33,7 +33,9 @@ export class ZKClientProvider extends decorateClassWithState(ClientProviderBase)
             key,
             idp_proof
         );
-        await this.zkconnector.signPetition_zk(petition.address, zokrates_proof.points, hpers, idp_proof.iteration);
+        if (send) {
+            await this.zkconnector.signPetition_zk(petition.address, zokrates_proof.points, hpers, idp_proof.iteration);
+        }
     }
     async signable(petition: IPetition): Promise<boolean> {
         return !await this.signed(petition);
@@ -74,9 +76,11 @@ export class NaiveClientProvider extends decorateClassWithState(ClientProviderBa
     get nconnector() { return this.getState().connector.connector as NaiveEthereumConnector }
     get keymanager() { return this.getState().keymanager as NaiveKeyManager }
 
-    async sign(petition: IPetition): Promise<void> {
+    async sign(petition: IPetition, send: boolean = true): Promise<void> {
         await this.ensure_registered(petition.period);
-        await this.nconnector.signPetition(petition.address);
+        if (send) {
+            await this.nconnector.signPetition(petition.address);
+        }
     }
 
     async signable(petition: IPetition): Promise<boolean> {
@@ -122,10 +126,12 @@ export class PssClientProvider extends decorateClassWithState(ClientProviderBase
         this.initialized = false;
     }
 
-    async sign(petition: IPetition): Promise<void> {
+    async sign(petition: IPetition, send: boolean = true): Promise<void> {
         await this._init();
         const signature = await this._get_signature(petition);
-        const tx = await this.pssconnector.signPetition(petition.address, signature.c, signature.s1, signature.s2, signature.i_sector_icc_1);
+        if (send) {
+            const tx = await this.pssconnector.signPetition(petition.address, signature.c, signature.s1, signature.s2, signature.i_sector_icc_1);
+        }
     }
 
     async signable(petition: IPetition): Promise<boolean> {
@@ -210,7 +216,7 @@ export class SemaphoreClientProvider extends decorateClassWithState(ClientProvid
     get connector() { return this.getState().connector.connector as SemaphoreEthereumConnector }
     get keymanager() { return this.getState().keymanager as SemaphoreKeyManager }
 
-    async sign(petition: IPetition): Promise<void> {
+    async sign(petition: IPetition, send: boolean = true): Promise<void> {
         const key = await this.keymanager.get_key(1);
         const proof_data = await this.keymanager.get_proof(1);
         const group = new Group(proof_data.members);
@@ -220,8 +226,10 @@ export class SemaphoreClientProvider extends decorateClassWithState(ClientProvid
         const proof = await generateProof(key.identity, group, 1936287598, petition.id);
         console.timeEnd("Semaphore Proof");
         console.log("Generated proof", proof);
-        this.loading("Sign petition");
-        await this.connector.signPetition(petition.address, proof.merkleTreeDepth, proof.merkleTreeRoot, proof.nullifier, proof.points);
+        if (send) {
+            this.loading("Sign petition");
+            await this.connector.signPetition(petition.address, proof.merkleTreeDepth, proof.merkleTreeRoot, proof.nullifier, proof.points);
+        }
         this.loading("", false);
     }
     async signable(petition: IPetition): Promise<boolean> {

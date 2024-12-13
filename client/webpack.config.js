@@ -42,6 +42,11 @@ module.exports = {
           template: './src/index.html',
           filename: 'index.html'
       }),
+      new HtmlWebPackPlugin({
+        hash: true,
+        template: './src/perf.html',
+        filename: 'perf.html'
+      }),
       new NodePolyfillPlugin()
   ],
   experiments: {
