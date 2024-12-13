@@ -4,7 +4,15 @@ import { ethers } from "hardhat";
 interface IContractAddresses {
   idp: string,
   registry: string,
-  verifier: string | null
+  verifier: string | null,
+  semaphore?: string,
+  idp_args: string,
+  registry_args: string,
+  verifier_args: string | null
+}
+
+interface ISCInfo {
+  [t: string]: IContractAddresses
 }
 
 enum KeyType {
@@ -15,9 +23,14 @@ enum KeyType {
   Semaphore
 }
 
+function argumentsJsForVerify(...args: any[]): string {
+  return `module.exports = ${JSON.stringify(args)};`
+}
+
 async function deployPss(keyfile: string, keytype: KeyType, idpcontract: string, verifiercontract: string, port: number, registrybuilder: any): Promise<IContractAddresses> {
   const PSSIDP = await ethers.getContractFactory(idpcontract);
   const idp_pss = await PSSIDP.deploy(`http://localhost:${port}`, keytype);
+  const idp_args = argumentsJsForVerify(`http://localhost:${port}`, keytype);
   console.log(`IDP PSS for ${verifiercontract} deployed to ${await idp_pss.getAddress()}`);
 
   const pss_key = JSON.parse(readFileSync(keyfile).toString());
@@ -44,6 +57,7 @@ async function deployPss(keyfile: string, keytype: KeyType, idpcontract: string,
   }
   console.log("Verifier keys:", "pk_m", pk_m, "pk_icc", pk_icc, "pk_sector", pk_sector, "pk_sector_x_test", BigInt(pk_sector.X));
   const verifier_pss = await PSSVerifier.deploy(pk_m, pk_icc, pk_sector);
+  const verifier_args = argumentsJsForVerify(pk_m, pk_icc, pk_sector);
   const verifier_pss_addr = await verifier_pss.getAddress();
   console.log(`PSS Verifier ${verifiercontract} deployed to ${verifier_pss_addr}`);
 
@@ -53,9 +67,15 @@ async function deployPss(keyfile: string, keytype: KeyType, idpcontract: string,
     verifier_pss_addr,
     keytype
   );
+  const reg_args = argumentsJsForVerify(
+    ethers.zeroPadBytes(ethers.toUtf8Bytes(`PSS ${verifiercontract} Registry`), 32),
+    await idp_pss.getAddress(),
+    verifier_pss_addr,
+    keytype
+  );
   //await reg_pss.deployed();
   console.log(`Registry PSS for ${verifiercontract} deployed to ${await reg_pss.getAddress()}. Verifier address is ${await reg_pss.verifier()}`);
-  return { idp: await idp_pss.getAddress(), registry: await reg_pss.getAddress(), verifier: verifier_pss_addr };
+  return { idp: await idp_pss.getAddress(), registry: await reg_pss.getAddress(), verifier: verifier_pss_addr, idp_args: idp_args, registry_args: reg_args, verifier_args: verifier_args };
 }
 
 async function main() {
@@ -67,7 +87,10 @@ async function main() {
   // validity = 604800 ~ 1 week
   // 5400 ~ 90min
   const idp_naive = await NaiveIDP.deploy(18000, "http://localhost:65535");
+  const idp_naive_args = argumentsJsForVerify(18000, "http://localhost:65535");
+
   const idp_zk = await ZKIDP.deploy(18000, "http://localhost:65530", 3);
+  const idp_zk_args = argumentsJsForVerify(18000, "http://localhost:65530", 3);
 
   //await idp_naive.deployed();
   console.log(`IDP deployed to ${await idp_naive.getAddress()}`);
@@ -82,7 +105,7 @@ async function main() {
 
   const Registry = await ethers.getContractFactory("Registry");
 
-  const psscontracts: any = {};
+  const psscontracts: ISCInfo = {};
   try {
     psscontracts.psssecp256k1 = await deployPss("../pss/secp256k1key.json", KeyType.Secp256k1PSS, "PSSIDP", "PssSecp256k1", 65525, Registry);
     psscontracts.pssaltbn128 = await deployPss("../pss/altbn128key.json", KeyType.AltBn128PSS, "PSSIDP", "PssAltBn128", 65520, Registry);
@@ -98,10 +121,22 @@ async function main() {
     "0x0000000000000000000000000000000000000000",
     0
   );
+  const reg_naive_args = argumentsJsForVerify(
+    ethers.zeroPadBytes(ethers.toUtf8Bytes("Naive Registry"), 32),
+    await idp_naive.getAddress(),
+    "0x0000000000000000000000000000000000000000",
+    0
+  );
   //await reg_naive.deployed();
   console.log(`Naive Registry deployed to ${await reg_naive.getAddress()}`);
 
   const reg_zk = await Registry.deploy(
+    ethers.zeroPadBytes(ethers.toUtf8Bytes("ZK Registry"), 32),
+    await idp_zk.getAddress(),
+    await verifier_zk.getAddress(),
+    1
+  );
+  const reg_zk_args = argumentsJsForVerify(
     ethers.zeroPadBytes(ethers.toUtf8Bytes("ZK Registry"), 32),
     await idp_zk.getAddress(),
     await verifier_zk.getAddress(),
@@ -118,9 +153,16 @@ async function main() {
 
   const SemaphoreIDP = await ethers.getContractFactory("SemaphoreIDP", link_opts);
   const idp_semaphore = await SemaphoreIDP.deploy("http://localhost:65515");
+  const idp_semaphore_args = argumentsJsForVerify("http://localhost:65515");
   console.log(`IDP Semaphore deployed to ${await idp_semaphore.getAddress()}`);
 
   const reg_semaphore = await Registry.deploy(
+    ethers.zeroPadBytes(ethers.toUtf8Bytes("Semaphore Registry"), 32),
+    await idp_semaphore.getAddress(),
+    "0x0000000000000000000000000000000000000000",
+    4
+  );
+  const reg_semaphore_args = argumentsJsForVerify(
     ethers.zeroPadBytes(ethers.toUtf8Bytes("Semaphore Registry"), 32),
     await idp_semaphore.getAddress(),
     "0x0000000000000000000000000000000000000000",
@@ -130,22 +172,31 @@ async function main() {
 
   console.log("psscontracts", psscontracts);
 
-  const addresses = {
+  const addresses: ISCInfo = {
     naive: {
       idp: await idp_naive.getAddress(),
       registry: await reg_naive.getAddress(),
-      verifier: null
+      verifier: null,
+      idp_args: idp_naive_args,
+      registry_args: reg_naive_args,
+      verifier_args: null
     },
     zk: {
       idp: await idp_zk.getAddress(),
       registry: await reg_zk.getAddress(),
-      verifier: await verifier_zk.getAddress()
+      verifier: await verifier_zk.getAddress(),
+      idp_args: idp_zk_args,
+      registry_args: reg_zk_args,
+      verifier_args: null
     },
     semaphore: {
       idp: await idp_semaphore.getAddress(),
       registry: await reg_semaphore.getAddress(),
       semaphore: await idp_semaphore.getSemaphore(),
-      verifier: null
+      verifier: null,
+      idp_args: idp_semaphore_args,
+      registry_args: reg_semaphore_args,
+      verifier_args: null
     },
     ...psscontracts
   };

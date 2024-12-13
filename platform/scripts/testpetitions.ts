@@ -30,18 +30,18 @@ async function main() {
   const IDP_psssecp256k1 = await IDPFactory_psssecp256k1.attach(contracts.psssecp256k1.idp);
 
   const names = [
-    "Luftbrücke für die Ukraine",
-    "TSG abschaffen",
-    "Grundeinkommen",
-    "Kreisverkehr kann Leben retten!",
-    "Stoppt den Welpenhandel"
+    "Save the Rainforests",
+    "Support Local Farmers",
+    "End Plastic Pollution",
+    "Protect Wildlife Corridors",
+    "Affordable Education for All"
   ];
   const descriptions = [
-    `Frau Baerbock, Herr Scholz, wir fordern für die bedrohten ukrainischen Städte und Dörfer eine zivile Luftbrücke mit Versorgungsgütern: Nahrungsmitteln, Wasser, Medikamente, Hygieneartikel und Kleidung. Das alles fehlt und ist für meine Familie und die Menschen in der Ukraine eine Frage von Leben und Tod.`,
-    `Ich bin Emma, 17 Jahre alt und selbst trans. Nachdem die Große Koalition ihren eigenen Koalitionsvertrag gebrochen hat und der Bundestag kein neues Selbstbestimmungsgesetz auf den Weg gebracht hat, fordere ich nun von der neuen Bundesregierung die Abschaffung des Transsexuellengesetzes. Wir brauchen ein Selbstbestimmungsgesetz. Und das noch dieses Jahr. Ich fordere #Selbstbestimmung2022!`,
-    `Wir fordern, dass die Politik endlich ihrer zentralen Aufgabe nachkommt und wegweisende, zukunftsgerichtete Strukturen aufsetzt. Angesichts des aufgeblähten Niedriglohnsektors, einer unerwarteten Corona-Krise, unfassbar ineffizientem Bürokratiedickicht, lebensbedrohlichem Klimawandel und der Vermögensschere, die immer weiter auseinander klafft, gibt es für uns nur ein Instrument: das Bedingungslose Grundeinkommen!`,
-    `Daher fordern wir die Errichtung eines Kreisverkehrs an der Kreuzung B516 und K8! Das Schicksal von Antonia darf sich nicht wiederholen. Das Land NRW und der Verkehrsminister Hendrik Wüst sollen endlich handeln und zeigen, dass sie aus diesem schrecklichen Vorfall gelernt haben.`,
-    `Der illegale Welpenhandel boomt seit der Corona-Pandemie wie nie zuvor. Die Fakten rund um das hoch lukrative Geschäft mit viel zu jungen Hundebabys, die unter tierschutzwidrigsten Bedingungen in osteuropäischen Vermehrer-Stationen gezüchtet werden, sind weitläufig bekannt. Es ist höchste Zeit diesen illegalen Welpenhandel zu stoppen!`
+    `Our rainforests are disappearing at an alarming rate. We call on policymakers to enforce stricter regulations against deforestation and support sustainable practices. Together, we can protect biodiversity and combat climate change.`,
+    `Local farmers need our help! Demand subsidies and fair pricing policies to ensure their livelihoods and promote healthy, homegrown produce. Let's prioritize our communities and sustainable agriculture over corporate farming.`,
+    `Single-use plastics are choking our oceans. Join us in urging governments to ban non-recyclable plastics and invest in innovative, eco-friendly materials. It's time to protect marine life and preserve our planet for future generations.`,
+    `Urban expansion threatens critical wildlife corridors. Advocate for smart planning and conservation measures that ensure animals can roam safely in their habitats. Together, we can maintain balance in our ecosystems.`,
+    `Education is a right, not a privilege. Sign this petition to push for increased funding for public schools and accessible higher education. Let's break barriers and create opportunities for everyone.`
   ];
   const ids = [
     "0x0000000000000000000000000000000000000000000000000000000000000000",
