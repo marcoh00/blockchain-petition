@@ -37,9 +37,21 @@ const source = `
     }
 `;
 
+var wrapped = null;
+
+function postMessageWrapped(message) {
+    console.log("ZoKrates post", wrapped);
+    if(wrapped) {
+        wrapped(message);
+    } else {
+        postMessage(message)
+    }
+}
+
 function doCompile(provider) {
     return provider.compile(source);
 }
+
 function compileSource() {
     console.log("[Worker] compileSource");
     return initialize()
@@ -52,11 +64,11 @@ function compileSource() {
         })
         .then(compileArtifact => {
             console.log("[Worker] compileSource > finished. Size: ", compileArtifact.program.length);
-            postMessage(["compileSource", compileArtifact]);
+            postMessageWrapped(["compileSource", compileArtifact]);
         })
         .catch(e => {
             console.log("[Worker] computeWitness > error!", e);
-            postMessage(["error", e]);
+            postMessageWrapped(["error", e]);
         });
 }
 
@@ -72,11 +84,11 @@ function computeWitness(artifacts, args) {
         })
         .then(result => {
             console.log("[Worker] computeWitness > finished", result);
-            postMessage(["computeWitness", result]);
+            postMessageWrapped(["computeWitness", result]);
         })
         .catch(e => {
             console.log("[Worker] computeWitness > error!", e);
-            postMessage(["error", e]);
+            postMessageWrapped(["error", e]);
         });
 }
 
@@ -92,15 +104,20 @@ function jsProof(program, witness, provingKey) {
         })
         .then(result => {
             console.log("[Worker] jsProof > finished", result);
-            postMessage(["jsProof", result]);
+            postMessageWrapped(["jsProof", result]);
         })
         .catch(e => {
             console.log("[Worker] jsProof > error!", e);
-            postMessage(["error", e]);
+            postMessageWrapped(["error", e]);
         });
 }
 
 onmessage = function(e) {
+    console.log("ZoKrates onmessage");
+    return external_onmessage(e);
+}
+
+function external_onmessage(e) {
     // e.data[0] verb
     // - compileSource
     // - computeWitness
@@ -125,6 +142,12 @@ onmessage = function(e) {
         }
     } catch(e) {
         console.log("[Worker] error!", e);
-        this.postMessage(["error", e]);
+        postMessageWrapped(["error", e]);
     }
+}
+
+export function wrapper(e, res) {
+    console.log("ZoKrates wrapper");
+    wrapped = res;
+    external_onmessage(e);
 }
