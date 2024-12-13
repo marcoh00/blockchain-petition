@@ -59,10 +59,26 @@ export class PerfMeasure extends LitElement {
     time: number;
 
     @property()
+    firstrun: number;
+
+    @property()
     status: number;
 
     @property()
     selected_algo: string = "zk";
+
+    all_times: number[];
+
+    @property()
+    mean: number;
+
+    @property()
+    stddev: number;
+
+    constructor() {
+        super();
+        this.all_times = [];
+    }
 
     render() {
         return html`
@@ -91,6 +107,15 @@ export class PerfMeasure extends LitElement {
                 <p>Status: ${this.status}</p>
                 <p>Runs: ${this.runs}</p>
                 <p>Time: ${this.time}</p>
+            </div>
+
+            <div class="statuselems">
+                <p>First run: ${this.firstrun}</p>
+            </div>
+
+            <div class="statuselems">
+                <p>Mean: ${this.mean}</p>
+                <p>Std. Dev.: ${this.stddev}</p>
             </div>
         `;
     }
@@ -128,10 +153,32 @@ export class PerfMeasure extends LitElement {
     }
 
     handleWorkerMsg(e: any) {
+        if (e.data[0] === "initialized") {
+            this.firstrun = e.data[2];
+        }
+        const last_measurement = typeof (this.time) === "number" ? this.time : 0;
         this.status = e.data[0];
         this.runs = e.data[1];
         this.time = e.data[2];
+        if (e.data[0] === "measuring" && e.data[1] !== 0) {
+            this.all_times.push(this.time - last_measurement);
+            const stat = std_dev_mean(this.all_times);
+            this.mean = stat.mean;
+            this.stddev = stat.stddev;
+        }
     }
+}
+
+function std_dev_mean(ary: number[]): { mean: number, stddev: number } {
+    const sum = ary.reduce((x, y) => x + y);
+    const mean = sum / ary.length;
+    const stddev = Math.sqrt(
+        ary
+            .map(x => Math.pow(x - mean, 2))
+            .reduce((x, y) => x + y)
+        / ary.length
+    );
+    return { mean, stddev };
 }
 
 function keyDataFor(alg: string): string | null {

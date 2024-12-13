@@ -55,7 +55,7 @@ async function sign_zk(petition, key, connector) {
                 wrapper({data: message}, function(res) { parentthis.onmessage({data: res}) })
             }
         };
-        zokrates_helper = new ZokratesHelper(wrappedWorker, "http://localhost:65530/proving.key");
+        zokrates_helper = new ZokratesHelper(wrappedWorker, "http://192.168.178.47:65530/proving.key");
         await zokrates_helper.init();
         zokrates_init = true;
     }
@@ -163,7 +163,10 @@ function generatePetition() {
 
 async function do_measurements(algfunc, maxtime, maxruns) {
     postMessage(["initializing", 0, 0]);
+    const start_init = performance.now();
     await algfunc(generatePetition());
+    const end_init = performance.now();
+    postMessage(["initialized", 0, end_init - start_init]);
 
     postMessage(["measuring", 0, 0]);
     let runs = 0;
