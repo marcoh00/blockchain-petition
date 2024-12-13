@@ -51,7 +51,7 @@ async function determine_listen_port(fallback: number): Promise<number> {
 
 const corsOptions: CorsOptions = {
     methods: ["GET", "POST"],
-    origin: ["http://localhost:8080", `http://localhost:${PORT}`]
+    origin: ["http://localhost:8080", `http://localhost:${PORT}`, "http://192.168.178.47:8080", `http://192.168.178.47:${PORT}`]
 }
 
 app.use("/proving.key", cors(corsOptions), express.static(PROVINGKEY_FILE));
