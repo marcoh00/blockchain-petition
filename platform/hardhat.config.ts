@@ -5,9 +5,10 @@ import "@nomicfoundation/hardhat-ethers";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
+import "@nomicfoundation/hardhat-verify";
 
 import { DEFAULT_NETWORK, NETWORKS } from "../shared/addr";
-import { SolcUserConfig } from "hardhat/types";
+import { HttpNetworkUserConfig, NetworkUserConfig, SolcUserConfig } from "hardhat/types";
 
 dotenv.config();
 
@@ -55,6 +56,12 @@ const semaphore_settings: SolcUserConfig = {
     }
   }
 };
+
+const envconfig: HttpNetworkUserConfig = {
+  url: process.env.WEB3_URL,
+  chainId: Number.parseInt(process.env.CHAIN_ID || "-1"),
+  accounts: [process.env.ACCOUNT || "0"]
+}
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -108,7 +115,24 @@ const config: HardhatUserConfig = {
       accounts:
         [DEFAULT_NETWORK.privkey]
     }
+  },
+  etherscan: {
+    apiKey: {
+      sepolia: process.env.ETHERSCAN_API,
+      optimisticSepolia: process.env.ETHERSCAN_API_OPTIMISTIC
+    },
+    customChains: [
+      {
+        network: "optimisticSepolia",
+        chainId: 11155420,
+        urls: {
+          apiURL: "https://api-sepolia-optimistic.etherscan.io/api",
+          browserURL: "https://sepolia-optimism.etherscan.io"
+        }
+      }
+    ]
   }
+
 };
 
 export default config;
