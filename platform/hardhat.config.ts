@@ -114,12 +114,13 @@ const config: HardhatUserConfig = {
       url: DEFAULT_NETWORK.api,
       accounts:
         [DEFAULT_NETWORK.privkey]
-    }
+    },
+    envconfig
   },
   etherscan: {
     apiKey: {
-      sepolia: process.env.ETHERSCAN_API,
-      optimisticSepolia: process.env.ETHERSCAN_API_OPTIMISTIC
+      sepolia: process.env.ETHERSCAN_API || "0",
+      optimisticSepolia: process.env.ETHERSCAN_API_OPTIMISTIC || "0"
     },
     customChains: [
       {

@@ -28,7 +28,7 @@ const REGISTRY_CONTRACT: string = argv.registry === undefined ? DEFAULT_NETWORK.
 const DB_FILE = argv.database === undefined ? DBFILE : argv.database;
 const DATABASE = new Database(DB_FILE);
 const API = argv.api === undefined ? DEFAULT_NETWORK.wsapi : argv.api;
-const ACCOUNT = argv.account === undefined ? DEFAULT_NETWORK.account : argv.api;
+const ACCOUNT = argv.account === undefined ? DEFAULT_NETWORK.account : argv.account;
 const PRIVKEY = argv.privkey === undefined ? DEFAULT_NETWORK.privkey : argv.privkey;
 const PROVINGKEY_FILE = argv.provingkey === undefined ? PROVINGKEY : argv.provingkey;
 const PSSKEY_FILE = argv.psskey === undefined ? "psskey.json" : argv.psskey;

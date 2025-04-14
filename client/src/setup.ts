@@ -166,6 +166,12 @@ export class RegistryChooser extends LitElement {
             descr: "Testcontract auf lokaler Blockchain mit Semaphore",
             ident: "Texteingabe",
             chainid: NETWORKS.localhost_semaphore.chainid
+        },
+        {
+            addr: "0xe86a4d6dF4A4047b7b6d9c5d3f878eB61a53Dee2",
+            descr: "Testcontract auf Sepolia Blockchain mit sema",
+            ident: "Texteingabe",
+            chainid: 11155111
         }
     ];
 

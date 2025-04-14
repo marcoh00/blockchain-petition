@@ -219,7 +219,7 @@ export class ZKEthereumConnector extends EthereumConnector {
          */
         let method = this.idpcontract.methods.submitHash(`0x${client_identity}`, period);
         const data = method.encodeABI();
-        const gas = await method.estimateGas();
+        const gas = await method.estimateGas({ from: this.account });
         const raw_tx = {
             from: this.account,
             to: await this.registrycontract.methods.idp().call(),
@@ -269,15 +269,17 @@ export class NaiveEthereumConnector extends EthereumConnector {
     async submitHash(client_identity: string, period: number) {
         let method = this.idpcontract.methods.submitVotingRight(`${client_identity}`, period);
         const data = method.encodeABI();
-        const gas = await method.estimateGas();
+        const gas = await method.estimateGas({ from: this.account });
+        const to = await this.registrycontract.methods.idp().call();
         const raw_tx = {
             from: this.account,
-            to: await this.registrycontract.methods.idp().call(),
+            to,
             data,
             gas
         };
         console.log("Transaction", raw_tx);
         const signed = await this.api.eth.accounts.signTransaction(raw_tx, this.privkey!);
+        console.log("Signed Transaction", raw_tx);
         await this.api.eth.sendSignedTransaction(signed.rawTransaction!);
     }
 
@@ -422,7 +424,7 @@ export class SemaphoreEthereumConnector extends EthereumConnector {
 
         const method = await this.idpcontract.methods.addMembers(param)
         const data = method.encodeABI();
-        const gas = await method.estimateGas();
+        const gas = await method.estimateGas({ from: this.account });
         const raw_tx = {
             from: this.account,
             to: await this.registrycontract.methods.idp().call(),

@@ -81,8 +81,8 @@ export class IDPManager extends decorateClassWithState(
         progress.working = true;
         progress.failed = false;
         this.setState(this.getState());
-
-        if (typeof (this.credentials[period].token === "undefined")) {
+        console.log("Current credentials for period", this.credentials[period], progress);
+        if (typeof (this.credentials[period].token) === "undefined") {
             try {
                 const token_or_error = await fetch(`${this.endpoint}/register`, {
                     method: "POST",
