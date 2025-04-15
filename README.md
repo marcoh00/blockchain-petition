@@ -1,61 +1,61 @@
-# Technischer Prototyp für Petitionen auf der Blockchain
+# Technical Prototype for Petitions on the Blockchain
 
-Die vorliegende Sammlung stellt einen Prototyp für ein Petitionssystem auf der Blockchain dar.
-Folgende Komponenten sind enthalten:
+This repository provides a prototype for a blockchain-based petition system.  
+The following components are included:
 
 ## Client
 
-Web-Frontend für Nutzer.
-Verbindet sich mit einer vorliegenden Wallet und generiert IDP- und Perioden-spezifische Schlüssel.
-Kann mit einem `Registry`-Contract interagieren, um alle Details des verwendeten Petitionssystems zu lernen.
-Interagiert im Folgenden mit `IDP`- und `Petition`-Contracts um gültige Unterschriften zu erzeugen.
+Web frontend for users.  
+Connects to an available wallet and generates IDP- and period-specific keys.  
+Can interact with a `Registry` contract to learn all details about the petition system in use.  
+Subsequently interacts with `IDP` and `Petition` contracts to generate valid signatures.
 
 ## IDP
 
-Identity Provider.
-Identifiziert Nutzer und fügt ihre öffentlichen Schlüssel einem Merkle-Tree hinzu, der regelmäßig auf die Blockchain geschrieben wird.
-Stellt Nutzern Credentials in Form von Merkle-Beweisen aus, die es ihnen ermöglichen, an Petitionen teilzunehmen.
+Identity Provider.  
+Identifies users and adds their public keys to a Merkle tree, which is periodically written to the blockchain.  
+Issues credentials to users in the form of Merkle proofs, enabling them to participate in petitions.
 
-IDPs sind per Defitinion vertrauenswürdig: Fehlverhalten der IDPs führt dazu, dass (echte oder durch IDP vorgegebene) Nutzer mehrfach abstimmen können.
-Weigern IDPs sich, Credentials auszustellen, können sie einzelne Nutzer von der Teilnahme am System ausschließen.
-Sobald der Merkle-Tree in die Blockchain geschrieben und der zugehörige Beweis übermittelt wurde, können IDPs die Credentials nicht länger zurückziehen.
-IDPs können nicht nachvollziehen, welche Petitionen durch Nutzer unterschrieben wurden.
+IDPs are trusted by definition: misbehavior by IDPs may result in (real or fake) users being able to vote multiple times.  
+If IDPs refuse to issue credentials, they can exclude users from participating in the system.  
+Once the Merkle tree is written to the blockchain and the corresponding proof is delivered, credentials can no longer be revoked by the IDPs.  
+IDPs cannot trace which petitions users have signed.
 
-## Smart Contract-Plattform
+## Smart Contract Platform
 
-Smart Contracts zur Datenhaltung für IDP, Registry, Petition.
+Smart contracts for data storage of IDP, Registry, and Petition.
 
-## ZoKrates-Programm zur Erstellung von ZK-SNARKs
+## ZoKrates Program for Generating ZK-SNARKs
 
-Das Projekt verwendet [ZoKrates](https://zokrates.github.io) zur Erstellung von Zero-Knowledge-Beweisen, die die korrekte Ausführung von Programmen der ZoKrates-Sprache beweisen können (s.u.).
+This project uses [ZoKrates](https://zokrates.github.io) to generate zero-knowledge proofs, which can verify the correct execution of programs written in the ZoKrates language (see below).
 
-# Protokoll
+# Protocol
 
-Die Zeit wird auf Basis der Block-Zeitstempel in Perioden aufgeteilt.
-Der IDP-Contract legt fest, wie lange diese Perioden sind.
+Time is divided into periods based on block timestamps.  
+The IDP contract defines the length of these periods.
 
-Alle angegebenen Schritte müssen für eine neue Abstimmungsperiode erneut ausgeführt werden.
-Eine Petition ist einer Abstimmungsperiode fest zugeordnet.
+All steps listed below must be executed anew for each voting period.  
+Each petition is strictly assigned to a single voting period.
 
 1.  `Client -> (ID, K_pub) -> IDP`
     ```
-    ID = [implementierungsspezifisch, zB SSI- oder eIDAS-basiert]
+    ID = [implementation-specific, e.g., SSI- or eIDAS-based]
     K_priv = rnd()
     K_pub = PRF(K_priv)
     ```
 
-    IDP prüft:
-    - `ID` hat sich für die aktuelle Abstimmungsperiode noch nicht identifiziert (die Möglichkeit, mehrere Eintragungen pro ID und Abstimmungsperiode vorzunehmen entspricht der Möglichkeit, mehrfach abzustimmen)
+    The IDP verifies:
+    - `ID` has not yet been identified for the current voting period (the ability to make multiple entries per ID and period equates to the ability to vote multiple times)
 
-2.  `IDP -> (Merkle-Root inkl. K_pub) -> IDP-SC`
+2.  `IDP -> (Merkle-Root incl. K_pub) -> IDP-SC`
 
     `IDP -> (Merkle-Proof, Index) -> Client`
 
-    IDP erzeugt in festen Zeitabständen einen Merkle-Baum über verifizierte Identifier. Der Root-Hash (`rt`) wird auf die Blockchain geschrieben, der Client erhält zusätzlich einen Merkle-Beweis über die Inkludierung seines `K_pub` und den Index, mit dem `rt` aus der Blockchain erhalten werden kann.
+    At fixed intervals, the IDP generates a Merkle tree of verified identifiers. The root hash (`rt`) is written to the blockchain, and the client receives a Merkle proof of the inclusion of their `K_pub` and the index at which `rt` can be retrieved from the blockchain.
 
 3.  `Client -> (H_pers, Index, ZK) -> Petition-SC`
 
-    Client erzeugt einen Hashwert über die Petitions-ID und den öffentlichen Schlüssel.
+    The client creates a hash from the petition ID and their private key.
 
     ```
     rt = (IDP-SC).get(Index)
@@ -63,62 +63,59 @@ Eine Petition ist einer Abstimmungsperiode fest zugeordnet.
     ZK = ZK-SNARK(public rt, public H_pers, public ID_Petition, private K_priv, private K_pub, private directionSelector, private merkleproof)
     ```
 
-    Der ZK-Beweis prüft folgende Bedingungen:
-     - `K_pub = PRF(K_priv)` (d.h. `K_priv` ist bekannt und ist das Pre-Image von `K_pub`)
-    - `H_pers` ist korrekt berechnet worden
-    - `rt` enthält `K_pub` (mit Hilfe von `merkleproof`)
+    The ZK proof verifies the following conditions:
+     - `K_pub = PRF(K_priv)` (i.e., `K_priv` is known and is the pre-image of `K_pub`)
+    - `H_pers` is correctly computed
+    - `rt` contains `K_pub` (using `merkleproof`)
 
-    Der Petitions-SC prüft:
-    - `rt` ist im `IDP`-Smart Contract am angegebenen Index abrufbar
-    - `ZK` ist gültig
-    - `H_pers` ist nicht in der Liste der bisherigen Unterschriften enthalten
+    The Petition-SC verifies:
+    - `rt` is retrievable from the `IDP` smart contract at the given index
+    - `ZK` is valid
+    - `H_pers` has not yet been included in the list of previous signatures
 
-4.  Die Gesamtanzahl der Unterschriften entspricht der Größe des Arrays über alle `H_pers` der Abstimmungsperiode
+4.  The total number of signatures corresponds to the size of the array of all `H_pers` for the voting period.
 
 # Installation
 
-Eine aktuelle Version von [nodejs](https://nodejs.org) wird benötigt.
+A current version of [nodejs](https://nodejs.org) is required.
 
-Installation der zusammenhängenden Bibliothek (im [shared](shared) Ordner ausführen)
+Install the shared library (run in the [shared](shared) folder):
 ```
 npm install
 ```
 
 ## Smart Contract Platform
-im [platform](platform) Ordner
+In the [platform](platform) folder
 
-Installation der Abhängigkeiten
+Install dependencies:
 ```
 npm install
 ```
 
-Start des Development-Servers
-
+Start the development server:
 ```
 npx hardhat node
 ```
 
-Deployment der Smart Contracts
-
+Deploy the smart contracts:
 ```
 npx hardhat run --network localhost scripts/deploy.ts
 ```
 
-Hinzufügen von Test-Petitionen
-
+Add test petitions:
 ```
 npx hardhat run --network localhost scripts/testpetitions.ts
 ```
 
 ## IDP
-im [ipd](idp) Ordner
+In the [idp](idp) folder
 
-Installation der Abhängigkeiten
+Install dependencies:
 ```
 npm install
 ```
 
-Einstellungen werden aktuell über Konstanten in `shared/addr.ts` vorgenommen:
+Configuration is currently done via constants in `shared/addr.ts`:
 ```
 const port = 65535;
 const account = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266';
@@ -128,33 +125,34 @@ const contract = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
 const databasefile = `/home/mhuens2m/build/petition/idp/dist/database.db`;
 ```
 
-Start des Zk Servers
+Start the ZK server:
 ```
 npm run start -- --type zk --port 65530
 ```
-Start des Ohne ZK Servers
+
+Start the non-ZK server:
 ```
 npm run start -- --type normal --port 65535
 ```
 
 ## Client
-im [client](client) Ordner
+In the [client](client) folder
 
-Installation der Abhängigkeiten
+Install dependencies:
 ```
 npm install
 ```
 
-Start des Webpack-Development-Servers
+Start the Webpack development server:
 ```
 npm run dev
 ```
 
 ## Frontend
 
-Der Client ist nach dem Start des Webpack-Servers standardmäßig über [http://localhost:8080](http://localhost:8080) aufrufbar.
-Zur Verwendung ist ein web3-kompatibles Browser-Plugin wie z.B. [MetaMask](https://metamask.io) erforderlich.
-Damit die gesamte Funktionalität genutzt werden kann, muss die Development-Blockchain als "Network" eingetragen werden.
-Standardmäßig ist diese über `localhost:8545` erreichbar und besitzt die Chain ID `31337`.
-Um Transaktionen tätigen zu können, muss zudem ein Account importiert werden, der Kryptowährung besitzt.
-Entsprechende Private Keys werden beim Start des Blockchain-Development Servers ausgegeben (siehe "Smart Contract Platform").
+Once the Webpack server is running, the client is available at [http://localhost:8080](http://localhost:8080) by default.  
+To use the system, a web3-compatible browser plugin such as [MetaMask](https://metamask.io) is required.  
+To access full functionality, the development blockchain must be added as a network.  
+By default, it is available at `localhost:8545` and has the chain ID `31337`.  
+To submit transactions, an account with cryptocurrency must be imported.  
+The corresponding private keys are printed when starting the blockchain development server (see "Smart Contract Platform").
